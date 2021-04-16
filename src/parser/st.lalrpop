@@ -1,0 +1,67 @@
+use crate::ast::{Expr, OpCode};
+use crate::parser::lexer::{self, LiteralType};
+
+grammar;
+
+extern {
+    type Location = usize;
+    type Error = lexer::LexicalError;
+
+    enum lexer::Tok {
+        "+" => lexer::Tok::Plus,
+        "-" => lexer::Tok::Minus,
+        "*" => lexer::Tok::Multiply,
+        "/" => lexer::Tok::Division,
+        "(" => lexer::Tok::LeftParentheses,
+        ")" => lexer::Tok::RightParentheses,
+        "," => lexer::Tok::Comma,
+        "Literal" => lexer::Tok::Literal(<LiteralType>),
+    }
+}
+
+Comma<T>: Vec<T> = {
+    <v:(<T> ",")*> <e:T?> => match e {
+        None => v,
+        Some(e) => {
+            let mut v = v;
+            v.push(e);
+            v
+        }
+    }
+};
+
+pub Exprs = Comma<Expr>;
+
+Expr: Box<Expr> = {
+    Expr ExprOp Factor => Box::new(Expr::Op(<>)),
+    Factor,
+};
+
+ExprOp: OpCode = {
+    "+" => OpCode::Add,
+    "-" => OpCode::Sub,
+};
+
+Factor: Box<Expr> = {
+    Factor FactorOp UnaryFactor => Box::new(Expr::Op(<>)),
+    UnaryFactor,
+};
+
+FactorOp: OpCode = {
+    "*" => OpCode::Mul,
+    "/" => OpCode::Div,
+};
+
+UnaryFactor: Box<Expr> = {
+    UnaryOp Term => Box::new(Expr::UnaryOp(<>)),
+    Term,
+}
+
+UnaryOp: OpCode = {
+    "-" => OpCode::Sub,
+};
+
+Term: Box<Expr> = {
+    "Literal" => Box::new(Expr::Literal(<>)),
+    "(" <Expr> ")"
+};
