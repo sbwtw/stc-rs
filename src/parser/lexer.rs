@@ -12,6 +12,7 @@ pub enum Tok {
     RightParentheses,
     Literal(LiteralType),
     Comma,
+    Semicolon,
 }
 
 #[derive(Debug, Clone)]
@@ -112,6 +113,7 @@ impl<'input> Iterator for Lexer<'input> {
             (i, '(') => Some(Ok((i, Tok::LeftParentheses, i + 1))),
             (i, ')') => Some(Ok((i, Tok::RightParentheses, i + 1))),
             (i, ',') => Some(Ok((i, Tok::Comma, i + 1))),
+            (i, ';') => Some(Ok((i, Tok::Semicolon, i + 1))),
             (start, c) if c.is_ascii_digit() && c != '0' => self.parse_integer(start, c),
             (i, c) => Some(Err(LexicalError::UnexpectedCharacter(i, c))),
         }

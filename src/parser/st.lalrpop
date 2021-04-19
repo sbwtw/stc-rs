@@ -1,4 +1,4 @@
-use crate::ast::{Expr, OpCode};
+use crate::ast::*;
 use crate::parser::lexer::{self, LiteralType};
 
 grammar;
@@ -15,6 +15,7 @@ extern {
         "(" => lexer::Tok::LeftParentheses,
         ")" => lexer::Tok::RightParentheses,
         "," => lexer::Tok::Comma,
+        ";" => lexer::Tok::Semicolon,
         "Literal" => lexer::Tok::Literal(<LiteralType>),
     }
 }
@@ -30,7 +31,13 @@ Comma<T>: Vec<T> = {
     }
 };
 
-pub Exprs = Comma<Expr>;
+pub CompilationUnits: StatementList = {
+    Statement* => StatementList(<>)
+}
+
+Statement: Statement = {
+    <e:Expr> ";" => Statement::ExprStatement(e)
+}
 
 Expr: Box<Expr> = {
     Expr ExprOp Factor => Box::new(Expr::Op(<>)),

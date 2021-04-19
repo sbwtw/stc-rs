@@ -1,15 +1,18 @@
-use crate::ast::{AstNode, AstVisitor, Expr};
+use crate::ast::{AstVisitor, Expr};
+use std::io::Write;
 
-pub struct StringifyVisitor;
+pub struct StringifyVisitor<W: Write> {
+    writer: W,
+}
 
-impl StringifyVisitor {
-    pub fn new() -> Self {
-        Self {}
+impl<W: Write> StringifyVisitor<W> {
+    pub fn new(w: W) -> Self {
+        Self {writer: w}
     }
 }
 
-impl AstVisitor for StringifyVisitor {
+impl<W: Write> AstVisitor for StringifyVisitor<W> {
     fn visit_expr(&mut self, expr: &Expr) {
-        println!("{:?}", expr);
+        writeln!(self.writer, "{:?}", expr).unwrap();
     }
 }
