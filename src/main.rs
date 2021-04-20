@@ -14,5 +14,5 @@ fn main() {
     let mut stringify = utils::StringifyVisitor::new(std::io::stdout());
     r.accept(&mut stringify);
 
-    println!("{:#?}", r);
+    println!("{:?}", r);
 }

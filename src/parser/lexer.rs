@@ -1,5 +1,6 @@
 use std::iter::Peekable;
 use std::str::CharIndices;
+use crate::ast::{AstNode, AstVisitor};
 
 pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 #[derive(Debug, Clone)]
@@ -21,6 +22,12 @@ pub enum LiteralType {
     U64(u64),
     F32(f32),
     String(String),
+}
+
+impl AstNode for LiteralType {
+    fn accept(&self, visitor: &mut dyn AstVisitor) {
+        visitor.visit_literal(self)
+    }
 }
 
 #[derive(Debug)]

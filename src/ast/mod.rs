@@ -3,7 +3,9 @@ use std::ops::Deref;
 use std::fmt::Debug;
 
 pub trait AstVisitor {
-    fn visit_expr(&mut self, _expr: &Expr);
+    fn visit_literal(&mut self, literal: &LiteralType);
+    fn visit_expr(&mut self, expr: &Expr);
+    fn visit_statement(&mut self, stmt: &Statement);
 }
 
 pub trait AstNode: Debug {
@@ -31,9 +33,7 @@ pub enum Statement {
 
 impl AstNode for Statement {
     fn accept(&self, visitor: &mut dyn AstVisitor) {
-        match self {
-            Statement::ExprStatement(expr) => expr.accept(visitor),
-        }
+        visitor.visit_statement(self)
     }
 }
 
