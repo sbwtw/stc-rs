@@ -2,10 +2,14 @@ use crate::parser::LiteralType;
 use std::ops::Deref;
 use std::fmt::Debug;
 
+mod expr_statement;
+
+pub use expr_statement::ExprStatement;
+
 pub trait AstVisitor {
     fn visit_literal(&mut self, literal: &LiteralType);
     fn visit_expr(&mut self, expr: &Expr);
-    fn visit_statement(&mut self, stmt: &Statement);
+    fn visit_expr_statement(&mut self, stmt: &ExprStatement);
 }
 
 pub trait AstNode: Debug {
@@ -26,19 +30,13 @@ impl<T> AstNode for Vec<T> where T: AstNode {
     }
 }
 
-#[derive(Debug)]
-pub enum Statement {
-    ExprStatement(Box<Expr>),
+pub trait Statement: AstNode {
+
 }
 
-impl AstNode for Statement {
-    fn accept(&self, visitor: &mut dyn AstVisitor) {
-        visitor.visit_statement(self)
-    }
-}
 
 #[derive(Debug)]
-pub struct StatementList(pub Vec<Statement>);
+pub struct StatementList(pub Vec<Box<dyn Statement>>);
 
 impl AstNode for StatementList {
     fn accept(&self, visitor: &mut dyn AstVisitor) {

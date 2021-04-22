@@ -1,4 +1,4 @@
-use crate::ast::{AstVisitor, Expr, AstNode, Statement, OpCode};
+use crate::ast::*;
 use std::io::Write;
 use crate::parser::LiteralType;
 
@@ -46,11 +46,13 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
         }
     }
 
-    fn visit_statement(&mut self, stmt: &Statement) {
-        match stmt {
-            Statement::ExprStatement(expr) => expr.accept(self),
-        }
+    fn visit_expr_statement(&mut self, stmt: &ExprStatement) {
+        stmt.0.accept(self);
 
+        // match stmt {
+        //     Statement::ExprStatement(expr) => expr.accept(self),
+        // }
+        //
         writeln!(self.writer, ";").unwrap();
     }
 }

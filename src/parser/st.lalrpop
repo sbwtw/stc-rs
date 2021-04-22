@@ -35,8 +35,8 @@ pub CompilationUnits: StatementList = {
     Statement* => StatementList(<>)
 }
 
-Statement: Statement = {
-    <e:Expr> ";" => Statement::ExprStatement(e)
+Statement: Box<dyn Statement> = {
+    <e:Expr> ";" => Box::new(ExprStatement(e))
 }
 
 Expr: Box<Expr> = {
