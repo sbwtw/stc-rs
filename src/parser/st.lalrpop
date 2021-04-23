@@ -20,16 +20,16 @@ extern {
     }
 }
 
-Comma<T>: Vec<T> = {
-    <v:(<T> ",")*> <e:T?> => match e {
-        None => v,
-        Some(e) => {
-            let mut v = v;
-            v.push(e);
-            v
-        }
-    }
-};
+//Comma<T>: Vec<T> = {
+//    <v:(<T> ",")*> <e:T?> => match e {
+//        None => v,
+//        Some(e) => {
+//            let mut v = v;
+//            v.push(e);
+//            v
+//        }
+//    }
+//};
 
 pub CompilationUnits: StatementList = {
     Statement* => StatementList(<>)
@@ -39,8 +39,8 @@ Statement: Box<dyn Statement> = {
     <e:Expr> ";" => Box::new(ExprStatement(e))
 }
 
-Expr: Box<Expr> = {
-    Expr ExprOp Factor => Box::new(Expr::Op(<>)),
+Expr: Box<dyn Expression> = {
+    <e1: Expr> <op: ExprOp> <e2: Factor> => Box::new(OperatorExpression(op, vec![e1, e2])),
     Factor,
 };
 
@@ -49,8 +49,8 @@ ExprOp: OpCode = {
     "-" => OpCode::Sub,
 };
 
-Factor: Box<Expr> = {
-    Factor FactorOp UnaryFactor => Box::new(Expr::Op(<>)),
+Factor: Box<dyn Expression> = {
+    <e1: Factor> <op: FactorOp> <e2: UnaryFactor> => Box::new(OperatorExpression(op, vec![e1, e2])),
     UnaryFactor,
 };
 
@@ -59,8 +59,8 @@ FactorOp: OpCode = {
     "/" => OpCode::Div,
 };
 
-UnaryFactor: Box<Expr> = {
-    UnaryOp Term => Box::new(Expr::UnaryOp(<>)),
+UnaryFactor: Box<dyn Expression> = {
+    <op: UnaryOp> <e: Term> => Box::new(OperatorExpression(op, vec![e])),
     Term,
 }
 
@@ -68,7 +68,7 @@ UnaryOp: OpCode = {
     "-" => OpCode::Sub,
 };
 
-Term: Box<Expr> = {
-    "Literal" => Box::new(Expr::Literal(<>)),
+Term: Box<dyn Expression> = {
+    "Literal" => Box::new(LiteralExpression(<>)),
     "(" <Expr> ")"
 };

@@ -31,28 +31,23 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
         }
     }
 
-    fn visit_expr(&mut self, expr: &Expr) {
-        match expr {
-            Expr::Literal(literal) => literal.accept(self),
-            Expr::Op(lhs, op, rhs) => {
-                lhs.accept(self);
-                self.write_op(op);
-                rhs.accept(self);
-            }
-            Expr::UnaryOp(op, expr) => {
-                self.write_op(op);
-                expr.accept(self);
-            }
-        }
-    }
-
     fn visit_expr_statement(&mut self, stmt: &ExprStatement) {
         stmt.0.accept(self);
 
-        // match stmt {
-        //     Statement::ExprStatement(expr) => expr.accept(self),
-        // }
-        //
         writeln!(self.writer, ";").unwrap();
+    }
+
+    fn visit_operator_expression(&mut self, op: &OpCode, operands: &[Box<dyn Expression>]) {
+        match op {
+            &OpCode::Sub if operands.len() == 1 => {
+                self.write_op(op);
+                operands[0].accept(self);
+            },
+            _ => {
+                operands[0].accept(self);
+                self.write_op(op);
+                operands[1].accept(self);
+            }
+        }
     }
 }

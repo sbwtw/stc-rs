@@ -1,7 +1,7 @@
 use crate::ast::*;
 
 #[derive(Debug)]
-pub struct ExprStatement(pub Box<Expr>);
+pub struct ExprStatement(pub Box<dyn Expression>);
 
 impl AstNode for ExprStatement {
     fn accept(&self, visitor: &mut dyn AstVisitor) {

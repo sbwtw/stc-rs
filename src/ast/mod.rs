@@ -8,8 +8,8 @@ pub use expr_statement::ExprStatement;
 
 pub trait AstVisitor {
     fn visit_literal(&mut self, literal: &LiteralType);
-    fn visit_expr(&mut self, expr: &Expr);
     fn visit_expr_statement(&mut self, stmt: &ExprStatement);
+    fn visit_operator_expression(&mut self, op: &OpCode, operands: &[Box<dyn Expression>]);
 }
 
 pub trait AstNode: Debug {
@@ -34,6 +34,9 @@ pub trait Statement: AstNode {
 
 }
 
+pub trait Expression: AstNode {
+
+}
 
 #[derive(Debug)]
 pub struct StatementList(pub Vec<Box<dyn Statement>>);
@@ -47,17 +50,26 @@ impl AstNode for StatementList {
 }
 
 #[derive(Debug)]
-pub enum Expr {
-    Literal(LiteralType),
-    Op(Box<Expr>, OpCode, Box<Expr>),
-    UnaryOp(OpCode, Box<Expr>),
-}
+pub struct LiteralExpression(pub LiteralType);
 
-impl AstNode for Expr {
+impl AstNode for LiteralExpression {
     fn accept(&self, visitor: &mut dyn AstVisitor) {
-        visitor.visit_expr(self)
+        visitor.visit_literal(&self.0)
     }
 }
+
+impl Expression for LiteralExpression {}
+
+#[derive(Debug)]
+pub struct OperatorExpression(pub OpCode, pub Vec<Box<dyn Expression>>);
+
+impl AstNode for OperatorExpression {
+    fn accept(&self, visitor: &mut dyn AstVisitor) {
+        visitor.visit_operator_expression(&self.0, &self.1)
+    }
+}
+
+impl Expression for OperatorExpression {}
 
 #[derive(Debug)]
 pub enum OpCode {
