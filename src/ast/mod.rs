@@ -3,8 +3,12 @@ use std::ops::Deref;
 use std::fmt::Debug;
 
 mod expr_statement;
+mod literal_expression;
+mod operator_expression;
 
 pub use expr_statement::ExprStatement;
+pub use literal_expression::LiteralExpression;
+pub use operator_expression::OperatorExpression;
 
 pub trait AstVisitor {
     fn visit_literal(&mut self, literal: &LiteralType);
@@ -48,28 +52,6 @@ impl AstNode for StatementList {
         }
     }
 }
-
-#[derive(Debug)]
-pub struct LiteralExpression(pub LiteralType);
-
-impl AstNode for LiteralExpression {
-    fn accept(&self, visitor: &mut dyn AstVisitor) {
-        visitor.visit_literal(&self.0)
-    }
-}
-
-impl Expression for LiteralExpression {}
-
-#[derive(Debug)]
-pub struct OperatorExpression(pub OpCode, pub Vec<Box<dyn Expression>>);
-
-impl AstNode for OperatorExpression {
-    fn accept(&self, visitor: &mut dyn AstVisitor) {
-        visitor.visit_operator_expression(&self.0, &self.1)
-    }
-}
-
-impl Expression for OperatorExpression {}
 
 #[derive(Debug)]
 pub enum OpCode {
