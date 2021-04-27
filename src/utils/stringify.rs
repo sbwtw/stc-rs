@@ -22,7 +22,7 @@ impl<W: Write> StringifyVisitor<W> {
 }
 
 impl<W: Write> AstVisitor for StringifyVisitor<W> {
-    fn visit_literal(&mut self, literal: &LiteralType) {
+    fn visit_literal(&mut self, literal: &mut LiteralType) {
         match literal {
             LiteralType::F32(x) => write!(self.writer, "{:?}", x).unwrap(),
             LiteralType::I32(x) => write!(self.writer, "{:?}", x).unwrap(),
@@ -31,15 +31,15 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
         }
     }
 
-    fn visit_expr_statement(&mut self, stmt: &ExprStatement) {
-        stmt.0.accept(self);
+    fn visit_expr_statement(&mut self, stmt: &mut ExprStatement) {
+        stmt.expr().accept(self);
 
         writeln!(self.writer, ";").unwrap();
     }
 
-    fn visit_operator_expression(&mut self, op: &OpCode, operands: &[Box<dyn Expression>]) {
+    fn visit_operator_expression(&mut self, op: &mut OpCode, operands: &mut [Box<dyn Expression>]) {
         match op {
-            &OpCode::Sub if operands.len() == 1 => {
+            &mut OpCode::Sub if operands.len() == 1 => {
                 self.write_op(op);
                 operands[0].accept(self);
             },
@@ -49,5 +49,26 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
                 operands[1].accept(self);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::parser::*;
+    use crate::parser::st::*;
+    use crate::utils::*;
+    use crate::ast::*;
+
+    #[test]
+    fn stringify() {
+        let lexer = lexer::Lexer::new("2-3.0/3; -1+\"a\\\"s\\\"d\";");
+        let mut r = CompilationUnitsParser::new().parse(lexer).unwrap();
+
+        let mut buf = vec![];
+        let mut stringify = StringifyVisitor::new(&mut buf);
+        r.accept(&mut stringify);
+
+        let buf_str = String::from_utf8_lossy(&buf);
+        assert_eq!(buf_str, "2-3.0/3;\n-1+\"a\\\"s\\\"d\";\n");
     }
 }

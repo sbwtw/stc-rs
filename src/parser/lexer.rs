@@ -27,7 +27,7 @@ pub enum LiteralType {
 }
 
 impl AstNode for LiteralType {
-    fn accept(&self, visitor: &mut dyn AstVisitor) {
+    fn accept(&mut self, visitor: &mut dyn AstVisitor) {
         visitor.visit_literal(self)
     }
 }

@@ -1,11 +1,17 @@
 use crate::ast::*;
 
 #[derive(Debug)]
-pub struct LiteralExpression(pub LiteralType);
+pub struct LiteralExpression(LiteralType);
+
+impl LiteralExpression {
+    pub fn new(val: LiteralType) -> Self {
+        LiteralExpression(val)
+    }
+}
 
 impl AstNode for LiteralExpression {
-    fn accept(&self, visitor: &mut dyn AstVisitor) {
-        visitor.visit_literal(&self.0)
+    fn accept(&mut self, visitor: &mut dyn AstVisitor) {
+        visitor.visit_literal(&mut self.0)
     }
 }
 

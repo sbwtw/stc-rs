@@ -36,11 +36,11 @@ pub CompilationUnits: StatementList = {
 }
 
 Statement: Box<dyn Statement> = {
-    <e:Expr> ";" => Box::new(ExprStatement(e))
+    <e:Expr> ";" => Box::new(ExprStatement::new(e))
 }
 
 Expr: Box<dyn Expression> = {
-    <e1: Expr> <op: ExprOp> <e2: Factor> => Box::new(OperatorExpression(op, vec![e1, e2])),
+    <e1: Expr> <op: ExprOp> <e2: Factor> => Box::new(OperatorExpression::new(op, vec![e1, e2])),
     Factor,
 };
 
@@ -50,7 +50,7 @@ ExprOp: OpCode = {
 };
 
 Factor: Box<dyn Expression> = {
-    <e1: Factor> <op: FactorOp> <e2: UnaryFactor> => Box::new(OperatorExpression(op, vec![e1, e2])),
+    <e1: Factor> <op: FactorOp> <e2: UnaryFactor> => Box::new(OperatorExpression::new(op, vec![e1, e2])),
     UnaryFactor,
 };
 
@@ -60,7 +60,7 @@ FactorOp: OpCode = {
 };
 
 UnaryFactor: Box<dyn Expression> = {
-    <op: UnaryOp> <e: Term> => Box::new(OperatorExpression(op, vec![e])),
+    <op: UnaryOp> <e: Term> => Box::new(OperatorExpression::new(op, vec![e])),
     Term,
 }
 
@@ -69,6 +69,6 @@ UnaryOp: OpCode = {
 };
 
 Term: Box<dyn Expression> = {
-    "Literal" => Box::new(LiteralExpression(<>)),
+    "Literal" => Box::new(LiteralExpression::new(<>)),
     "(" <Expr> ")"
 };
