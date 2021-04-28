@@ -1,9 +1,44 @@
 use std::iter::Peekable;
 use std::str::CharIndices;
 use crate::ast::{AstNode, AstVisitor};
+use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 
 pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 pub type LexerResult = Spanned<Tok, usize, LexicalError>;
+
+#[derive(Debug, Clone)]
+pub struct StString(String);
+
+impl From<&str> for StString {
+    fn from(s: &str) -> Self {
+        Self (s.to_owned())
+    }
+}
+
+impl From<String> for StString {
+    fn from(s: String) -> Self {
+        Self (s)
+    }
+}
+
+impl PartialEq for StString {
+    fn eq(&self, other: &Self) -> bool {
+        if self.0.len() != other.0.len() {
+            return false;
+        }
+
+        !self.0.chars().zip(other.0.chars()).any(|(x, y)| x.to_ascii_lowercase() != y.to_ascii_lowercase())
+    }
+}
+
+impl Eq for StString {}
+
+impl Hash for StString {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state)
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum Tok {
@@ -16,6 +51,11 @@ pub enum Tok {
     Literal(LiteralType),
     Comma,
     Semicolon,
+    If,
+    Then,
+    Else,
+    ElseIf,
+    EndIf,
 }
 
 #[derive(Debug, Clone)]
@@ -40,12 +80,21 @@ pub enum LexicalError {
 
 pub struct Lexer<'input> {
     chars: Peekable<CharIndices<'input>>,
+    keywords: HashMap<StString, Tok>,
 }
 
 impl<'input> Lexer<'input> {
     pub fn new(input: &'input str) -> Self {
+        let mut keywords = HashMap::new();
+        keywords.insert("IF".into(), Tok::If);
+        keywords.insert("ELSE".into(), Tok::Else);
+        keywords.insert("THEN".into(), Tok::Then);
+        keywords.insert("ELSEIF".into(), Tok::ElseIf);
+        keywords.insert("ENDIF".into(), Tok::EndIf);
+
         Self {
             chars: input.char_indices().peekable(),
+            keywords,
         }
     }
 
@@ -150,5 +199,25 @@ impl<'input> Iterator for Lexer<'input> {
             (start, c) if c.is_ascii_digit() && c != '0' => self.parse_integer(start, c),
             (i, c) => Some(Err(LexicalError::UnexpectedCharacter(i, c))),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::lexer::StString;
+
+    #[test]
+    fn test_st_string() {
+        let s1: StString = "abc".into();
+        let s2: StString = String::from("AbC").into();
+        assert_eq!(s1, s2);
+
+        let s1: StString = "abc".into();
+        let s2: StString = String::from("Abd").into();
+        assert_ne!(s1, s2);
+
+        let s1: StString = "_test中文".into();
+        let s2: StString = "_tEST中文".into();
+        assert_eq!(s1, s2);
     }
 }
