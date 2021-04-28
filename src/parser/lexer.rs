@@ -36,7 +36,7 @@ impl Eq for StString {}
 
 impl Hash for StString {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.hash(state)
+        self.0.to_ascii_lowercase().hash(state)
     }
 }
 
