@@ -8,27 +8,35 @@ pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 pub type LexerResult = Spanned<Tok, usize, LexicalError>;
 
 #[derive(Debug, Clone)]
-pub struct StString(String);
+pub struct StString {
+    origin_string: String,
+    converted_string: String,
+}
+
+impl StString {
+    pub fn new<S: AsRef<str>>(str: S) -> Self {
+        Self {
+            origin_string: str.as_ref().to_owned(),
+            converted_string: str.as_ref().to_ascii_uppercase().to_owned(),
+        }
+    }
+}
 
 impl From<&str> for StString {
     fn from(s: &str) -> Self {
-        Self (s.to_owned())
+        Self::new(s)
     }
 }
 
 impl From<String> for StString {
     fn from(s: String) -> Self {
-        Self (s)
+        Self::new(s)
     }
 }
 
 impl PartialEq for StString {
     fn eq(&self, other: &Self) -> bool {
-        if self.0.len() != other.0.len() {
-            return false;
-        }
-
-        !self.0.chars().zip(other.0.chars()).any(|(x, y)| x.to_ascii_lowercase() != y.to_ascii_lowercase())
+        self.converted_string.eq(&other.converted_string)
     }
 }
 
@@ -36,7 +44,7 @@ impl Eq for StString {}
 
 impl Hash for StString {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.to_ascii_lowercase().hash(state)
+        self.converted_string.hash(state)
     }
 }
 
@@ -48,7 +56,6 @@ pub enum Tok {
     Division,
     LeftParentheses,
     RightParentheses,
-    Literal(LiteralType),
     Comma,
     Semicolon,
     If,
@@ -56,6 +63,8 @@ pub enum Tok {
     Else,
     ElseIf,
     EndIf,
+    Literal(LiteralType),
+    Identifier(StString),
 }
 
 #[derive(Debug, Clone)]
@@ -179,6 +188,39 @@ impl<'input> Lexer<'input> {
             }
         }
     }
+
+    fn parse_identifier(&mut self, start: usize, ch: char) -> Option<LexerResult> {
+        let mut str = String::from(ch);
+        let mut last_end = start;
+
+        loop {
+            match self.chars.peek() {
+                Some((end, c)) if c.is_ascii_alphabetic() || *c == '_' => {
+                    str.push(c.clone());
+                    last_end = *end;
+                    self.chars.next();
+                }
+                Some((end, _)) => {
+                    let end = *end;
+                    let tok = self.keywords_or_identifier(str);
+                    return Some(Ok((start, tok, end)));
+                }
+                None => {
+                    let tok = self.keywords_or_identifier(str);
+                    return Some(Ok((start, tok, last_end + 1)));
+                }
+            }
+        }
+    }
+
+    fn keywords_or_identifier(&mut self, s: String) -> Tok {
+        let st_str = s.into();
+        if let Some(keyword) = self.keywords.get(&st_str) {
+            return keyword.clone();
+        }
+
+        return Tok::Identifier(st_str);
+    }
 }
 
 impl<'input> Iterator for Lexer<'input> {
@@ -197,6 +239,7 @@ impl<'input> Iterator for Lexer<'input> {
             (i, ';') => Some(Ok((i, Tok::Semicolon, i + 1))),
             (i, '\"') => self.parse_string(i),
             (start, c) if c.is_ascii_digit() && c != '0' => self.parse_integer(start, c),
+            (start, c) if c.is_ascii_alphabetic() || c == '_' => self.parse_identifier(start, c),
             (i, c) => Some(Err(LexicalError::UnexpectedCharacter(i, c))),
         }
     }
@@ -205,6 +248,7 @@ impl<'input> Iterator for Lexer<'input> {
 #[cfg(test)]
 mod test {
     use crate::lexer::StString;
+    use crate::parser::{Lexer, Tok, LexerResult};
 
     #[test]
     fn test_st_string() {
@@ -219,5 +263,16 @@ mod test {
         let s1: StString = "_test中文".into();
         let s2: StString = "_tEST中文".into();
         assert_eq!(s1, s2);
+    }
+
+    #[test]
+    fn test_st_keywords() {
+        let s = "if abc";
+        let mut lexer = Lexer::new(s);
+
+        assert!(matches!(lexer.next(), Some(Ok((0, Tok::If, 2)))));
+        let ident: StString = "abc".into();
+        assert!(matches!(lexer.next(), Some(Ok((3, Tok::Identifier(ident), 6)))));
+        assert!(matches!(lexer.next(), None));
     }
 }
