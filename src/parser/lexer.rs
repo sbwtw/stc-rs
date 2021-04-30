@@ -87,8 +87,39 @@ pub enum LexicalError {
     UnexpectedEnd,
 }
 
+struct LexerBuffer<'input> {
+    chars: CharIndices<'input>,
+    len: usize,
+    stage: Option<(usize, Option<char>)>,
+}
+
+impl<'input> LexerBuffer<'input> {
+    pub fn new(input: &'input str) -> Self {
+        Self {
+            chars: input.char_indices(),
+            len: input.len(),
+            stage: None
+        }
+    }
+
+    pub fn next(&mut self) -> (usize, Option<char>) {
+        if let Some(r) = self.stage.take() {
+            return r;
+        }
+
+        match self.chars.next() {
+            Some((index, ch)) => (index, Some(ch)),
+            _ => (self.len, None),
+        }
+    }
+
+    pub fn stage(&mut self, stage: (usize, Option<char>)) {
+        self.stage = Some(stage);
+    }
+}
+
 pub struct Lexer<'input> {
-    chars: Peekable<CharIndices<'input>>,
+    buffer: LexerBuffer<'input>,
     keywords: HashMap<StString, Tok>,
 }
 
@@ -102,7 +133,7 @@ impl<'input> Lexer<'input> {
         keywords.insert("ENDIF".into(), Tok::EndIf);
 
         Self {
-            chars: input.char_indices().peekable(),
+            buffer: LexerBuffer::new(input),
             keywords,
         }
     }
@@ -113,21 +144,24 @@ impl<'input> Lexer<'input> {
         ch: char,
     ) -> Option<LexerResult> {
         let mut s = String::from(ch);
-        let mut end = start;
 
         loop {
-            match self.chars.peek() {
-                Some((n, c)) if c.is_ascii_digit() => {
-                    s.push(*c);
-                    end = *n;
-                    self.chars.next();
+            match self.buffer.next() {
+                (_, Some(c)) if c.is_ascii_digit() => {
+                    s.push(c);
                 }
-                Some((_, '.')) => return self.parse_floating(start, s),
-                _ => {
+                (n, Some('.')) => {
+                    self.buffer.stage((n, Some('.')));
+
+                    return self.parse_floating(start, s)
+                },
+                (end, x) => {
+                    self.buffer.stage((end, x));
+
                     return Some(Ok((
                         start,
                         Tok::Literal(LiteralType::U64(s.parse().unwrap())),
-                        end + 1,
+                        end,
                     )))
                 }
             }
@@ -140,27 +174,23 @@ impl<'input> Lexer<'input> {
         mut s: String,
     ) -> Option<LexerResult> {
         let mut dot = false;
-        let mut end = start;
 
         loop {
-            match self.chars.peek() {
-                Some((n, '.')) if !dot => {
+            match self.buffer.next() {
+                (_, Some('.')) if !dot => {
                     dot = true;
-
                     s.push('.');
-                    end = *n;
-                    self.chars.next();
                 }
-                Some((n, c)) if c.is_ascii_digit() => {
-                    s.push(*c);
-                    end = *n;
-                    self.chars.next();
+                (_, Some(c)) if c.is_ascii_digit() => {
+                    s.push(c);
                 }
-                _ => {
+                (end, x) => {
+                    self.buffer.stage((end, x));
+
                     return Some(Ok((
                         start,
                         Tok::Literal(LiteralType::F32(s.parse().unwrap())),
-                        end + 1,
+                        end,
                     )));
                 }
             }
@@ -175,39 +205,33 @@ impl<'input> Lexer<'input> {
             if escape == true {
                 escape = false;
 
-                match self.chars.next()? {
-                    (_, '\"') => s.push('\"'),
-                    (n, c) => return Some(Err(LexicalError::UnexpectedCharacter(n, c))),
+                match self.buffer.next() {
+                    (_, Some('\"')) => s.push('\"'),
+                    (n, Some(c)) => return Some(Err(LexicalError::UnexpectedCharacter(n, c))),
+                    _ => return Some(Err(LexicalError::UnexpectedEnd)),
                 }
             }
 
-            match self.chars.next()? {
-                (_, '\\') => escape = true,
-                (n, '\"') => return Some(Ok((start, Tok::Literal(LiteralType::String(s)), n + 1))),
-                (_, c) => s.push(c),
+            match self.buffer.next() {
+                (_, Some('\\')) => escape = true,
+                (n, Some('\"')) => return Some(Ok((start, Tok::Literal(LiteralType::String(s)), n + 1))),
+                (_, Some(c)) => s.push(c),
+                _ => return Some(Err(LexicalError::UnexpectedEnd)),
             }
         }
     }
 
     fn parse_identifier(&mut self, start: usize, ch: char) -> Option<LexerResult> {
         let mut str = String::from(ch);
-        let mut last_end = start;
 
         loop {
-            match self.chars.peek() {
-                Some((end, c)) if c.is_ascii_alphabetic() || *c == '_' => {
-                    str.push(c.clone());
-                    last_end = *end;
-                    self.chars.next();
+            match self.buffer.next() {
+                (_, Some(c)) if c.is_ascii_alphabetic() || c == '_' => {
+                    str.push(c);
                 }
-                Some((end, _)) => {
-                    let end = *end;
+                (n, _) => {
                     let tok = self.keywords_or_identifier(str);
-                    return Some(Ok((start, tok, end)));
-                }
-                None => {
-                    let tok = self.keywords_or_identifier(str);
-                    return Some(Ok((start, tok, last_end + 1)));
+                    return Some(Ok((start, tok, n)));
                 }
             }
         }
@@ -227,20 +251,21 @@ impl<'input> Iterator for Lexer<'input> {
     type Item = LexerResult;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.chars.next()? {
-            (_, ' ') | (_, '\t') | (_, '\n') | (_, '\r') => self.next(),
-            (i, '+') => Some(Ok((i, Tok::Plus, i + 1))),
-            (i, '-') => Some(Ok((i, Tok::Minus, i + 1))),
-            (i, '*') => Some(Ok((i, Tok::Multiply, i + 1))),
-            (i, '/') => Some(Ok((i, Tok::Division, i + 1))),
-            (i, '(') => Some(Ok((i, Tok::LeftParentheses, i + 1))),
-            (i, ')') => Some(Ok((i, Tok::RightParentheses, i + 1))),
-            (i, ',') => Some(Ok((i, Tok::Comma, i + 1))),
-            (i, ';') => Some(Ok((i, Tok::Semicolon, i + 1))),
-            (i, '\"') => self.parse_string(i),
-            (start, c) if c.is_ascii_digit() && c != '0' => self.parse_integer(start, c),
-            (start, c) if c.is_ascii_alphabetic() || c == '_' => self.parse_identifier(start, c),
-            (i, c) => Some(Err(LexicalError::UnexpectedCharacter(i, c))),
+        match self.buffer.next() {
+            (_, Some(' ')) | (_, Some('\t')) | (_, Some('\n')) | (_, Some('\r')) => self.next(),
+            (i, Some('+')) => Some(Ok((i, Tok::Plus, i + 1))),
+            (i, Some('-')) => Some(Ok((i, Tok::Minus, i + 1))),
+            (i, Some('*')) => Some(Ok((i, Tok::Multiply, i + 1))),
+            (i, Some('/')) => Some(Ok((i, Tok::Division, i + 1))),
+            (i, Some('(')) => Some(Ok((i, Tok::LeftParentheses, i + 1))),
+            (i, Some(')')) => Some(Ok((i, Tok::RightParentheses, i + 1))),
+            (i, Some(',')) => Some(Ok((i, Tok::Comma, i + 1))),
+            (i, Some(';')) => Some(Ok((i, Tok::Semicolon, i + 1))),
+            (i, Some('\"')) => self.parse_string(i),
+            (start, Some(c)) if c.is_ascii_digit() && c != '0' => self.parse_integer(start, c),
+            (start, Some(c)) if c.is_ascii_alphabetic() || c == '_' => self.parse_identifier(start, c),
+            (i, Some(c)) => Some(Err(LexicalError::UnexpectedCharacter(i, c))),
+            (_, None) => None,
         }
     }
 }
