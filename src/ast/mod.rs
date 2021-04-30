@@ -1,15 +1,16 @@
 use std::fmt::{self, Debug, Display, Formatter};
 
-pub use expr_statement::ExprStatement;
-pub use literal_expression::LiteralExpression;
-pub use operator_expression::OperatorExpression;
-
 use crate::parser::LiteralType;
-use crate::utils::stringify::StringifyVisitor;
+use crate::utils::StringifyVisitor;
 
 mod expr_statement;
+pub use expr_statement::ExprStatement;
+
 mod literal_expression;
+pub use literal_expression::LiteralExpression;
+
 mod operator_expression;
+pub use operator_expression::OperatorExpression;
 
 // Immutable visitor
 pub trait AstVisitor {
@@ -87,6 +88,22 @@ impl AstNode for StatementList {
             x.accept_mut(visitor);
         }
     }
+}
+
+pub trait SyntaxBuilder {}
+
+pub struct SyntaxTree {
+    root: Option<Box<dyn AstNode>>,
+}
+
+impl SyntaxTree {
+    pub fn new() -> Self {
+        Self {root: None}
+    }
+}
+
+impl SyntaxBuilder for SyntaxTree {
+
 }
 
 #[derive(Debug)]

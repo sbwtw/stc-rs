@@ -275,8 +275,7 @@ impl<'input> Iterator for Lexer<'input> {
 
 #[cfg(test)]
 mod test {
-    use crate::lexer::StString;
-    use crate::parser::{Lexer, Tok};
+    use crate::parser::{Lexer, Tok, StString};
 
     #[test]
     fn test_st_string() {

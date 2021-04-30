@@ -1,3 +1,3 @@
-pub use typifies::TypeAllocator;
 
-pub mod typifies;
+mod typifies;
+pub use typifies::TypeAllocator;

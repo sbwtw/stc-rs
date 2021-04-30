@@ -61,7 +61,7 @@ mod test {
 
     #[test]
     fn stringify() {
-        let lexer = lexer::Lexer::new("2-3.0/3; -1+\"a\\\"s\\\"d\";");
+        let lexer = Lexer::new("2-3.0/3; -1+\"a\\\"s\\\"d\";");
         let r = CompilationUnitsParser::new().parse(lexer).unwrap();
 
         let mut buf = vec![];

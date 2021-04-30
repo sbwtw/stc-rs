@@ -1,9 +1,12 @@
 use crate::ast::{AstVisitor, Expression, OpCode, ExprStatement};
 use crate::parser::LiteralType;
+use std::io::Write;
 
-pub struct GraphvizExporter;
+pub struct GraphvizExporter<W: Write> {
+    writer: W,
+}
 
-impl AstVisitor for GraphvizExporter {
+impl<W: Write> AstVisitor for GraphvizExporter<W> {
     fn visit_literal(&mut self, literal: &LiteralType) {
         todo!()
     }

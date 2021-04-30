@@ -1,7 +1,7 @@
 
-pub mod stringify;
+mod stringify;
 pub use stringify::StringifyVisitor;
 
-pub mod graphviz;
+mod graphviz;
 pub use graphviz::GraphvizExporter;
 
