@@ -1,6 +1,5 @@
-use std::iter::Peekable;
 use std::str::CharIndices;
-use crate::ast::{AstNode, AstVisitor};
+use crate::ast::{AstNode, AstVisitor, AstVisitorMut};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
@@ -76,8 +75,12 @@ pub enum LiteralType {
 }
 
 impl AstNode for LiteralType {
-    fn accept(&mut self, visitor: &mut dyn AstVisitor) {
+    fn accept(&self, visitor: &mut dyn AstVisitor) {
         visitor.visit_literal(self)
+    }
+
+    fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
+        visitor.visit_literal_mut(self)
     }
 }
 
@@ -273,7 +276,7 @@ impl<'input> Iterator for Lexer<'input> {
 #[cfg(test)]
 mod test {
     use crate::lexer::StString;
-    use crate::parser::{Lexer, Tok, LexerResult};
+    use crate::parser::{Lexer, Tok};
 
     #[test]
     fn test_st_string() {
@@ -296,8 +299,7 @@ mod test {
         let mut lexer = Lexer::new(s);
 
         assert!(matches!(lexer.next(), Some(Ok((0, Tok::If, 2)))));
-        let ident: StString = "abc".into();
-        assert!(matches!(lexer.next(), Some(Ok((3, Tok::Identifier(ident), 6)))));
+        assert!(matches!(lexer.next(), Some(Ok((3, Tok::Identifier(_), 6)))));
         assert!(matches!(lexer.next(), None));
     }
 }

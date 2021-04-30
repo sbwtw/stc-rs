@@ -10,8 +10,12 @@ impl LiteralExpression {
 }
 
 impl AstNode for LiteralExpression {
-    fn accept(&mut self, visitor: &mut dyn AstVisitor) {
-        visitor.visit_literal(&mut self.0)
+    fn accept(&self, visitor: &mut dyn AstVisitor) {
+        visitor.visit_literal(&self.0)
+    }
+
+    fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
+        visitor.visit_literal_mut(&mut self.0)
     }
 }
 

@@ -10,8 +10,12 @@ impl OperatorExpression {
 }
 
 impl AstNode for OperatorExpression {
-    fn accept(&mut self, visitor: &mut dyn AstVisitor) {
-        visitor.visit_operator_expression(&mut self.0, &mut self.1)
+    fn accept(&self, visitor: &mut dyn AstVisitor) {
+        visitor.visit_operator_expression(&self.0, &self.1)
+    }
+
+    fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
+        visitor.visit_operator_expression_mut(&mut self.0, &mut self.1)
     }
 }
 

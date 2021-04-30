@@ -8,14 +8,18 @@ impl ExprStatement {
         ExprStatement(expr)
     }
 
-    pub fn expr(&mut self) -> &mut dyn Expression {
-        self.0.as_mut()
+    pub fn expr(&self) -> &dyn Expression {
+        self.0.as_ref()
     }
 }
 
 impl AstNode for ExprStatement {
-    fn accept(&mut self, visitor: &mut dyn AstVisitor) {
+    fn accept(&self, visitor: &mut dyn AstVisitor) {
         visitor.visit_expr_statement(self)
+    }
+
+    fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
+        visitor.visit_expr_statement_mut(self)
     }
 }
 
