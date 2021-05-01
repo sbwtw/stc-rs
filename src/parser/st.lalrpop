@@ -1,7 +1,7 @@
 use crate::ast::*;
 use crate::parser::lexer::{self, LiteralType};
 
-grammar(builder: &dyn SyntaxBuilder);
+grammar;
 
 extern {
     type Location = usize;
@@ -16,6 +16,10 @@ extern {
         ")" => lexer::Tok::RightParentheses,
         "," => lexer::Tok::Comma,
         ";" => lexer::Tok::Semicolon,
+        "IF" => lexer::Tok::If,
+        "THEN" => lexer::Tok::Then,
+        "ELSE" => lexer::Tok::Else,
+        "END_IF" => lexer::Tok::EndIf,
         "Literal" => lexer::Tok::Literal(<LiteralType>),
     }
 }
@@ -36,7 +40,8 @@ pub CompilationUnits: StatementList = {
 }
 
 Statement: Box<dyn Statement> = {
-    <e:Expr> ";" => Box::new(ExprStatement::new(e))
+    <e:Expr> ";" => Box::new(ExprStatement::new(e)),
+    "IF" <cond: Expr> "THEN" <then_ctrl: Statement> "END_IF" => Box::new(IfStatement::from_then(cond, then_ctrl))
 }
 
 Expr: Box<dyn Expression> = {

@@ -4,11 +4,12 @@ use crate::parser::LiteralType;
 
 pub struct StringifyVisitor<W: Write> {
     writer: W,
+    indent: usize,
 }
 
 impl<W: Write> StringifyVisitor<W> {
     pub fn new(w: W) -> Self {
-        Self {writer: w}
+        Self {writer: w, indent: 0}
     }
 
     fn write_op(&mut self, op: &OpCode) {
@@ -35,6 +36,16 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
         stmt.expr().accept(self);
 
         writeln!(self.writer, ";").unwrap();
+    }
+
+    fn visit_if_statement(&mut self, stmt: &IfStatement) {
+        write!(self.writer, "IF ").unwrap();
+        stmt.condition().accept(self);
+        writeln!(self.writer, " THEN").unwrap();
+        if let Some(then_controlled) = stmt.then_controlled() {
+            then_controlled.accept(self);
+        }
+        writeln!(self.writer, "END_IF").unwrap();
     }
 
     fn visit_operator_expression(&mut self, op: &OpCode, operands: &[Box<dyn Expression>]) {

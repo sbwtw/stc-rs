@@ -4,15 +4,13 @@ mod utils;
 mod transform;
 
 use parser::*;
-use ast::{AstNode, SyntaxTree};
-use std::rc::Rc;
+use ast::{AstNode};
 
 fn main() {
     println!("Hello, world!");
 
-    let lexer = Lexer::new("2-3.0/3; -1+\"a\\\"s\\\"d\";");
-    let syntax_tree = SyntaxTree::new();
-    let r = parser::st::CompilationUnitsParser::new().parse(&syntax_tree, lexer).unwrap();
+    let lexer = Lexer::new("IF 2 + 3 THEN 4 - 3; END_IF");
+    let r = parser::st::CompilationUnitsParser::new().parse(lexer).unwrap();
 
     let mut stringify = utils::StringifyVisitor::new(std::io::stdout());
     r.accept(&mut stringify);

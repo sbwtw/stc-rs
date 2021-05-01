@@ -12,10 +12,14 @@ pub use literal_expression::LiteralExpression;
 mod operator_expression;
 pub use operator_expression::OperatorExpression;
 
+mod if_statement;
+pub use if_statement::IfStatement;
+
 // Immutable visitor
 pub trait AstVisitor {
     fn visit_literal(&mut self, literal: &LiteralType);
     fn visit_expr_statement(&mut self, stmt: &ExprStatement);
+    fn visit_if_statement(&mut self, stmt: &IfStatement);
     fn visit_operator_expression(&mut self, op: &OpCode, operands: &[Box<dyn Expression>]);
 }
 
@@ -23,6 +27,7 @@ pub trait AstVisitor {
 pub trait AstVisitorMut: AstVisitor {
     fn visit_literal_mut(&mut self, literal: &mut LiteralType);
     fn visit_expr_statement_mut(&mut self, stmt: &mut ExprStatement);
+    fn visit_if_statement_mut(&mut self, stmt: &mut IfStatement);
     fn visit_operator_expression_mut(&mut self, op: &mut OpCode, operands: &mut [Box<dyn Expression>]);
 }
 
@@ -88,22 +93,6 @@ impl AstNode for StatementList {
             x.accept_mut(visitor);
         }
     }
-}
-
-pub trait SyntaxBuilder {}
-
-pub struct SyntaxTree {
-    root: Option<Box<dyn AstNode>>,
-}
-
-impl SyntaxTree {
-    pub fn new() -> Self {
-        Self {root: None}
-    }
-}
-
-impl SyntaxBuilder for SyntaxTree {
-
 }
 
 #[derive(Debug)]

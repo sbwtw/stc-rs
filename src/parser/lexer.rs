@@ -133,7 +133,7 @@ impl<'input> Lexer<'input> {
         keywords.insert("ELSE".into(), Tok::Else);
         keywords.insert("THEN".into(), Tok::Then);
         keywords.insert("ELSEIF".into(), Tok::ElseIf);
-        keywords.insert("ENDIF".into(), Tok::EndIf);
+        keywords.insert("END_IF".into(), Tok::EndIf);
 
         Self {
             buffer: LexerBuffer::new(input),
