@@ -19,6 +19,10 @@ impl StString {
             converted_string: str.as_ref().to_ascii_uppercase().to_owned(),
         }
     }
+
+    pub fn origin_string(&self) -> &String {
+        &self.origin_string
+    }
 }
 
 impl From<&str> for StString {

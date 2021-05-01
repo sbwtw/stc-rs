@@ -6,18 +6,22 @@ use crate::utils::StringifyVisitor;
 mod expr_statement;
 pub use expr_statement::ExprStatement;
 
+mod if_statement;
+pub use if_statement::IfStatement;
+
 mod literal_expression;
 pub use literal_expression::LiteralExpression;
 
 mod operator_expression;
 pub use operator_expression::OperatorExpression;
 
-mod if_statement;
-pub use if_statement::IfStatement;
+mod variable_expression;
+pub use variable_expression::VariableExpression;
 
 // Immutable visitor
 pub trait AstVisitor {
     fn visit_literal(&mut self, literal: &LiteralType);
+    fn visit_variable(&mut self, variable: &VariableExpression);
     fn visit_expr_statement(&mut self, stmt: &ExprStatement);
     fn visit_if_statement(&mut self, stmt: &IfStatement);
     fn visit_operator_expression(&mut self, op: &OpCode, operands: &[Box<dyn Expression>]);
@@ -26,6 +30,7 @@ pub trait AstVisitor {
 // Mutable visitor
 pub trait AstVisitorMut: AstVisitor {
     fn visit_literal_mut(&mut self, literal: &mut LiteralType);
+    fn visit_variable_mut(&mut self, variable: &mut VariableExpression);
     fn visit_expr_statement_mut(&mut self, stmt: &mut ExprStatement);
     fn visit_if_statement_mut(&mut self, stmt: &mut IfStatement);
     fn visit_operator_expression_mut(&mut self, op: &mut OpCode, operands: &mut [Box<dyn Expression>]);

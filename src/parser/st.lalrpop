@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::parser::lexer::{self, LiteralType};
+use crate::parser::lexer::{self, LiteralType, StString};
 
 grammar;
 
@@ -21,6 +21,7 @@ extern {
         "ELSE" => lexer::Tok::Else,
         "END_IF" => lexer::Tok::EndIf,
         "Literal" => lexer::Tok::Literal(<LiteralType>),
+        "Variable" => lexer::Tok::Identifier(<StString>),
     }
 }
 
@@ -75,5 +76,6 @@ UnaryOp: OpCode = {
 
 Term: Box<dyn Expression> = {
     "Literal" => Box::new(LiteralExpression::new(<>)),
-    "(" <Expr> ")"
+    "Variable" => Box::new(VariableExpression::new(<>)),
+    "(" <Expr> ")",
 };

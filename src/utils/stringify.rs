@@ -1,6 +1,7 @@
 use crate::ast::*;
 use std::io::Write;
 use crate::parser::LiteralType;
+use std::env::var;
 
 pub struct StringifyVisitor<W: Write> {
     writer: W,
@@ -32,6 +33,10 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
         }
     }
 
+    fn visit_variable(&mut self, variable: &VariableExpression) {
+        write!(self.writer, "{}", variable.origin_name()).unwrap();
+    }
+
     fn visit_expr_statement(&mut self, stmt: &ExprStatement) {
         stmt.expr().accept(self);
 
@@ -56,7 +61,9 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
             },
             _ => {
                 operands[0].accept(self);
+                write!(self.writer, " ").unwrap();
                 self.write_op(op);
+                write!(self.writer, " ").unwrap();
                 operands[1].accept(self);
             }
         }

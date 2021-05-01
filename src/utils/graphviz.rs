@@ -1,4 +1,4 @@
-use crate::ast::{AstVisitor, Expression, OpCode, ExprStatement, IfStatement};
+use crate::ast::{AstVisitor, Expression, OpCode, ExprStatement, IfStatement, VariableExpression};
 use crate::parser::LiteralType;
 use std::io::Write;
 
@@ -8,6 +8,10 @@ pub struct GraphvizExporter<W: Write> {
 
 impl<W: Write> AstVisitor for GraphvizExporter<W> {
     fn visit_literal(&mut self, literal: &LiteralType) {
+        todo!()
+    }
+
+    fn visit_variable(&mut self, variable: &VariableExpression) {
         todo!()
     }
 
