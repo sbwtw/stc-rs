@@ -10,6 +10,25 @@ enum GraphvizLabelGroup {
     Groups(Vec<GraphvizLabelGroup>),
 }
 
+impl GraphvizLabelGroup {
+    fn from_name<S: AsRef<str>>(name: S) -> Self {
+        GraphvizLabelGroup::Labels(vec![name.as_ref().to_owned()])
+    }
+
+    fn append_group(mut self, group: GraphvizLabelGroup) -> Self {
+        match self {
+            GraphvizLabelGroup::Labels(labels) => {
+                let g = GraphvizLabelGroup::Labels(labels);
+                GraphvizLabelGroup::Groups(vec![g, group])
+            }
+            GraphvizLabelGroup::Groups(mut groups) => {
+                groups.push(group);
+                GraphvizLabelGroup::Groups(groups)
+            }
+        }
+    }
+}
+
 /// Single string to Labels
 impl<S: AsRef<str>> From<S> for GraphvizLabelGroup {
     fn from(s: S) -> Self {
@@ -39,13 +58,12 @@ impl Into<String> for GraphvizLabelGroup {
             GraphvizLabelGroup::Labels(labels) => labels.join(" | "),
             // sub group
             GraphvizLabelGroup::Groups(group) => {
-                let mut s = String::from("{");
+                let mut groups = vec![];
                 for g in group {
-                    s.push_str(&Into::<String>::into(g));
+                    groups.push(format!("{{{}}}", Into::<String>::into(g)));
                 }
 
-                s.push_str("}");
-                s
+                format!("{{{}}}", groups.join(" | "))
             }
         }
     }
@@ -202,7 +220,9 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
             self.connect(format!("{}:{}", &name, pos), attr.node_name);
         }
 
-        self.write_node(&name, GraphvizLabelGroup::from_iter(&labels));
+        let labels = GraphvizLabelGroup::from_name("StatementList")
+            .append_group(GraphvizLabelGroup::from_iter(&labels));
+        self.write_node(&name, labels);
 
         if let Some(top) = self.top_mut() {
             top.node_name = name;
