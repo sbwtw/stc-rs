@@ -1,7 +1,7 @@
-use std::str::CharIndices;
 use crate::ast::{AstNode, AstVisitor, AstVisitorMut};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::str::CharIndices;
 
 pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 pub type LexerResult = Spanned<Tok, usize, LexicalError>;
@@ -105,7 +105,7 @@ impl<'input> LexerBuffer<'input> {
         Self {
             chars: input.char_indices(),
             len: input.len(),
-            stage: None
+            stage: None,
         }
     }
 
@@ -145,11 +145,7 @@ impl<'input> Lexer<'input> {
         }
     }
 
-    fn parse_integer(
-        &mut self,
-        start: usize,
-        ch: char,
-    ) -> Option<LexerResult> {
+    fn parse_integer(&mut self, start: usize, ch: char) -> Option<LexerResult> {
         let mut s = String::from(ch);
 
         loop {
@@ -160,8 +156,8 @@ impl<'input> Lexer<'input> {
                 (n, Some('.')) => {
                     self.buffer.stage((n, Some('.')));
 
-                    return self.parse_floating(start, s)
-                },
+                    return self.parse_floating(start, s);
+                }
                 (end, x) => {
                     self.buffer.stage((end, x));
 
@@ -169,17 +165,13 @@ impl<'input> Lexer<'input> {
                         start,
                         Tok::Literal(LiteralType::U64(s.parse().unwrap())),
                         end,
-                    )))
+                    )));
                 }
             }
         }
     }
 
-    fn parse_floating(
-        &mut self,
-        start: usize,
-        mut s: String,
-    ) -> Option<LexerResult> {
+    fn parse_floating(&mut self, start: usize, mut s: String) -> Option<LexerResult> {
         let mut dot = false;
 
         loop {
@@ -221,7 +213,9 @@ impl<'input> Lexer<'input> {
 
             match self.buffer.next() {
                 (_, Some('\\')) => escape = true,
-                (n, Some('\"')) => return Some(Ok((start, Tok::Literal(LiteralType::String(s)), n + 1))),
+                (n, Some('\"')) => {
+                    return Some(Ok((start, Tok::Literal(LiteralType::String(s)), n + 1)))
+                }
                 (_, Some(c)) => s.push(c),
                 _ => return Some(Err(LexicalError::UnexpectedEnd)),
             }
@@ -236,7 +230,9 @@ impl<'input> Lexer<'input> {
                 (_, Some(c)) if c.is_ascii_alphabetic() || c == '_' => {
                     str.push(c);
                 }
-                (n, _) => {
+                (n, x) => {
+                    self.buffer.stage((n, x));
+
                     let tok = self.keywords_or_identifier(str);
                     return Some(Ok((start, tok, n)));
                 }
@@ -270,7 +266,9 @@ impl<'input> Iterator for Lexer<'input> {
             (i, Some(';')) => Some(Ok((i, Tok::Semicolon, i + 1))),
             (i, Some('\"')) => self.parse_string(i),
             (start, Some(c)) if c.is_ascii_digit() && c != '0' => self.parse_integer(start, c),
-            (start, Some(c)) if c.is_ascii_alphabetic() || c == '_' => self.parse_identifier(start, c),
+            (start, Some(c)) if c.is_ascii_alphabetic() || c == '_' => {
+                self.parse_identifier(start, c)
+            }
             (i, Some(c)) => Some(Err(LexicalError::UnexpectedCharacter(i, c))),
             (_, None) => None,
         }
@@ -279,7 +277,7 @@ impl<'input> Iterator for Lexer<'input> {
 
 #[cfg(test)]
 mod test {
-    use crate::parser::{Lexer, Tok, StString};
+    use crate::parser::{Lexer, StString, Tok};
 
     #[test]
     fn test_st_string() {
@@ -304,5 +302,16 @@ mod test {
         assert!(matches!(lexer.next(), Some(Ok((0, Tok::If, 2)))));
         assert!(matches!(lexer.next(), Some(Ok((3, Tok::Identifier(_), 6)))));
         assert!(matches!(lexer.next(), None));
+    }
+
+    #[test]
+    fn test_identifier_semicolon() {
+        let s = "1 + a;";
+        let mut lexer = Lexer::new(s);
+
+        assert!(matches!(lexer.next(), Some(Ok((0, Tok::Literal(_), 1)))));
+        assert!(matches!(lexer.next(), Some(Ok((2, Tok::Plus, 3)))));
+        assert!(matches!(lexer.next(), Some(Ok((4, Tok::Identifier(_), 5)))));
+        assert!(matches!(lexer.next(), Some(Ok((5, Tok::Semicolon, 6)))));
     }
 }

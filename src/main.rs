@@ -8,7 +8,8 @@ use std::fs::OpenOptions;
 use std::process::Command;
 
 fn main() {
-    let lexer = Lexer::new("2 + 3; a + 1; IF a + 3 THEN a - 3; END_IF");
+    let lexer = Lexer::new("IF a + 3 THEN a - 3; END_IF 1 + a;");
+
     let r = parser::st::CompilationUnitsParser::new()
         .parse(lexer)
         .unwrap();
