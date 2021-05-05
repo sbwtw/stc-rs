@@ -1,6 +1,5 @@
 use crate::ast::*;
 use crate::parser::LiteralType;
-use std::env::var;
 use std::fmt::Arguments;
 use std::io::Write;
 
@@ -44,15 +43,21 @@ impl<W: Write> StringifyVisitor<W> {
 impl<W: Write> AstVisitor for StringifyVisitor<W> {
     fn visit_literal(&mut self, literal: &LiteralType) {
         match literal {
-            LiteralType::F32(x) => self.write(format_args!("{}", x)),
-            LiteralType::I32(x) => self.write(format_args!("{}", x)),
-            LiteralType::U64(x) => self.write(format_args!("{}", x)),
-            LiteralType::String(x) => self.write(format_args!("{}", x)),
+            LiteralType::F32(x) => self.write(format_args!("{:?}", x)),
+            LiteralType::I32(x) => self.write(format_args!("{:?}", x)),
+            LiteralType::U64(x) => self.write(format_args!("{:?}", x)),
+            LiteralType::String(x) => self.write(format_args!("{:?}", x)),
         }
     }
 
     fn visit_variable(&mut self, variable: &VariableExpression) {
         self.write(format_args!("{}", variable.origin_name()));
+    }
+
+    fn visit_statement_list(&mut self, stmt: &StatementList) {
+        for s in &stmt.0 {
+            s.accept(self);
+        }
     }
 
     fn visit_expr_statement(&mut self, stmt: &ExprStatement) {
@@ -108,6 +113,6 @@ mod test {
         r.accept(&mut stringify);
 
         let buf_str = String::from_utf8_lossy(&buf);
-        assert_eq!(buf_str, "2-3.0/3;\n-1+\"a\\\"s\\\"d\";\n");
+        assert_eq!(buf_str, "2 - 3.0 / 3;\n-1 + \"a\\\"s\\\"d\";\n");
     }
 }

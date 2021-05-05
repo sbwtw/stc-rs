@@ -22,6 +22,7 @@ pub use variable_expression::VariableExpression;
 pub trait AstVisitor {
     fn visit_literal(&mut self, literal: &LiteralType);
     fn visit_variable(&mut self, variable: &VariableExpression);
+    fn visit_statement_list(&mut self, stmt: &StatementList);
     fn visit_expr_statement(&mut self, stmt: &ExprStatement);
     fn visit_if_statement(&mut self, stmt: &IfStatement);
     fn visit_operator_expression(&mut self, op: &OpCode, operands: &[Box<dyn Expression>]);
@@ -31,9 +32,14 @@ pub trait AstVisitor {
 pub trait AstVisitorMut: AstVisitor {
     fn visit_literal_mut(&mut self, literal: &mut LiteralType);
     fn visit_variable_mut(&mut self, variable: &mut VariableExpression);
+    fn visit_statement_list_mut(&mut self, stmt: &mut StatementList);
     fn visit_expr_statement_mut(&mut self, stmt: &mut ExprStatement);
     fn visit_if_statement_mut(&mut self, stmt: &mut IfStatement);
-    fn visit_operator_expression_mut(&mut self, op: &mut OpCode, operands: &mut [Box<dyn Expression>]);
+    fn visit_operator_expression_mut(
+        &mut self,
+        op: &mut OpCode,
+        operands: &mut [Box<dyn Expression>],
+    );
 }
 
 pub trait AstNode: Debug {
@@ -51,7 +57,10 @@ impl Display for dyn AstNode {
     }
 }
 
-impl<T> AstNode for Box<T> where T: AstNode {
+impl<T> AstNode for Box<T>
+where
+    T: AstNode,
+{
     fn accept(&self, visitor: &mut dyn AstVisitor) {
         self.as_ref().accept(visitor);
     }
@@ -61,42 +70,34 @@ impl<T> AstNode for Box<T> where T: AstNode {
     }
 }
 
-impl<T> AstNode for Vec<T> where T: AstNode {
-    fn accept(&self, visitor: &mut dyn AstVisitor) {
-        for x in self {
-            x.accept(visitor);
-        }
-    }
+// impl<T> AstNode for Vec<T> where T: AstNode {
+//     fn accept(&self, visitor: &mut dyn AstVisitor) {
+//         for x in self {
+//             x.accept(visitor);
+//         }
+//     }
+//
+//     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
+//         for x in self {
+//             x.accept_mut(visitor);
+//         }
+//     }
+// }
 
-    fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
-        for x in self {
-            x.accept_mut(visitor);
-        }
-    }
-}
+pub trait Statement: AstNode {}
 
-pub trait Statement: AstNode {
-
-}
-
-pub trait Expression: AstNode {
-
-}
+pub trait Expression: AstNode {}
 
 #[derive(Debug)]
 pub struct StatementList(pub Vec<Box<dyn Statement>>);
 
 impl AstNode for StatementList {
     fn accept(&self, visitor: &mut dyn AstVisitor) {
-        for x in &self.0 {
-            x.accept(visitor);
-        }
+        visitor.visit_statement_list(self)
     }
 
     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
-        for x in &mut self.0 {
-            x.accept_mut(visitor);
-        }
+        visitor.visit_statement_list(self)
     }
 }
 
