@@ -176,7 +176,7 @@ mod test {
     fn stringify() {
         let buf_str = parse_string("2-3.0/3; -1+\"a\\\"s\\\"d\";");
 
-        assert_eq!(buf_str, "2 - 3.0 / 3;\n-1 + \"a\\\"s\\\"d\";\n");
+        assert_eq!(buf_str, "2 - (3.0 / 3);\n(-1) + \"a\\\"s\\\"d\";\n");
     }
 
     #[test]
