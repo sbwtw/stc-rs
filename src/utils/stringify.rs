@@ -3,9 +3,28 @@ use crate::parser::LiteralType;
 use std::fmt::Arguments;
 use std::io::Write;
 
+struct StringifyAttribute {
+    sub_expression: bool,
+}
+
+impl StringifyAttribute {
+    fn empty() -> Self {
+        Self {
+            sub_expression: false,
+        }
+    }
+
+    fn sub_expression() -> Self {
+        Self {
+            sub_expression: true,
+        }
+    }
+}
+
 pub struct StringifyVisitor<W: Write> {
     writer: W,
     indent: usize,
+    attribute_stack: Vec<StringifyAttribute>,
 }
 
 impl<W: Write> StringifyVisitor<W> {
@@ -13,6 +32,7 @@ impl<W: Write> StringifyVisitor<W> {
         Self {
             writer: w,
             indent: 0,
+            attribute_stack: vec![],
         }
     }
 
@@ -37,6 +57,18 @@ impl<W: Write> StringifyVisitor<W> {
 
     fn writeln(&mut self, args: Arguments<'_>) {
         writeln!(self.writer, "{}", args).unwrap();
+    }
+
+    fn top(&self) -> Option<&StringifyAttribute> {
+        self.attribute_stack.last()
+    }
+
+    fn pop(&mut self) -> StringifyAttribute {
+        self.attribute_stack.pop().unwrap()
+    }
+
+    fn push(&mut self, attr: StringifyAttribute) {
+        self.attribute_stack.push(attr)
     }
 }
 
@@ -80,20 +112,39 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
     }
 
     fn visit_operator_expression(&mut self, op: &OpCode, operands: &[Box<dyn Expression>]) {
+        let sub_expression = self.top().map(|x| x.sub_expression).unwrap_or(false);
+
+        if sub_expression {
+            self.write(format_args!("("));
+        }
+
         match op {
             &OpCode::Sub if operands.len() == 1 => {
                 self.write_op(op);
+
+                self.push(StringifyAttribute::sub_expression());
                 operands[0].accept(self);
+                self.pop();
             }
             _ => {
                 assert_eq!(operands.len(), 2);
 
+                self.push(StringifyAttribute::sub_expression());
                 operands[0].accept(self);
+                self.pop();
+
                 self.write(format_args!(" "));
                 self.write_op(op);
                 self.write(format_args!(" "));
+
+                self.push(StringifyAttribute::sub_expression());
                 operands[1].accept(self);
+                self.pop();
             }
+        }
+
+        if sub_expression {
+            self.write(format_args!(")"));
         }
     }
 
@@ -106,7 +157,6 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
 
 #[cfg(test)]
 mod test {
-    use crate::ast::*;
     use crate::parser::st::*;
     use crate::parser::*;
     use crate::utils::*;
@@ -141,5 +191,12 @@ mod test {
         let buf_str = parse_string("if a - 1 then a:= a + 1; else a - 1; end_if");
 
         assert_eq!(buf_str, "IF a - 1 THEN\n    a := a + 1;\nEND_IF\n");
+    }
+
+    #[test]
+    fn test_sub_expr_parenthesis() {
+        let buf_str = parse_string("a * (a + 1);");
+
+        assert_eq!(buf_str, "a * (a + 1);\n");
     }
 }

@@ -62,7 +62,7 @@ pub trait AstNode: Debug + AsAstNode {
     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut);
 }
 
-impl Display for dyn AstNode {
+impl Display for &dyn AstNode {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut buf = vec![];
         let mut stringify = StringifyVisitor::new(&mut buf);
@@ -84,20 +84,6 @@ where
         self.as_mut().accept_mut(visitor);
     }
 }
-
-// impl<T> AstNode for Vec<T> where T: AstNode {
-//     fn accept(&self, visitor: &mut dyn AstVisitor) {
-//         for x in self {
-//             x.accept(visitor);
-//         }
-//     }
-//
-//     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
-//         for x in self {
-//             x.accept_mut(visitor);
-//         }
-//     }
-// }
 
 pub trait Statement: AstNode {}
 

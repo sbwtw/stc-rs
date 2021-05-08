@@ -249,7 +249,8 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
         stmt.expr().accept(self);
         let attr = self.pop();
 
-        self.write_node(&name, GraphvizLabelGroup::from_name("ExprStatement"));
+        let s = format!("{}", stmt.expr().as_ast_node());
+        self.write_node(&name, GraphvizLabelGroup::from_name("ExprStatement").append_group(GraphvizLabelGroup::from_name(s)));
         self.connect(&name, attr.node_name);
         if let Some(top) = self.top_mut() {
             top.node_name = name;
