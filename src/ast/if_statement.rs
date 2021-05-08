@@ -43,6 +43,10 @@ impl IfStatement {
     pub fn then_controlled(&self) -> Option<&Box<dyn Statement>> {
         self.then_controlled.as_ref()
     }
+
+    pub fn else_controlled(&self) -> Option<&Box<dyn Statement>> {
+        self.else_controlled.as_ref()
+    }
 }
 
 #[derive(Debug)]

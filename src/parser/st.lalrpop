@@ -44,7 +44,8 @@ StatementList: Box<dyn Statement> = {
 
 Statement: Box<dyn Statement> = {
     <e:Expr> ";" => Box::new(ExprStatement::new(e)),
-    "IF" <cond: Expr> "THEN" <then_ctrl: StatementList> "END_IF" => Box::new(IfStatement::from_then(cond, then_ctrl))
+    "IF" <cond: Expr> "THEN" <then_ctrl: StatementList> "END_IF" => Box::new(IfStatement::from_then(cond, then_ctrl)),
+    "IF" <cond: Expr> "THEN" <then_ctrl: StatementList> "ELSE" <else_ctrl: StatementList> "END_IF" => Box::new(IfStatement::from_then_else(cond, then_ctrl, else_ctrl)),
 }
 
 Expr: Box<dyn Expression> = {

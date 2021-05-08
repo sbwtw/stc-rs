@@ -122,6 +122,15 @@ impl<W: Write> GraphvizExporter<W> {
         format!("{}_{}", name.as_ref(), self.unique_name_id)
     }
 
+    fn unique_name_with_pos<S: AsRef<str>>(&mut self, name: S) -> (String, String) {
+        self.unique_name_id += 1;
+
+        let pos = format!("{}_{}", name.as_ref(), self.unique_name_id);
+        let label = format!("<{}> {}", &pos, name.as_ref());
+
+        (pos, label)
+    }
+
     // fn top(&self) -> &GraphvizAttribute {
     //     self.attribute_stack.last().unwrap()
     // }
@@ -160,6 +169,10 @@ impl<W: Write> GraphvizExporter<W> {
 
     fn connect<S1: AsRef<str>, S2: AsRef<str>>(&mut self, from: S1, to: S2) {
         self.writeln(format_args!("{} -> {};", from.as_ref(), to.as_ref()));
+    }
+
+    fn connect_from_pos<S1: AsRef<str>, S2: AsRef<str>, S3: AsRef<str>>(&mut self, from: S1, from_pos: S2, to: S3) {
+        self.writeln(format_args!("{}:{} -> {};", from.as_ref(), from_pos.as_ref(), to.as_ref()));
     }
 }
 
@@ -236,6 +249,7 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
         stmt.expr().accept(self);
         let attr = self.pop();
 
+        self.write_node(&name, GraphvizLabelGroup::from_name("ExprStatement"));
         self.connect(&name, attr.node_name);
         if let Some(top) = self.top_mut() {
             top.node_name = name;
@@ -245,18 +259,39 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
     fn visit_if_statement(&mut self, stmt: &IfStatement) {
         let name = self.unique_name("if_statement");
 
+        let mut labels = vec![];
+
         self.push_empty();
         stmt.condition().accept(self);
         let attr = self.pop();
-        self.connect(&name, attr.node_name);
+
+        let (pos, label) = self.unique_name_with_pos("Cond");
+        self.connect_from_pos(&name, pos, attr.node_name);
+        labels.push(label);
 
         if let Some(then) = stmt.then_controlled() {
             self.push_empty();
             then.accept(self);
             let attr = self.pop();
 
-            self.connect(&name, attr.node_name);
+            let (pos, label) = self.unique_name_with_pos("Then");
+            self.connect_from_pos(&name, pos, attr.node_name);
+            labels.push(label);
         }
+
+        if let Some(else_ctrl) = stmt.else_controlled() {
+            self.push_empty();
+            else_ctrl.accept(self);
+            let attr = self.pop();
+
+            let (pos, label) = self.unique_name_with_pos("Else");
+            self.connect_from_pos(&name, pos, attr.node_name);
+            labels.push(label);
+        }
+
+        let labels = GraphvizLabelGroup::from_name("IfStatement")
+            .append_group(GraphvizLabelGroup::from_iter(&labels));
+        self.write_node(&name, labels);
 
         if let Some(top) = self.top_mut() {
             top.node_name = name;
