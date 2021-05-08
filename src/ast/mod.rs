@@ -42,7 +42,17 @@ pub trait AstVisitorMut: AstVisitor {
     );
 }
 
-pub trait AstNode: Debug {
+pub trait AsAstNode {
+    fn as_ast_node(&self) -> &dyn AstNode;
+}
+
+impl<T: AstNode> AsAstNode for T {
+    fn as_ast_node(&self) -> &dyn AstNode {
+        self
+    }
+}
+
+pub trait AstNode: Debug + AsAstNode {
     fn accept(&self, visitor: &mut dyn AstVisitor);
     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut);
 }
@@ -100,6 +110,8 @@ impl AstNode for StatementList {
         visitor.visit_statement_list(self)
     }
 }
+
+impl Statement for StatementList {}
 
 #[derive(Debug)]
 pub enum OpCode {

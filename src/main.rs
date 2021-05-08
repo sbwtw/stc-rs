@@ -8,7 +8,7 @@ use std::fs::OpenOptions;
 use std::process::Command;
 
 fn main() {
-    let lexer = Lexer::new("IF a + 3 THEN a - 3; END_IF 1 + a;");
+    let lexer = Lexer::new("IF a + 3 THEN a - 3; a + 2; END_IF 1 + a; 1 - a;");
 
     let r = parser::st::CompilationUnitsParser::new()
         .parse(lexer)
@@ -20,17 +20,17 @@ fn main() {
             .write(true)
             .create(true)
             .truncate(true)
-            .open("/home/test.dot")
+            .open("test.dot")
             .unwrap();
 
         let mut graphviz = utils::GraphvizExporter::new(&mut f);
-        graphviz.plot(&r);
+        graphviz.plot(r.as_ast_node());
     }
 
     // convert to svg
     {
         Command::new("dot")
-            .args(&["-Tsvg", "/home/test.dot", "-o", "/home/test.svg"])
+            .args(&["-Tsvg", "test.dot", "-o", "test.svg"])
             .status()
             .expect("failed.");
     }

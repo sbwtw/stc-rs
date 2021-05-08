@@ -36,13 +36,15 @@ extern {
 //    }
 //};
 
-pub CompilationUnits: StatementList = {
-    Statement* => StatementList(<>)
+pub CompilationUnits = StatementList;
+
+StatementList: Box<dyn Statement> = {
+    Statement* => Box::new(StatementList(<>))
 }
 
 Statement: Box<dyn Statement> = {
     <e:Expr> ";" => Box::new(ExprStatement::new(e)),
-    "IF" <cond: Expr> "THEN" <then_ctrl: Statement> "END_IF" => Box::new(IfStatement::from_then(cond, then_ctrl))
+    "IF" <cond: Expr> "THEN" <then_ctrl: StatementList> "END_IF" => Box::new(IfStatement::from_then(cond, then_ctrl))
 }
 
 Expr: Box<dyn Expression> = {
