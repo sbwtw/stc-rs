@@ -16,6 +16,7 @@ extern {
         ")" => lexer::Tok::RightParentheses,
         "," => lexer::Tok::Comma,
         ";" => lexer::Tok::Semicolon,
+        ":=" => lexer::Tok::Assign,
         "IF" => lexer::Tok::If,
         "THEN" => lexer::Tok::Then,
         "ELSE" => lexer::Tok::Else,
@@ -49,14 +50,19 @@ Statement: Box<dyn Statement> = {
 }
 
 Expr: Box<dyn Expression> = {
-    <e1: Expr> <op: ExprOp> <e2: Factor> => Box::new(OperatorExpression::new(op, vec![e1, e2])),
-    Factor,
+    <lhs: Expr> ":=" <rhs: OpExpr> => Box::new(AssignExpression::new(<>)),
+    OpExpr,
 };
 
 ExprOp: OpCode = {
     "+" => OpCode::Add,
     "-" => OpCode::Sub,
 };
+
+OpExpr: Box<dyn Expression> = {
+    <e1: OpExpr> <op: ExprOp> <e2: Factor> => Box::new(OperatorExpression::new(op, vec![e1, e2])),
+    Factor,
+}
 
 Factor: Box<dyn Expression> = {
     <e1: Factor> <op: FactorOp> <e2: UnaryFactor> => Box::new(OperatorExpression::new(op, vec![e1, e2])),

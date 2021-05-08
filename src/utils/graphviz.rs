@@ -316,4 +316,34 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
             top.node_name = name;
         }
     }
+
+    fn visit_assign_expression(&mut self, assign: &AssignExpression) {
+        let name = self.unique_name("assign_expression");
+
+        let mut labels = vec![];
+
+        self.push_empty();
+        assign.left().accept(self);
+        let attr = self.pop();
+
+        let (pos, label) = self.unique_name_with_pos("Left");
+        self.connect_from_pos(&name, pos, attr.node_name);
+        labels.push(label);
+
+        self.push_empty();
+        assign.right().accept(self);
+        let attr = self.pop();
+
+        let (pos, label) = self.unique_name_with_pos("Right");
+        self.connect_from_pos(&name, pos, attr.node_name);
+        labels.push(label);
+
+        let labels = GraphvizLabelGroup::from_name("AssignExpr")
+            .append_group(GraphvizLabelGroup::from_iter(&labels));
+        self.write_node(&name, labels);
+
+        if let Some(top) = self.top_mut() {
+            top.node_name = name;
+        }
+    }
 }

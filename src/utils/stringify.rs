@@ -86,6 +86,8 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
                 operands[0].accept(self);
             }
             _ => {
+                assert_eq!(operands.len(), 2);
+
                 operands[0].accept(self);
                 self.write(format_args!(" "));
                 self.write_op(op);
@@ -93,6 +95,12 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
                 operands[1].accept(self);
             }
         }
+    }
+
+    fn visit_assign_expression(&mut self, assign: &AssignExpression) {
+        assign.left().accept(self);
+        self.write(format_args!(" := "));
+        assign.right().accept(self);
     }
 }
 
@@ -103,29 +111,35 @@ mod test {
     use crate::parser::*;
     use crate::utils::*;
 
-    #[test]
-    fn stringify() {
-        let lexer = Lexer::new("2-3.0/3; -1+\"a\\\"s\\\"d\";");
+    fn parse_string<S: AsRef<str>>(s: S) -> String {
+        let lexer = Lexer::new(s.as_ref());
         let r = CompilationUnitsParser::new().parse(lexer).unwrap();
 
         let mut buf = vec![];
         let mut stringify = StringifyVisitor::new(&mut buf);
         r.accept(&mut stringify);
 
-        let buf_str = String::from_utf8_lossy(&buf);
+        String::from_utf8_lossy(&buf).into()
+    }
+
+    #[test]
+    fn stringify() {
+        let buf_str = parse_string("2-3.0/3; -1+\"a\\\"s\\\"d\";");
+
         assert_eq!(buf_str, "2 - 3.0 / 3;\n-1 + \"a\\\"s\\\"d\";\n");
     }
 
     #[test]
     fn test_if_else() {
-        let lexer = Lexer::new("if a - 1 then a + 1; else a - 1; end_if");
-        let r = CompilationUnitsParser::new().parse(lexer).unwrap();
+        let buf_str = parse_string("if a - 1 then a + 1; else a - 1; end_if");
 
-        let mut buf = vec![];
-        let mut stringify = StringifyVisitor::new(&mut buf);
-        r.accept(&mut stringify);
-
-        let buf_str = String::from_utf8_lossy(&buf);
         assert_eq!(buf_str, "IF a - 1 THEN\n    a + 1;\nEND_IF\n");
+    }
+
+    #[test]
+    fn test_assign_expr() {
+        let buf_str = parse_string("if a - 1 then a:= a + 1; else a - 1; end_if");
+
+        assert_eq!(buf_str, "IF a - 1 THEN\n    a := a + 1;\nEND_IF\n");
     }
 }

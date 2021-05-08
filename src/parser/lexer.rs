@@ -61,6 +61,8 @@ pub enum Tok {
     RightParentheses,
     Comma,
     Semicolon,
+    Colon,
+    Assign,
     If,
     Then,
     Else,
@@ -265,6 +267,16 @@ impl<'input> Iterator for Lexer<'input> {
             (i, Some(',')) => Some(Ok((i, Tok::Comma, i + 1))),
             (i, Some(';')) => Some(Ok((i, Tok::Semicolon, i + 1))),
             (i, Some('\"')) => self.parse_string(i),
+            (i, Some(':')) => {
+                match self.buffer.next() {
+                    (n, Some('=')) => Some(Ok((i, Tok::Assign, n + 1))),
+                    (n, x) => {
+                        self.buffer.stage((n, x));
+
+                        Some(Ok((i, Tok::Colon, i + 1)))
+                    }
+                }
+            }
             (start, Some(c)) if c.is_ascii_digit() && c != '0' => self.parse_integer(start, c),
             (start, Some(c)) if c.is_ascii_alphabetic() || c == '_' => {
                 self.parse_identifier(start, c)

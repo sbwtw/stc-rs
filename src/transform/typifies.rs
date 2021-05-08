@@ -1,7 +1,4 @@
-use crate::ast::{
-    AstVisitor, AstVisitorMut, ExprStatement, Expression, IfStatement, OpCode, StatementList,
-    VariableExpression,
-};
+use crate::ast::{AstVisitor, AstVisitorMut, ExprStatement, Expression, IfStatement, OpCode, StatementList, VariableExpression, AssignExpression};
 use crate::parser::LiteralType;
 
 pub struct TypeAllocator;
@@ -34,6 +31,10 @@ impl AstVisitorMut for TypeAllocator {
     ) {
         todo!()
     }
+
+    fn visit_assign_expression_mut(&mut self, assign: &mut AssignExpression) {
+        todo!()
+    }
 }
 
 impl AstVisitor for TypeAllocator {
@@ -58,6 +59,10 @@ impl AstVisitor for TypeAllocator {
     }
 
     fn visit_operator_expression(&mut self, op: &OpCode, operands: &[Box<dyn Expression>]) {
+        todo!()
+    }
+
+    fn visit_assign_expression(&mut self, assign: &AssignExpression) {
         todo!()
     }
 }

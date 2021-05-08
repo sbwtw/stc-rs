@@ -18,6 +18,9 @@ pub use operator_expression::OperatorExpression;
 mod variable_expression;
 pub use variable_expression::VariableExpression;
 
+mod assign_expression;
+pub use assign_expression::AssignExpression;
+
 // Immutable visitor
 pub trait AstVisitor {
     fn visit_literal(&mut self, literal: &LiteralType);
@@ -26,6 +29,7 @@ pub trait AstVisitor {
     fn visit_expr_statement(&mut self, stmt: &ExprStatement);
     fn visit_if_statement(&mut self, stmt: &IfStatement);
     fn visit_operator_expression(&mut self, op: &OpCode, operands: &[Box<dyn Expression>]);
+    fn visit_assign_expression(&mut self, assign: &AssignExpression);
 }
 
 // Mutable visitor
@@ -40,6 +44,7 @@ pub trait AstVisitorMut: AstVisitor {
         op: &mut OpCode,
         operands: &mut [Box<dyn Expression>],
     );
+    fn visit_assign_expression_mut(&mut self, assign: &mut AssignExpression);
 }
 
 pub trait AsAstNode {
