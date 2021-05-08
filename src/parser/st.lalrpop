@@ -20,6 +20,7 @@ extern {
         "IF" => lexer::Tok::If,
         "THEN" => lexer::Tok::Then,
         "ELSE" => lexer::Tok::Else,
+        "ELSEIF" => lexer::Tok::ElseIf,
         "END_IF" => lexer::Tok::EndIf,
         "Literal" => lexer::Tok::Literal(<LiteralType>),
         "Variable" => lexer::Tok::Identifier(<StString>),
@@ -40,13 +41,22 @@ extern {
 pub CompilationUnits = StatementList;
 
 StatementList: Box<dyn Statement> = {
-    Statement* => Box::new(StatementList(<>))
+    Statement+ => Box::new(StatementList(<>))
 }
 
 Statement: Box<dyn Statement> = {
     <e:Expr> ";" => Box::new(ExprStatement::new(e)),
-    "IF" <cond: Expr> "THEN" <then_ctrl: StatementList> "END_IF" => Box::new(IfStatement::from_then(cond, then_ctrl)),
-    "IF" <cond: Expr> "THEN" <then_ctrl: StatementList> "ELSE" <else_ctrl: StatementList> "END_IF" => Box::new(IfStatement::from_then_else(cond, then_ctrl, else_ctrl)),
+    "IF" <cond: Expr> "THEN" <then_ctrl: StatementList> "END_IF" => Box::new(IfStatement::from_then(<>)),
+    "IF" <cond: Expr> "THEN" <then_ctrl: StatementList> "ELSE" <else_ctrl: StatementList> "END_IF" => Box::new(IfStatement::from_then_else(<>)),
+    "IF" <cond: Expr> "THEN" <then_ctrl: StatementList> <else_if_list: ElseIfStatementList> "ELSE" <else_ctrl: StatementList> "END_IF" => Box::new(IfStatement::from_then_elseif_else(<>)),
+}
+
+ElseIfStatementList: Vec<ElseIfStatement> = {
+    ElseIfStatement+ => <>
+}
+
+ElseIfStatement: ElseIfStatement = {
+    "ELSEIF" <cond: Expr> "THEN" <then_ctrl: StatementList> => ElseIfStatement::from_then(<>),
 }
 
 Expr: Box<dyn Expression> = {

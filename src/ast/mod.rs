@@ -7,7 +7,7 @@ mod expr_statement;
 pub use expr_statement::ExprStatement;
 
 mod if_statement;
-pub use if_statement::IfStatement;
+pub use if_statement::{ElseIfStatement, IfStatement};
 
 mod literal_expression;
 pub use literal_expression::LiteralExpression;
