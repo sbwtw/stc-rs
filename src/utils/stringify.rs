@@ -115,4 +115,17 @@ mod test {
         let buf_str = String::from_utf8_lossy(&buf);
         assert_eq!(buf_str, "2 - 3.0 / 3;\n-1 + \"a\\\"s\\\"d\";\n");
     }
+
+    #[test]
+    fn test_if_else() {
+        let lexer = Lexer::new("if a - 1 then a + 1; else a - 1; end_if");
+        let r = CompilationUnitsParser::new().parse(lexer).unwrap();
+
+        let mut buf = vec![];
+        let mut stringify = StringifyVisitor::new(&mut buf);
+        r.accept(&mut stringify);
+
+        let buf_str = String::from_utf8_lossy(&buf);
+        assert_eq!(buf_str, "IF a - 1 THEN\n    a + 1;\nEND_IF\n");
+    }
 }

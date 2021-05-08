@@ -151,9 +151,9 @@ impl<W: Write> GraphvizExporter<W> {
         self.push(GraphvizAttribute::empty())
     }
 
-    fn write(&mut self, args: Arguments<'_>) {
-        write!(self.writer, "{}", args).unwrap();
-    }
+    // fn write(&mut self, args: Arguments<'_>) {
+    //     write!(self.writer, "{}", args).unwrap();
+    // }
 
     fn writeln(&mut self, args: Arguments<'_>) {
         writeln!(self.writer, "{}", args).unwrap();
