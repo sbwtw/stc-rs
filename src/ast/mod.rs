@@ -1,13 +1,19 @@
 use std::fmt::{self, Debug, Display, Formatter};
 
-use crate::parser::LiteralType;
+use crate::parser::{LiteralType, StString, Tok};
 use crate::utils::StringifyVisitor;
+
+mod visitor;
+pub use visitor::*;
 
 mod expr_statement;
 pub use expr_statement::ExprStatement;
 
 mod if_statement;
 pub use if_statement::{ElseIfStatement, IfStatement};
+
+mod declaration_statement;
+pub use declaration_statement::DeclarationStatement;
 
 mod literal_expression;
 pub use literal_expression::LiteralExpression;
@@ -16,7 +22,7 @@ mod operator_expression;
 pub use operator_expression::OperatorExpression;
 
 mod variable_expression;
-pub use variable_expression::VariableExpression;
+pub use variable_expression::IdentifierExpression;
 
 mod assign_expression;
 pub use assign_expression::AssignExpression;
@@ -24,29 +30,8 @@ pub use assign_expression::AssignExpression;
 mod compo_access_expression;
 pub use compo_access_expression::CompoAccessExpression;
 
-// Immutable visitor
-pub trait AstVisitor {
-    fn visit_literal(&mut self, literal: &LiteralType);
-    fn visit_variable(&mut self, variable: &VariableExpression);
-    fn visit_statement_list(&mut self, stmt: &StatementList);
-    fn visit_expr_statement(&mut self, stmt: &ExprStatement);
-    fn visit_if_statement(&mut self, stmt: &IfStatement);
-    fn visit_operator_expression(&mut self, expr: &OperatorExpression);
-    fn visit_assign_expression(&mut self, assign: &AssignExpression);
-    fn visit_compo_access_expression(&mut self, compo: &CompoAccessExpression);
-}
-
-// Mutable visitor
-pub trait AstVisitorMut: AstVisitor {
-    fn visit_literal_mut(&mut self, literal: &mut LiteralType);
-    fn visit_variable_mut(&mut self, variable: &mut VariableExpression);
-    fn visit_statement_list_mut(&mut self, stmt: &mut StatementList);
-    fn visit_expr_statement_mut(&mut self, stmt: &mut ExprStatement);
-    fn visit_if_statement_mut(&mut self, stmt: &mut IfStatement);
-    fn visit_operator_expression_mut(&mut self, expr: &mut OperatorExpression);
-    fn visit_assign_expression_mut(&mut self, assign: &mut AssignExpression);
-    fn visit_compo_access_expression_mut(&mut self, compo: &mut CompoAccessExpression);
-}
+mod function_declaration;
+pub use function_declaration::FunctionDeclaration;
 
 pub trait AsAstNode {
     fn as_ast_node(&self) -> &dyn AstNode;
@@ -90,6 +75,8 @@ pub trait Statement: AstNode {}
 
 pub trait Expression: AstNode {}
 
+pub trait Declaration: AstNode {}
+
 #[derive(Debug)]
 pub struct StatementList(pub Vec<Box<dyn Statement>>);
 
@@ -104,3 +91,60 @@ impl AstNode for StatementList {
 }
 
 impl Statement for StatementList {}
+
+#[derive(Debug)]
+pub enum FunctionClass {
+    Function,
+    Program,
+    FunctionBlock,
+    Method,
+}
+
+#[derive(Debug)]
+pub enum UserTypeClass {
+    Alias,
+    Enum,
+    Struct,
+    Union,
+}
+
+#[derive(Debug)]
+pub enum TypeClass {
+    /// 'BIT', one bit type
+    Bit,
+    /// 'BOOL', boolean type
+    Bool,
+    /// 'SINT', 8 bits signed
+    SInt,
+    /// 'BYTE', 8 bits unsigned
+    Byte,
+    /// 'INT', 16 bits signed
+    Int,
+    /// 'UINT', 16 bits unsigned
+    UInt,
+    /// 'DINT', 32 bits signed
+    DInt,
+    /// 'LINT', 64 bits signed
+    LInt,
+    /// 'ULINT', 64 bits unsigned
+    ULInt,
+    /// UserType
+    UserType(StString),
+}
+
+impl From<Tok> for TypeClass {
+    fn from(tok: Tok) -> Self {
+        match tok {
+            Tok::Bit => TypeClass::Bit,
+            Tok::Bool => TypeClass::Bool,
+            Tok::SInt => TypeClass::SInt,
+            Tok::Byte => TypeClass::Byte,
+            Tok::Int => TypeClass::Int,
+            Tok::UInt => TypeClass::UInt,
+            Tok::DInt => TypeClass::DInt,
+            Tok::LInt => TypeClass::LInt,
+            Tok::ULInt => TypeClass::ULInt,
+            _ => unreachable!(),
+        }
+    }
+}

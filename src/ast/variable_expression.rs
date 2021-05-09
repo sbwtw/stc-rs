@@ -2,11 +2,11 @@ use crate::ast::*;
 use crate::parser::StString;
 
 #[derive(Debug)]
-pub struct VariableExpression(StString);
+pub struct IdentifierExpression(StString);
 
-impl VariableExpression {
+impl IdentifierExpression {
     pub fn new(name: StString) -> Self {
-        VariableExpression(name)
+        IdentifierExpression(name)
     }
 
     pub fn origin_name(&self) -> &String {
@@ -14,15 +14,14 @@ impl VariableExpression {
     }
 }
 
-impl AstNode for VariableExpression {
+impl AstNode for IdentifierExpression {
     fn accept(&self, visitor: &mut dyn AstVisitor) {
-        visitor.visit_variable(self)
+        visitor.visit_identifier(self)
     }
 
     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
-        visitor.visit_variable(self)
+        visitor.visit_identifier(self)
     }
 }
 
-impl Expression for VariableExpression {}
-
+impl Expression for IdentifierExpression {}

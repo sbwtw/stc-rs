@@ -77,8 +77,8 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
         }
     }
 
-    fn visit_variable(&mut self, variable: &VariableExpression) {
-        self.write(format_args!("{}", variable.origin_name()));
+    fn visit_identifier(&mut self, identifier: &IdentifierExpression) {
+        self.write(format_args!("{}", identifier.origin_name()));
     }
 
     fn visit_statement_list(&mut self, stmt: &StatementList) {
@@ -126,6 +126,10 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
         }
 
         self.writeln(format_args!("END_IF"));
+    }
+
+    fn visit_declaration_statement(&mut self, decl: &DeclarationStatement) {
+        todo!()
     }
 
     fn visit_operator_expression(&mut self, expr: &OperatorExpression) {
@@ -179,6 +183,10 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
         self.write(format_args!("."));
         compo.right().accept(self);
     }
+
+    fn visit_function_declaration(&mut self, fun: &FunctionDeclaration) {
+        todo!()
+    }
 }
 
 #[cfg(test)]
@@ -189,7 +197,7 @@ mod test {
 
     fn parse_string<S: AsRef<str>>(s: S) -> String {
         let lexer = Lexer::new(s.as_ref());
-        let r = CompilationUnitsParser::new().parse(lexer).unwrap();
+        let r = StFunctionParser::new().parse(lexer).unwrap();
 
         let mut buf = vec![];
         let mut stringify = StringifyVisitor::new(&mut buf);

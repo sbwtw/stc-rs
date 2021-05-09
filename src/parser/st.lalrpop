@@ -19,13 +19,15 @@ extern {
         "," => Tok::Comma,
         ";" => Tok::Semicolon,
         ":=" => Tok::Assign,
+        ":" => Tok::Colon,
         "IF" => Tok::If,
         "THEN" => Tok::Then,
         "ELSE" => Tok::Else,
         "ELSEIF" => Tok::ElseIf,
         "END_IF" => Tok::EndIf,
+        "Function" => Tok::Function,
         "Literal" => Tok::Literal(<LiteralType>),
-        "Variable" => Tok::Identifier(<StString>),
+        "Identifier" => Tok::Identifier(<StString>),
     }
 }
 
@@ -40,7 +42,7 @@ extern {
 //    }
 //};
 
-pub CompilationUnits = StatementList;
+pub StFunction = StatementList;
 
 StatementList: Box<dyn Statement> = {
     Statement+ => Box::new(StatementList(<>))
@@ -102,6 +104,11 @@ UnaryOp: Tok = {
 
 Term: Box<dyn Expression> = {
     "Literal" => Box::new(LiteralExpression::new(<>)),
-    "Variable" => Box::new(VariableExpression::new(<>)),
+    "Identifier" => Box::new(IdentifierExpression::new(<>)),
     "(" <Expr> ")",
 };
+
+/// Declarations
+//FunctionDeclaration: Box<dyn Declaration> = {
+//    "Function" <name: "Identifier"> ":" => Box::new(FunctionDeclaration::with_name(name)),
+//}

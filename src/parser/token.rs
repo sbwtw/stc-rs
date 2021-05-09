@@ -39,6 +39,12 @@ pub enum Tok {
     LessEqual,
     /// '^'
     Deref,
+    /// 'POINTER'
+    Pointer,
+    /// 'ARRAY'
+    Array,
+    /// 'OF'
+    Of,
     /// 'IF'
     If,
     /// 'THEN'
@@ -49,6 +55,28 @@ pub enum Tok {
     ElseIf,
     /// 'END_IF'
     EndIf,
+    /// 'TO'
+    To,
+    /// 'FUNCTION'
+    Function,
+    /// 'BIT', one bit type
+    Bit,
+    /// 'BOOL', boolean type
+    Bool,
+    /// 'SINT', 8 bits signed
+    SInt,
+    /// 'BYTE', 8 bits unsigned
+    Byte,
+    /// 'INT', 16 bits signed
+    Int,
+    /// 'UINT', 16 bits unsigned
+    UInt,
+    /// 'DINT', 32 bits signed
+    DInt,
+    /// 'LINT', 64 bits signed
+    LInt,
+    /// 'ULINT', 64 bits unsigned
+    ULInt,
     /// Literal
     Literal(LiteralType),
     /// Identifier

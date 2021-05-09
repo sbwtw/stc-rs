@@ -208,7 +208,7 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
         }
     }
 
-    fn visit_variable(&mut self, variable: &VariableExpression) {
+    fn visit_identifier(&mut self, variable: &IdentifierExpression) {
         let name = self.unique_name("variable");
         self.write_node(
             &name,
@@ -336,6 +336,10 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
         }
     }
 
+    fn visit_declaration_statement(&mut self, decl: &DeclarationStatement) {
+        todo!()
+    }
+
     fn visit_operator_expression(&mut self, expr: &OperatorExpression) {
         let name = self.unique_name("operator_expression");
 
@@ -415,5 +419,9 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
         if let Some(top) = self.top_mut() {
             top.node_name = name;
         }
+    }
+
+    fn visit_function_declaration(&mut self, fun: &FunctionDeclaration) {
+        todo!()
     }
 }

@@ -10,9 +10,7 @@ use std::process::Command;
 fn main() {
     let lexer = Lexer::new("IF (a+ b).c.1 + 3 THEN a := a - 3; a * (2 + b); ELSEIF a - 3 THEN a - 3; ELSEif a * 3 then a * 3; ELSE a - 3; END_IF 1 + a; - a;");
 
-    let r = parser::st::CompilationUnitsParser::new()
-        .parse(lexer)
-        .unwrap();
+    let r = parser::st::StFunctionParser::new().parse(lexer).unwrap();
 
     // dump dot file
     {
