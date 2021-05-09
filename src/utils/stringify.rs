@@ -156,6 +156,12 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
         self.write(format_args!(" := "));
         assign.right().accept(self);
     }
+
+    fn visit_compo_access_expression(&mut self, compo: &CompoAccessExpression) {
+        compo.left().accept(self);
+        self.write(format_args!("."));
+        compo.right().accept(self);
+    }
 }
 
 #[cfg(test)]

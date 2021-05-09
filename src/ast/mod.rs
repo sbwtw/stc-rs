@@ -21,6 +21,9 @@ pub use variable_expression::VariableExpression;
 mod assign_expression;
 pub use assign_expression::AssignExpression;
 
+mod compo_access_expression;
+pub use compo_access_expression::CompoAccessExpression;
+
 // Immutable visitor
 pub trait AstVisitor {
     fn visit_literal(&mut self, literal: &LiteralType);
@@ -30,6 +33,7 @@ pub trait AstVisitor {
     fn visit_if_statement(&mut self, stmt: &IfStatement);
     fn visit_operator_expression(&mut self, expr: &OperatorExpression);
     fn visit_assign_expression(&mut self, assign: &AssignExpression);
+    fn visit_compo_access_expression(&mut self, compo: &CompoAccessExpression);
 }
 
 // Mutable visitor
@@ -41,6 +45,7 @@ pub trait AstVisitorMut: AstVisitor {
     fn visit_if_statement_mut(&mut self, stmt: &mut IfStatement);
     fn visit_operator_expression_mut(&mut self, expr: &mut OperatorExpression);
     fn visit_assign_expression_mut(&mut self, assign: &mut AssignExpression);
+    fn visit_compo_access_expression_mut(&mut self, compo: &mut CompoAccessExpression);
 }
 
 pub trait AsAstNode {

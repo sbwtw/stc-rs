@@ -8,6 +8,7 @@ extern {
     type Error = lexer::LexicalError;
 
     enum lexer::Tok {
+        "." => lexer::Tok::Access,
         "+" => lexer::Tok::Plus,
         "-" => lexer::Tok::Minus,
         "*" => lexer::Tok::Multiply,
@@ -85,7 +86,12 @@ FactorOp: OpCode = {
 };
 
 UnaryFactor: Box<dyn Expression> = {
-    <op: UnaryOp> <e: Term> => Box::new(OperatorExpression::new(op, vec![e])),
+    <op: UnaryOp> <e: CompoFactor> => Box::new(OperatorExpression::new(op, vec![e])),
+    CompoFactor,
+}
+
+CompoFactor: Box<dyn Expression> = {
+    <left: CompoFactor> "." <right: Term> => Box::new(CompoAccessExpression::new(<>)),
     Term,
 }
 
