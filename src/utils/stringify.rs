@@ -8,11 +8,11 @@ struct StringifyAttribute {
 }
 
 impl StringifyAttribute {
-    fn empty() -> Self {
-        Self {
-            sub_expression: false,
-        }
-    }
+    // fn empty() -> Self {
+    //     Self {
+    //         sub_expression: false,
+    //     }
+    // }
 
     fn sub_expression() -> Self {
         Self {
@@ -111,12 +111,15 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
         self.writeln(format_args!("END_IF"));
     }
 
-    fn visit_operator_expression(&mut self, op: &OpCode, operands: &[Box<dyn Expression>]) {
+    fn visit_operator_expression(&mut self, expr: &OperatorExpression) {
         let sub_expression = self.top().map(|x| x.sub_expression).unwrap_or(false);
 
         if sub_expression {
             self.write(format_args!("("));
         }
+
+        let op = expr.op().clone();
+        let operands = expr.operands();
 
         match op {
             &OpCode::Sub if operands.len() == 1 => {

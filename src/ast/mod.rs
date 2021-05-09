@@ -28,7 +28,7 @@ pub trait AstVisitor {
     fn visit_statement_list(&mut self, stmt: &StatementList);
     fn visit_expr_statement(&mut self, stmt: &ExprStatement);
     fn visit_if_statement(&mut self, stmt: &IfStatement);
-    fn visit_operator_expression(&mut self, op: &OpCode, operands: &[Box<dyn Expression>]);
+    fn visit_operator_expression(&mut self, expr: &OperatorExpression);
     fn visit_assign_expression(&mut self, assign: &AssignExpression);
 }
 
@@ -39,11 +39,7 @@ pub trait AstVisitorMut: AstVisitor {
     fn visit_statement_list_mut(&mut self, stmt: &mut StatementList);
     fn visit_expr_statement_mut(&mut self, stmt: &mut ExprStatement);
     fn visit_if_statement_mut(&mut self, stmt: &mut IfStatement);
-    fn visit_operator_expression_mut(
-        &mut self,
-        op: &mut OpCode,
-        operands: &mut [Box<dyn Expression>],
-    );
+    fn visit_operator_expression_mut(&mut self, expr: &mut OperatorExpression);
     fn visit_assign_expression_mut(&mut self, assign: &mut AssignExpression);
 }
 

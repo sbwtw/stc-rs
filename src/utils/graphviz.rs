@@ -15,7 +15,7 @@ impl GraphvizLabelGroup {
         GraphvizLabelGroup::Labels(vec![name.as_ref().to_owned()])
     }
 
-    fn append_group(mut self, group: GraphvizLabelGroup) -> Self {
+    fn append_group(self, group: GraphvizLabelGroup) -> Self {
         match self {
             GraphvizLabelGroup::Labels(labels) => {
                 let g = GraphvizLabelGroup::Labels(labels);
@@ -80,11 +80,11 @@ impl GraphvizAttribute {
         }
     }
 
-    fn new<S: AsRef<str>>(name: S) -> Self {
-        Self {
-            node_name: name.as_ref().to_owned(),
-        }
-    }
+    // fn new<S: AsRef<str>>(name: S) -> Self {
+    //     Self {
+    //         node_name: name.as_ref().to_owned(),
+    //     }
+    // }
 }
 
 pub struct GraphvizExporter<W: Write> {
@@ -295,51 +295,35 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
         }
 
         // else if list
-        if !stmt.else_if_list().is_empty() {
-            let else_if_list_node = self.unique_name("else_if_statement_list");
-            let mut else_if_list_labels = vec![];
+        for else_if in stmt.else_if_list() {
+            let else_if_node = self.unique_name("else_if_statement");
+            let mut else_if_labels = vec![];
 
-            for (index, else_if) in stmt.else_if_list().iter().enumerate() {
-                let else_if_node = self.unique_name("else_if_statement");
-                let mut else_if_labels = vec![];
+            let (pos, label) = self.unique_name_with_pos("ElseIf");
+            self.connect_from_pos(&name, pos, &else_if_node);
+            labels.push(label);
 
+            self.push_empty();
+            else_if.condition().accept(self);
+            let attr = self.pop();
+
+            let (pos, label) = self.unique_name_with_pos("ElseIfCond");
+            self.connect_from_pos(&else_if_node, pos, attr.node_name);
+            else_if_labels.push(label);
+
+            if let Some(controlled) = else_if.then_controlled() {
                 self.push_empty();
-                else_if.condition().accept(self);
+                controlled.accept(self);
                 let attr = self.pop();
 
-                let (pos, label) = self.unique_name_with_pos("Cond");
+                let (pos, label) = self.unique_name_with_pos("ElseIfThen");
                 self.connect_from_pos(&else_if_node, pos, attr.node_name);
                 else_if_labels.push(label);
-
-                let (pos, label) = self.unique_name_with_pos(format!("{}", index));
-                // labels.push(format!("<{}> {}", &pos, i));
-                else_if_list_labels.push(label);
-
-                if let Some(controlled) = else_if.then_controlled() {
-                    self.push_empty();
-                    controlled.accept(self);
-                    let attr = self.pop();
-
-                    let (pos, label) = self.unique_name_with_pos("Then");
-                    self.connect_from_pos(&else_if_node, pos, attr.node_name);
-                    else_if_labels.push(label);
-                }
-
-                let else_if_labels = GraphvizLabelGroup::from_name("ElseIfStatement")
-                    .append_group(GraphvizLabelGroup::from_iter(else_if_labels));
-                self.write_node(&else_if_node, else_if_labels);
-
-                // let (else_if_pos, else_if_label) = self.unique_name_with_pos("ElseIfStatement");
-                self.connect_from_pos(&else_if_list_node, pos, &else_if_node);
             }
 
-            let else_if_list_labels = GraphvizLabelGroup::from_name("ElseIfList")
-                .append_group(GraphvizLabelGroup::from_iter(else_if_list_labels));
-            self.write_node(&else_if_list_node, else_if_list_labels);
-
-            let (else_if_pos, else_if_label) = self.unique_name_with_pos("ElseIfList");
-            self.connect_from_pos(&name, else_if_pos, &else_if_list_node);
-            labels.push(else_if_label);
+            let else_if_labels = GraphvizLabelGroup::from_name("ElseIfStatement")
+                .append_group(GraphvizLabelGroup::from_iter(else_if_labels));
+            self.write_node(&else_if_node, else_if_labels);
         }
 
         if let Some(else_ctrl) = stmt.else_controlled() {
@@ -361,13 +345,16 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
         }
     }
 
-    fn visit_operator_expression(&mut self, op: &OpCode, operands: &[Box<dyn Expression>]) {
+    fn visit_operator_expression(&mut self, expr: &OperatorExpression) {
         let name = self.unique_name("operator_expression");
 
-        let labels = format!("Operator '{}'", opcode_display(op)).into();
+        let s = format!("{}", expr.as_ast_node());
+        let labels =
+            GraphvizLabelGroup::from_name(format!("Operator '{}'", opcode_display(expr.op())))
+                .append_group(GraphvizLabelGroup::from_name(s));
         self.write_node(&name, labels);
 
-        for operand in operands {
+        for operand in expr.operands() {
             self.push_empty();
             operand.accept(self);
             let attr = self.pop();
