@@ -196,15 +196,6 @@ fn literal_display(literal: &LiteralType) -> (String, String) {
     }
 }
 
-fn opcode_display(op: &OpCode) -> String {
-    match op {
-        OpCode::Mul => String::from("*"),
-        OpCode::Div => String::from("/"),
-        OpCode::Add => String::from("+"),
-        OpCode::Sub => String::from("-"),
-    }
-}
-
 impl<W: Write> AstVisitor for GraphvizExporter<W> {
     fn visit_literal(&mut self, literal: &LiteralType) {
         let name = self.unique_name("literal");
@@ -349,9 +340,8 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
         let name = self.unique_name("operator_expression");
 
         let s = format!("{}", expr.as_ast_node());
-        let labels =
-            GraphvizLabelGroup::from_name(format!("Operator '{}'", opcode_display(expr.op())))
-                .append_group(GraphvizLabelGroup::from_name(s));
+        let labels = GraphvizLabelGroup::from_name(format!("Operator '{}'", expr.op()))
+            .append_group(GraphvizLabelGroup::from_name(s));
         self.write_node(&name, labels);
 
         for operand in expr.operands() {

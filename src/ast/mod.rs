@@ -104,11 +104,3 @@ impl AstNode for StatementList {
 }
 
 impl Statement for StatementList {}
-
-#[derive(Debug)]
-pub enum OpCode {
-    Mul,
-    Div,
-    Add,
-    Sub,
-}

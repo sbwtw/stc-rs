@@ -1,4 +1,5 @@
 use crate::ast::{AstNode, AstVisitor, AstVisitorMut};
+use crate::parser::Tok;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::str::CharIndices;
@@ -49,28 +50,6 @@ impl Hash for StString {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.converted_string.hash(state)
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum Tok {
-    Access,
-    Plus,
-    Minus,
-    Multiply,
-    Division,
-    LeftParentheses,
-    RightParentheses,
-    Comma,
-    Semicolon,
-    Colon,
-    Assign,
-    If,
-    Then,
-    Else,
-    ElseIf,
-    EndIf,
-    Literal(LiteralType),
-    Identifier(StString),
 }
 
 #[derive(Debug, Clone)]
@@ -136,11 +115,11 @@ pub struct Lexer<'input> {
 impl<'input> Lexer<'input> {
     pub fn new(input: &'input str) -> Self {
         let mut keywords = HashMap::new();
-        keywords.insert("IF".into(), Tok::If);
-        keywords.insert("ELSE".into(), Tok::Else);
-        keywords.insert("THEN".into(), Tok::Then);
-        keywords.insert("ELSEIF".into(), Tok::ElseIf);
-        keywords.insert("END_IF".into(), Tok::EndIf);
+        keywords.insert(Tok::If.into(), Tok::If);
+        keywords.insert(Tok::Else.into(), Tok::Else);
+        keywords.insert(Tok::Then.into(), Tok::Then);
+        keywords.insert(Tok::ElseIf.into(), Tok::ElseIf);
+        keywords.insert(Tok::EndIf.into(), Tok::EndIf);
 
         Self {
             buffer: LexerBuffer::new(input),

@@ -1,14 +1,15 @@
 use crate::ast::*;
+use crate::parser::Tok;
 
 #[derive(Debug)]
-pub struct OperatorExpression(OpCode, Vec<Box<dyn Expression>>);
+pub struct OperatorExpression(Tok, Vec<Box<dyn Expression>>);
 
 impl OperatorExpression {
-    pub fn new(op: OpCode, exprs: Vec<Box<dyn Expression>>) -> Self {
+    pub fn new(op: Tok, exprs: Vec<Box<dyn Expression>>) -> Self {
         OperatorExpression(op, exprs)
     }
 
-    pub fn op(&self) -> &OpCode {
+    pub fn op(&self) -> &Tok {
         &self.0
     }
 

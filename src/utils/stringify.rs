@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::parser::LiteralType;
+use crate::parser::{LiteralType, Tok};
 use std::fmt::Arguments;
 use std::io::Write;
 
@@ -36,13 +36,8 @@ impl<W: Write> StringifyVisitor<W> {
         }
     }
 
-    fn write_op(&mut self, op: &OpCode) {
-        match op {
-            OpCode::Add => write!(self.writer, "+").unwrap(),
-            OpCode::Sub => write!(self.writer, "-").unwrap(),
-            OpCode::Div => write!(self.writer, "/").unwrap(),
-            OpCode::Mul => write!(self.writer, "*").unwrap(),
-        }
+    fn write_op(&mut self, op: &Tok) {
+        write!(self.writer, "{}", op).unwrap();
     }
 
     fn write_indent(&mut self) {
@@ -103,11 +98,33 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
         self.write(format_args!("IF "));
         stmt.condition().accept(self);
         self.writeln(format_args!(" THEN"));
+
         if let Some(then_controlled) = stmt.then_controlled() {
             self.indent += 1;
             then_controlled.accept(self);
             self.indent -= 1;
         }
+
+        for elseif in stmt.else_if_list() {
+            self.write(format_args!("ELSEIF "));
+            elseif.condition().accept(self);
+            self.writeln(format_args!(" THEN"));
+
+            if let Some(elseif_then) = elseif.then_controlled() {
+                self.indent += 1;
+                elseif_then.accept(self);
+                self.indent -= 1;
+            }
+        }
+
+        if let Some(else_controlled) = stmt.else_controlled() {
+            self.writeln(format_args!("ELSE"));
+
+            self.indent += 1;
+            else_controlled.accept(self);
+            self.indent -= 1;
+        }
+
         self.writeln(format_args!("END_IF"));
     }
 
@@ -122,8 +139,8 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
         let operands = expr.operands();
 
         match op {
-            &OpCode::Sub if operands.len() == 1 => {
-                self.write_op(op);
+            Tok::Minus if operands.len() == 1 => {
+                self.write_op(&op);
 
                 self.push(StringifyAttribute::sub_expression());
                 operands[0].accept(self);
@@ -137,7 +154,7 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
                 self.pop();
 
                 self.write(format_args!(" "));
-                self.write_op(op);
+                self.write_op(&op);
                 self.write(format_args!(" "));
 
                 self.push(StringifyAttribute::sub_expression());
@@ -192,14 +209,20 @@ mod test {
     fn test_if_else() {
         let buf_str = parse_string("if a - 1 then a + 1; else a - 1; end_if");
 
-        assert_eq!(buf_str, "IF a - 1 THEN\n    a + 1;\nEND_IF\n");
+        assert_eq!(
+            buf_str,
+            "IF a - 1 THEN\n    a + 1;\nELSE\n    a - 1;\nEND_IF\n"
+        );
     }
 
     #[test]
     fn test_assign_expr() {
         let buf_str = parse_string("if a - 1 then a:= a + 1; else a - 1; end_if");
 
-        assert_eq!(buf_str, "IF a - 1 THEN\n    a := a + 1;\nEND_IF\n");
+        assert_eq!(
+            buf_str,
+            "IF a - 1 THEN\n    a := a + 1;\nELSE\n    a - 1;\nEND_IF\n"
+        );
     }
 
     #[test]

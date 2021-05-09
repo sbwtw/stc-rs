@@ -1,5 +1,6 @@
 use crate::ast::*;
 use crate::parser::lexer::{self, LiteralType, StString};
+use crate::parser::Tok;
 
 grammar;
 
@@ -7,24 +8,24 @@ extern {
     type Location = usize;
     type Error = lexer::LexicalError;
 
-    enum lexer::Tok {
-        "." => lexer::Tok::Access,
-        "+" => lexer::Tok::Plus,
-        "-" => lexer::Tok::Minus,
-        "*" => lexer::Tok::Multiply,
-        "/" => lexer::Tok::Division,
-        "(" => lexer::Tok::LeftParentheses,
-        ")" => lexer::Tok::RightParentheses,
-        "," => lexer::Tok::Comma,
-        ";" => lexer::Tok::Semicolon,
-        ":=" => lexer::Tok::Assign,
-        "IF" => lexer::Tok::If,
-        "THEN" => lexer::Tok::Then,
-        "ELSE" => lexer::Tok::Else,
-        "ELSEIF" => lexer::Tok::ElseIf,
-        "END_IF" => lexer::Tok::EndIf,
-        "Literal" => lexer::Tok::Literal(<LiteralType>),
-        "Variable" => lexer::Tok::Identifier(<StString>),
+    enum Tok {
+        "." => Tok::Access,
+        "+" => Tok::Plus,
+        "-" => Tok::Minus,
+        "*" => Tok::Multiply,
+        "/" => Tok::Division,
+        "(" => Tok::LeftParentheses,
+        ")" => Tok::RightParentheses,
+        "," => Tok::Comma,
+        ";" => Tok::Semicolon,
+        ":=" => Tok::Assign,
+        "IF" => Tok::If,
+        "THEN" => Tok::Then,
+        "ELSE" => Tok::Else,
+        "ELSEIF" => Tok::ElseIf,
+        "END_IF" => Tok::EndIf,
+        "Literal" => Tok::Literal(<LiteralType>),
+        "Variable" => Tok::Identifier(<StString>),
     }
 }
 
@@ -65,9 +66,9 @@ Expr: Box<dyn Expression> = {
     OpExpr,
 };
 
-ExprOp: OpCode = {
-    "+" => OpCode::Add,
-    "-" => OpCode::Sub,
+ExprOp: Tok = {
+    "+" => Tok::Plus,
+    "-" => Tok::Minus,
 };
 
 OpExpr: Box<dyn Expression> = {
@@ -80,9 +81,9 @@ Factor: Box<dyn Expression> = {
     UnaryFactor,
 };
 
-FactorOp: OpCode = {
-    "*" => OpCode::Mul,
-    "/" => OpCode::Div,
+FactorOp: Tok = {
+    "*" => Tok::Multiply,
+    "/" => Tok::Division,
 };
 
 UnaryFactor: Box<dyn Expression> = {
@@ -95,8 +96,8 @@ CompoFactor: Box<dyn Expression> = {
     Term,
 }
 
-UnaryOp: OpCode = {
-    "-" => OpCode::Sub,
+UnaryOp: Tok = {
+    "-" => Tok::Minus,
 };
 
 Term: Box<dyn Expression> = {
