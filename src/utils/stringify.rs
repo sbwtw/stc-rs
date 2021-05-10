@@ -77,8 +77,8 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
         }
     }
 
-    fn visit_identifier(&mut self, identifier: &IdentifierExpression) {
-        self.write(format_args!("{}", identifier.origin_name()));
+    fn visit_variable(&mut self, variable: &Variable) {
+        self.write(format_args!("{}", variable.origin_name()));
     }
 
     fn visit_statement_list(&mut self, stmt: &StatementList) {

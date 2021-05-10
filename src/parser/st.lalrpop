@@ -26,6 +26,7 @@ extern {
         "ELSEIF" => Tok::ElseIf,
         "END_IF" => Tok::EndIf,
         "Function" => Tok::Function,
+        "Int" => Tok::Int,
         "Literal" => Tok::Literal(<LiteralType>),
         "Identifier" => Tok::Identifier(<StString>),
     }
@@ -48,7 +49,7 @@ StatementList: Box<dyn Statement> = {
     Statement+ => Box::new(StatementList(<>))
 }
 
-Statement: Box<dyn Statement> = {
+pub Statement: Box<dyn Statement> = {
     <e:Expr> ";" => Box::new(ExprStatement::new(e)),
     "IF" <cond: Expr> "THEN" <then_ctrl: StatementList> "END_IF" => Box::new(IfStatement::from_then(<>)),
     "IF" <cond: Expr> "THEN" <then_ctrl: StatementList> "ELSE" <else_ctrl: StatementList> "END_IF" => Box::new(IfStatement::from_then_else(<>)),
@@ -104,11 +105,19 @@ UnaryOp: Tok = {
 
 Term: Box<dyn Expression> = {
     "Literal" => Box::new(LiteralExpression::new(<>)),
-    "Identifier" => Box::new(IdentifierExpression::new(<>)),
+    "Identifier" => Box::new(Variable::new(<>)),
     "(" <Expr> ")",
 };
 
 /// Declarations
-//FunctionDeclaration: Box<dyn Declaration> = {
-//    "Function" <name: "Identifier"> ":" => Box::new(FunctionDeclaration::with_name(name)),
-//}
+pub FunctionDeclaration: Box<dyn Declaration> = {
+    "Function" <name: "Identifier"> ":" => Box::new(FunctionDeclaration::with_name(<>)),
+    "Function" <name: "Identifier"> ":" <ty: Type> => Box::new(FunctionDeclaration::with_name_type(<>)),
+}
+
+Type: Box<dyn Type> = {
+    "Int" => Box::new(IntType::new()),
+    "Identifier" => Box::new(UserType::from_name(<>)),
+}
+
+//VariableDeclaration:

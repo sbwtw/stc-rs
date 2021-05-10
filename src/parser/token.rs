@@ -59,6 +59,10 @@ pub enum Tok {
     To,
     /// 'FUNCTION'
     Function,
+    /// 'VAR'
+    Var,
+    /// 'END_VAR'
+    EndVar,
     /// 'BIT', one bit type
     Bit,
     /// 'BOOL', boolean type
@@ -102,6 +106,8 @@ impl Into<String> for &Tok {
             Tok::Else => "ELSE",
             Tok::ElseIf => "ELSEIF",
             Tok::EndIf => "END_IF",
+            Tok::Function => "FUNCTION",
+            Tok::Int => "INT",
             Tok::Identifier(s) => &s.origin_string(),
             _ => unimplemented!(),
         };

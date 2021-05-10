@@ -120,6 +120,8 @@ impl<'input> Lexer<'input> {
         keywords.insert(Tok::Then.into(), Tok::Then);
         keywords.insert(Tok::ElseIf.into(), Tok::ElseIf);
         keywords.insert(Tok::EndIf.into(), Tok::EndIf);
+        keywords.insert(Tok::Function.into(), Tok::Function);
+        keywords.insert(Tok::Int.into(), Tok::Int);
 
         Self {
             buffer: LexerBuffer::new(input),

@@ -208,7 +208,7 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
         }
     }
 
-    fn visit_identifier(&mut self, variable: &IdentifierExpression) {
+    fn visit_variable(&mut self, variable: &Variable) {
         let name = self.unique_name("variable");
         self.write_node(
             &name,

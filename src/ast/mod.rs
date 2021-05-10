@@ -3,6 +3,9 @@ use std::fmt::{self, Debug, Display, Formatter};
 use crate::parser::{LiteralType, StString, Tok};
 use crate::utils::StringifyVisitor;
 
+mod types;
+pub use types::*;
+
 mod visitor;
 pub use visitor::*;
 
@@ -21,8 +24,8 @@ pub use literal_expression::LiteralExpression;
 mod operator_expression;
 pub use operator_expression::OperatorExpression;
 
-mod variable_expression;
-pub use variable_expression::IdentifierExpression;
+mod variable;
+pub use variable::Variable;
 
 mod assign_expression;
 pub use assign_expression::AssignExpression;
@@ -32,6 +35,8 @@ pub use compo_access_expression::CompoAccessExpression;
 
 mod function_declaration;
 pub use function_declaration::FunctionDeclaration;
+
+pub trait Type: Debug {}
 
 pub trait AsAstNode {
     fn as_ast_node(&self) -> &dyn AstNode;

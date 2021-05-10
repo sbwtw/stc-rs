@@ -4,7 +4,7 @@ use crate::parser::StString;
 #[derive(Debug)]
 pub struct FunctionDeclaration {
     name: StString,
-    return_type: Option<TypeClass>,
+    return_type: Option<Box<dyn Type>>,
 }
 
 impl FunctionDeclaration {
@@ -12,6 +12,13 @@ impl FunctionDeclaration {
         Self {
             name,
             return_type: None,
+        }
+    }
+
+    pub fn with_name_type(name: StString, ty: Box<dyn Type>) -> Self {
+        Self {
+            name,
+            return_type: Some(ty),
         }
     }
 }
