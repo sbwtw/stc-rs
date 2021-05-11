@@ -44,7 +44,7 @@ pub trait Type: TypeClone + Debug {}
 
 impl<T> TypeClone for T
 where
-    T: 'static + Type + Clone
+    T: 'static + Type + Clone,
 {
     fn clone_boxed(&self) -> Box<dyn Type> {
         Box::new(self.clone())
@@ -115,6 +115,18 @@ impl AstNode for StatementList {
 }
 
 impl Statement for StatementList {}
+
+#[derive(Debug)]
+pub enum FunctionType {
+    Fun,
+    Prg,
+}
+
+#[derive(Debug)]
+pub enum VariableGroupScope {
+    None,
+    Global,
+}
 
 #[derive(Debug)]
 pub enum FunctionClass {

@@ -61,6 +61,8 @@ pub enum Tok {
     Function,
     /// 'VAR'
     Var,
+    /// 'VAR_GLOBAL'
+    VarGlobal,
     /// 'END_VAR'
     EndVar,
     /// 'BIT', one bit type

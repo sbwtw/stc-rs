@@ -32,6 +32,7 @@ extern {
     }
 }
 
+/// Comma split values
 Comma<T>: Vec<T> = {
     <v:(<T> ",")*> <e:T?> => match e {
         None => v,
@@ -43,12 +44,15 @@ Comma<T>: Vec<T> = {
     }
 };
 
+/// Top-level ST functio
 pub StFunction = StatementList;
 
+/// ST Statements
 StatementList: Box<dyn Statement> = {
     Statement+ => Box::new(StatementList(<>))
 }
 
+/// Single statement
 pub Statement: Box<dyn Statement> = {
     <e:Expr> ";" => Box::new(ExprStatement::new(e)),
     "IF" <cond: Expr> "THEN" <then_ctrl: StatementList> "END_IF" => Box::new(IfStatement::from_then(<>)),
@@ -56,68 +60,85 @@ pub Statement: Box<dyn Statement> = {
     "IF" <cond: Expr> "THEN" <then_ctrl: StatementList> <else_if_list: ElseIfStatementList> "ELSE" <else_ctrl: StatementList> "END_IF" => Box::new(IfStatement::from_then_elseif_else(<>)),
 }
 
+/// ElseIf list wrap in if statement
 ElseIfStatementList: Vec<ElseIfStatement> = {
-    ElseIfStatement+ => <>
+    ElseIfStatement+
 }
 
+/// Single ElseIf statement
 ElseIfStatement: ElseIfStatement = {
     "ELSEIF" <cond: Expr> "THEN" <then_ctrl: StatementList> => ElseIfStatement::from_then(<>),
 }
 
+/// Expression
 Expr: Box<dyn Expression> = {
     <lhs: Expr> ":=" <rhs: OpExpr> => Box::new(AssignExpression::new(<>)),
     OpExpr,
 };
 
+/// Low-priority op
 ExprOp: Tok = {
     "+" => Tok::Plus,
     "-" => Tok::Minus,
 };
 
+/// Low-priority op expression
 OpExpr: Box<dyn Expression> = {
     <e1: OpExpr> <op: ExprOp> <e2: Factor> => Box::new(OperatorExpression::new(op, vec![e1, e2])),
     Factor,
 }
 
+/// High-priority factor
 Factor: Box<dyn Expression> = {
     <e1: Factor> <op: FactorOp> <e2: UnaryFactor> => Box::new(OperatorExpression::new(op, vec![e1, e2])),
     UnaryFactor,
 };
 
+/// High-priority op
 FactorOp: Tok = {
     "*" => Tok::Multiply,
     "/" => Tok::Division,
 };
 
+/// Top priority unary factor
 UnaryFactor: Box<dyn Expression> = {
     <op: UnaryOp> <e: CompoFactor> => Box::new(OperatorExpression::new(op, vec![e])),
     CompoFactor,
 }
 
+/// Variable compo access factor
 CompoFactor: Box<dyn Expression> = {
     <left: CompoFactor> "." <right: Term> => Box::new(CompoAccessExpression::new(<>)),
     Term,
 }
 
+/// Top priority unary op
 UnaryOp: Tok = {
     "-" => Tok::Minus,
 };
 
+/// terminals in expression
 Term: Box<dyn Expression> = {
     "Literal" => Box::new(LiteralExpression::new(<>)),
     "Identifier" => Box::new(Variable::new(<>)),
     "(" <Expr> ")",
 };
 
-/// Declarations
+/// Function declaration
 pub FunctionDeclaration: Box<dyn Declaration> = {
-    "Function" <name: "Identifier"> ":" => Box::new(FunctionDeclaration::with_name(<>)),
-    "Function" <name: "Identifier"> ":" <ty: Type> => Box::new(FunctionDeclaration::with_name_type(<>)),
+    "Function" <name: "Identifier"> ":" <ty: Type?> => Box::new(FunctionDeclaration::new(name, FunctionType::Fun, ty)),
 }
 
 Type: Box<dyn Type> = {
     "Int" => Box::new(IntType::new()),
     "Identifier" => Box::new(UserType::from_name(<>)),
+}
+
+VariableDeclareList: Vec<Variable> = {
+    MultiVariableDeclareStatement,
+    VariableDeclareStatement => vec![<>],
+    <mut v: VariableDeclareList> <e: VariableDeclareStatement> => { v.push(e); v },
+    <mut v: VariableDeclareList> <mut e: MultiVariableDeclareStatement> => { v.append(&mut e); v }
 }
 
 VariableDeclareStatement: Variable = {
