@@ -32,16 +32,16 @@ extern {
     }
 }
 
-//Comma<T>: Vec<T> = {
-//    <v:(<T> ",")*> <e:T?> => match e {
-//        None => v,
-//        Some(e) => {
-//            let mut v = v;
-//            v.push(e);
-//            v
-//        }
-//    }
-//};
+Comma<T>: Vec<T> = {
+    <v:(<T> ",")*> <e:T?> => match e {
+        None => v,
+        Some(e) => {
+            let mut v = v;
+            v.push(e);
+            v
+        }
+    }
+};
 
 pub StFunction = StatementList;
 
@@ -125,4 +125,5 @@ VariableDeclareStatement: Variable = {
 }
 
 MultiVariableDeclareStatement: Vec<Variable> = {
+    <ident_list: Comma<"Identifier">> ":" <ty: Type> ";" => Variable::multiple_variable_with_type(<>),
 }

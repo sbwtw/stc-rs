@@ -16,6 +16,7 @@ impl Variable {
         Self { name, ty: Some(ty) }
     }
 
+    /// comma split variable declare list, like: a, b, c: INT;
     pub fn multiple_variable_with_type(names: Vec<StString>, ty: Box<dyn Type>) -> Vec<Self> {
         names.iter().map(|x| Self::with_type(x.clone(), ty.clone())).collect()
     }
