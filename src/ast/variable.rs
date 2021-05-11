@@ -16,6 +16,10 @@ impl Variable {
         Self { name, ty: Some(ty) }
     }
 
+    pub fn multiple_variable_with_type(names: Vec<StString>, ty: Box<dyn Type>) -> Vec<Self> {
+        names.iter().map(|x| Self::with_type(x.clone(), ty.clone())).collect()
+    }
+
     pub fn origin_name(&self) -> &String {
         self.name.origin_string()
     }

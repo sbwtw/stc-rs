@@ -36,7 +36,26 @@ pub use compo_access_expression::CompoAccessExpression;
 mod function_declaration;
 pub use function_declaration::FunctionDeclaration;
 
-pub trait Type: Debug {}
+pub trait TypeClone {
+    fn clone_boxed(&self) -> Box<dyn Type>;
+}
+
+pub trait Type: TypeClone + Debug {}
+
+impl<T> TypeClone for T
+where
+    T: 'static + Type + Clone
+{
+    fn clone_boxed(&self) -> Box<dyn Type> {
+        Box::new(self.clone())
+    }
+}
+
+impl Clone for Box<dyn Type> {
+    fn clone(&self) -> Self {
+        self.clone_boxed()
+    }
+}
 
 pub trait AsAstNode {
     fn as_ast_node(&self) -> &dyn AstNode;

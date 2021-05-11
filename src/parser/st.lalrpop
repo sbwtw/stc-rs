@@ -120,4 +120,9 @@ Type: Box<dyn Type> = {
     "Identifier" => Box::new(UserType::from_name(<>)),
 }
 
-//VariableDeclaration:
+VariableDeclareStatement: Variable = {
+    <ident: "Identifier"> ":" <ty: Type> ";"  => Variable::with_type(<>),
+}
+
+MultiVariableDeclareStatement: Vec<Variable> = {
+}

@@ -1,6 +1,6 @@
 use crate::ast::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IntType;
 
 impl IntType {
@@ -11,7 +11,7 @@ impl IntType {
 
 impl Type for IntType {}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UserType(StString);
 
 impl UserType {
