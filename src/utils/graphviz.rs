@@ -1,5 +1,6 @@
 use crate::ast::*;
 use crate::parser::LiteralType;
+use crate::utils::StringifyVisitor;
 use std::fmt::Arguments;
 use std::io::Write;
 use std::iter::FromIterator;
@@ -186,21 +187,17 @@ impl<W: Write> GraphvizExporter<W> {
     }
 }
 
-/// LiteralType (type name, literal display)
-fn literal_display(literal: &LiteralType) -> (String, String) {
-    match literal {
-        LiteralType::I32(x) => ("i32".to_owned(), format!("{:?}", x)),
-        LiteralType::U64(x) => ("u64".to_owned(), format!("{:?}", x)),
-        LiteralType::F32(x) => ("f32".to_owned(), format!("{:?}", x)),
-        LiteralType::String(x) => ("string".to_owned(), x.to_owned()),
-    }
+fn display_type(ty: Option<&Box<dyn Type>>) -> String {
+    ty.map(|x| format!("{}", x)).unwrap_or(String::new())
 }
 
 impl<W: Write> AstVisitor for GraphvizExporter<W> {
     fn visit_literal(&mut self, literal: &LiteralType) {
         let name = self.unique_name("literal");
-        let (ty, display) = literal_display(literal);
-        let labels = [format!("Literal: {}", display), format!("Type: {}", ty)];
+        let labels = [
+            format!("Literal: {}", literal),
+            format!("Type: {}", literal.ty()),
+        ];
         self.write_node(&name, GraphvizLabelGroup::from_iter(&labels));
 
         if let Some(top) = self.top_mut() {
@@ -210,10 +207,12 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
 
     fn visit_variable(&mut self, variable: &Variable) {
         let name = self.unique_name("variable");
-        self.write_node(
-            &name,
-            format!("Variable: {}", variable.origin_name()).into(),
-        );
+
+        let labels = [
+            format!("Variable: {}", variable.origin_name()),
+            format!("Type: {}", display_type(variable.ty())),
+        ];
+        self.write_node(&name, GraphvizLabelGroup::from_iter(&labels));
 
         if let Some(top) = self.top_mut() {
             top.node_name = name;
@@ -337,15 +336,28 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
     }
 
     fn visit_declaration_statement(&mut self, decl: &DeclarationStatement) {
-        todo!()
+        let name = self.unique_name("declaration_statement");
+
+        let mut buf = vec![];
+        let mut stringify = StringifyVisitor::new(&mut buf);
+        decl.accept(&mut stringify);
+
+        let s = String::from_utf8_lossy(&buf);
+        let labels = GraphvizLabelGroup::from_name("Declaration")
+            .append_group(GraphvizLabelGroup::from_name(s));
+        self.write_node(&name, labels);
     }
 
     fn visit_operator_expression(&mut self, expr: &OperatorExpression) {
         let name = self.unique_name("operator_expression");
 
+        let labels = [
+            format!("Operator '{}'", expr.op()),
+            format!("Type: {}", display_type(expr.ty())),
+        ];
         let s = format!("{}", expr.as_ast_node());
-        let labels = GraphvizLabelGroup::from_name(format!("Operator '{}'", expr.op()))
-            .append_group(GraphvizLabelGroup::from_name(s));
+        let labels =
+            GraphvizLabelGroup::from_iter(&labels).append_group(GraphvizLabelGroup::from_name(s));
         self.write_node(&name, labels);
 
         for operand in expr.operands() {

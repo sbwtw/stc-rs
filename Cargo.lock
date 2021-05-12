@@ -358,7 +358,6 @@ dependencies = [
  "bitflags",
  "lalrpop",
  "lalrpop-util",
- "regex",
 ]
 
 [[package]]

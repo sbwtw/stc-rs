@@ -70,9 +70,9 @@ impl<W: Write> StringifyVisitor<W> {
 impl<W: Write> AstVisitor for StringifyVisitor<W> {
     fn visit_literal(&mut self, literal: &LiteralType) {
         match literal {
-            LiteralType::F32(x) => self.write(format_args!("{:?}", x)),
-            LiteralType::I32(x) => self.write(format_args!("{:?}", x)),
-            LiteralType::U64(x) => self.write(format_args!("{:?}", x)),
+            LiteralType::Real(x) => self.write(format_args!("{:?}", x)),
+            LiteralType::Int(x) => self.write(format_args!("{:?}", x)),
+            LiteralType::UInt(x) => self.write(format_args!("{:?}", x)),
             LiteralType::String(x) => self.write(format_args!("{:?}", x)),
         }
     }

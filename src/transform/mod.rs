@@ -1,2 +1,2 @@
-// mod typifies;
-// pub use typifies::TypeAllocator;
+mod type_alloc;
+pub use type_alloc::TypeAllocator;

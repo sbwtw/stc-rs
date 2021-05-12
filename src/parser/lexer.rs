@@ -1,7 +1,8 @@
-use crate::ast::{AstNode, AstVisitor, AstVisitorMut};
+use crate::ast::{AstNode, AstVisitor, AstVisitorMut, TypeClass};
 use crate::parser::Tok;
 use std::any::Any;
 use std::collections::HashMap;
+use std::fmt::{self, Display, Formatter};
 use std::hash::{Hash, Hasher};
 use std::str::CharIndices;
 
@@ -61,10 +62,32 @@ impl Hash for StString {
 
 #[derive(Debug, Clone)]
 pub enum LiteralType {
-    I32(i32),
-    U64(u64),
-    F32(f32),
+    Int(i32),
+    UInt(u64),
+    Real(f32),
     String(String),
+}
+
+impl LiteralType {
+    pub fn ty(&self) -> TypeClass {
+        match self {
+            LiteralType::Int(_) => TypeClass::Int,
+            LiteralType::UInt(_) => TypeClass::UInt,
+            LiteralType::Real(_) => TypeClass::Real,
+            LiteralType::String(_) => TypeClass::String,
+        }
+    }
+}
+
+impl Display for LiteralType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            LiteralType::Int(x) => write!(f, "Int({})", x),
+            LiteralType::UInt(x) => write!(f, "UInt({})", x),
+            LiteralType::Real(x) => write!(f, "Real({})", x),
+            LiteralType::String(s) => write!(f, "String({})", s),
+        }
+    }
 }
 
 impl AstNode for LiteralType {
@@ -162,7 +185,7 @@ impl<'input> Lexer<'input> {
 
                     return Some(Ok((
                         start,
-                        Tok::Literal(LiteralType::U64(s.parse().unwrap())),
+                        Tok::Literal(LiteralType::UInt(s.parse().unwrap())),
                         end,
                     )));
                 }
@@ -187,7 +210,7 @@ impl<'input> Lexer<'input> {
 
                     return Some(Ok((
                         start,
-                        Tok::Literal(LiteralType::F32(s.parse().unwrap())),
+                        Tok::Literal(LiteralType::Real(s.parse().unwrap())),
                         end,
                     )));
                 }

@@ -89,6 +89,12 @@ pub enum Tok {
     LInt,
     /// 'ULINT', 64 bits unsigned
     ULInt,
+    /// 'REAL', 32 bits signed
+    Real,
+    /// 'LREAL', 64 bits unsigned
+    LReal,
+    /// 'STRING', string type
+    String,
     /// Literal
     Literal(LiteralType),
     /// Identifier
@@ -120,6 +126,8 @@ impl Into<String> for &Tok {
             Tok::Var => "VAR",
             Tok::EndVar => "END_VAR",
             Tok::Int => "INT",
+            Tok::Real => "REAL",
+            Tok::LReal => "LREAL",
             Tok::Identifier(s) => &s.origin_string(),
             _ => unimplemented!(),
         };

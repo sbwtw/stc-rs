@@ -35,7 +35,6 @@ mod compo_access_expression;
 pub use compo_access_expression::CompoAccessExpression;
 
 mod function_declaration;
-use crate::ast::TypeClass::SInt;
 pub use function_declaration::FunctionDeclaration;
 use std::any::Any;
 
@@ -193,6 +192,12 @@ pub enum TypeClass {
     LInt,
     /// 'ULINT', 64 bits unsigned
     ULInt,
+    /// 'REAL', 32 bits float
+    Real,
+    /// 'LREAL' 64 bits float
+    LReal,
+    /// 'STRING' string type
+    String,
     /// UserType
     UserType(StString, Option<UserTypeClass>),
 }
@@ -226,6 +231,9 @@ impl Display for TypeClass {
             TypeClass::DInt => write!(f, "{}", Tok::DInt),
             TypeClass::LInt => write!(f, "{}", Tok::LInt),
             TypeClass::ULInt => write!(f, "{}", Tok::ULInt),
+            TypeClass::Real => write!(f, "{}", Tok::Real),
+            TypeClass::LReal => write!(f, "{}", Tok::LReal),
+            TypeClass::String => write!(f, "{}", Tok::String),
             TypeClass::UserType(s, _) => write!(f, "{}", s.origin_string()),
         }
     }

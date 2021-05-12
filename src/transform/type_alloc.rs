@@ -8,7 +8,7 @@ impl AstVisitorMut for TypeAllocator {
         todo!()
     }
 
-    fn visit_variable_mut(&mut self, variable: &mut VariableExpression) {
+    fn visit_variable_mut(&mut self, variable: &mut Variable) {
         todo!()
     }
 
@@ -24,11 +24,19 @@ impl AstVisitorMut for TypeAllocator {
         todo!()
     }
 
+    fn visit_declaration_statement_mut(&mut self, decl: &mut DeclarationStatement) {
+        todo!()
+    }
+
     fn visit_operator_expression_mut(&mut self, expr: &mut OperatorExpression) {
         todo!()
     }
 
     fn visit_assign_expression_mut(&mut self, assign: &mut AssignExpression) {
+        todo!()
+    }
+
+    fn visit_compo_access_expression_mut(&mut self, compo: &mut CompoAccessExpression) {
         todo!()
     }
 }
@@ -38,7 +46,7 @@ impl AstVisitor for TypeAllocator {
         todo!()
     }
 
-    fn visit_variable(&mut self, variable: &VariableExpression) {
+    fn visit_variable(&mut self, variable: &Variable) {
         todo!()
     }
 
@@ -54,11 +62,19 @@ impl AstVisitor for TypeAllocator {
         todo!()
     }
 
+    fn visit_declaration_statement(&mut self, decl: &DeclarationStatement) {
+        todo!()
+    }
+
     fn visit_operator_expression(&mut self, expr: &OperatorExpression) {
         todo!()
     }
 
     fn visit_assign_expression(&mut self, assign: &AssignExpression) {
+        todo!()
+    }
+
+    fn visit_compo_access_expression(&mut self, compo: &CompoAccessExpression) {
         todo!()
     }
 }

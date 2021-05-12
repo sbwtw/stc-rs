@@ -2,19 +2,31 @@ use crate::ast::*;
 use crate::parser::Tok;
 
 #[derive(Debug)]
-pub struct OperatorExpression(Tok, Vec<Box<dyn Expression>>);
+pub struct OperatorExpression {
+    op: Tok,
+    ty: Option<Box<dyn Type>>,
+    exprs: Vec<Box<dyn Expression>>,
+}
 
 impl OperatorExpression {
     pub fn new(op: Tok, exprs: Vec<Box<dyn Expression>>) -> Self {
-        OperatorExpression(op, exprs)
+        Self {
+            op,
+            ty: None,
+            exprs,
+        }
     }
 
     pub fn op(&self) -> &Tok {
-        &self.0
+        &self.op
+    }
+
+    pub fn ty(&self) -> Option<&Box<dyn Type>> {
+        self.ty.as_ref()
     }
 
     pub fn operands(&self) -> &Vec<Box<dyn Expression>> {
-        &self.1
+        &self.exprs
     }
 }
 
