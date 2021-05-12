@@ -34,6 +34,10 @@ impl Variable {
             .collect()
     }
 
+    pub fn set_scope(&mut self, scope: VariableScopeClass) {
+        self.scope = scope
+    }
+
     pub fn name(&self) -> &StString {
         &self.name
     }
@@ -46,8 +50,8 @@ impl Variable {
         self.ty.as_ref()
     }
 
-    pub fn set_scope(&mut self, scope: VariableScopeClass) {
-        self.scope = scope
+    pub fn scope_class(&self) -> &VariableScopeClass {
+        &self.scope
     }
 }
 

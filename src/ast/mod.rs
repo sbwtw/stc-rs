@@ -42,7 +42,9 @@ pub trait TypeClone {
     fn clone_boxed(&self) -> Box<dyn Type>;
 }
 
-pub trait Type: TypeClone + Debug {}
+pub trait Type: TypeClone + Debug {
+    fn type_class(&self) -> TypeClass;
+}
 
 impl<T> TypeClone for T
 where

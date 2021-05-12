@@ -226,7 +226,9 @@ impl<'input> Lexer<'input> {
 
         loop {
             match self.buffer.next() {
-                (_, Some(c)) if c.is_ascii_alphabetic() || c == '_' => {
+                (_, Some(c))
+                    if c.is_ascii_alphabetic() || c.is_ascii_alphanumeric() || c == '_' =>
+                {
                     str.push(c);
                 }
                 (n, x) => {
