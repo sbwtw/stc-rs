@@ -1,15 +1,15 @@
-use crate::ast::{FunctionDeclaration, FunctionType, TypeClass, VariableScopeClass};
+use crate::ast::*;
 use crate::parser::*;
 
 #[test]
 fn test_parse_function() {
     let lexer = Lexer::new("function test_fun : VAR_GLOBAL a,b ,c: INT; END_VAR END_FUNCTION");
 
-    let fun = st::FunctionDeclarationParser::new().parse(lexer).unwrap();
+    let fun = st::DeclarationParser::new().parse(lexer).unwrap();
     let fun = fun.as_any().downcast_ref::<FunctionDeclaration>().unwrap();
 
     assert_eq!(fun.name(), "test_fun");
-    assert!(matches!(fun.ty(), &FunctionType::Fun));
+    assert!(matches!(fun.class(), &FunctionClass::Function));
 
     let variables = fun.variables();
     assert_eq!(variables.len(), 3);
@@ -24,7 +24,7 @@ fn test_parse_function() {
         "function test_fun : VAR_GLOBAL a,b ,c: INT; END_VAR VAR Bx1: INT; END_VAR END_FUNCTION",
     );
 
-    let fun = st::FunctionDeclarationParser::new().parse(lexer).unwrap();
+    let fun = st::DeclarationParser::new().parse(lexer).unwrap();
     let fun = fun.as_any().downcast_ref::<FunctionDeclaration>().unwrap();
 
     let variables = fun.variables();

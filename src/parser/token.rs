@@ -61,6 +61,10 @@ pub enum Tok {
     Function,
     /// 'END_FUNCTION'
     EndFunction,
+    /// 'PROGRAM'
+    Program,
+    /// 'END_PROGRAM'
+    EndProgram,
     /// 'VAR'
     Var,
     /// 'VAR_GLOBAL'

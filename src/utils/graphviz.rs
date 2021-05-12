@@ -420,8 +420,4 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
             top.node_name = name;
         }
     }
-
-    fn visit_function_declaration(&mut self, fun: &FunctionDeclaration) {
-        todo!()
-    }
 }

@@ -16,16 +16,16 @@ impl Type for IntType {
 }
 
 #[derive(Debug, Clone)]
-pub struct UserType(StString);
+pub struct UserType(StString, Option<UserTypeClass>);
 
 impl UserType {
     pub fn from_name(name: StString) -> Self {
-        Self(name)
+        Self(name, None)
     }
 }
 
 impl Type for UserType {
     fn type_class(&self) -> TypeClass {
-        TypeClass::UserType(self.0.clone())
+        TypeClass::UserType(self.0.clone(), self.1.clone())
     }
 }

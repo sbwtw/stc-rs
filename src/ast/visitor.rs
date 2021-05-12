@@ -11,7 +11,6 @@ pub trait AstVisitor {
     fn visit_operator_expression(&mut self, expr: &OperatorExpression);
     fn visit_assign_expression(&mut self, assign: &AssignExpression);
     fn visit_compo_access_expression(&mut self, compo: &CompoAccessExpression);
-    fn visit_function_declaration(&mut self, fun: &FunctionDeclaration);
 }
 
 // Mutable visitor
@@ -25,5 +24,8 @@ pub trait AstVisitorMut: AstVisitor {
     fn visit_operator_expression_mut(&mut self, expr: &mut OperatorExpression);
     fn visit_assign_expression_mut(&mut self, assign: &mut AssignExpression);
     fn visit_compo_access_expression_mut(&mut self, compo: &mut CompoAccessExpression);
-    fn visit_function_declaration_mut(&mut self, fun: &mut FunctionDeclaration);
+}
+
+pub trait DeclarationVisitor {
+    fn visit_function_declare(&mut self, fun: &FunctionDeclaration);
 }

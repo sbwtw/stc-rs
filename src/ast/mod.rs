@@ -35,6 +35,7 @@ mod compo_access_expression;
 pub use compo_access_expression::CompoAccessExpression;
 
 mod function_declaration;
+use crate::ast::TypeClass::SInt;
 pub use function_declaration::FunctionDeclaration;
 use std::any::Any;
 
@@ -58,6 +59,12 @@ where
 impl Clone for Box<dyn Type> {
     fn clone(&self) -> Self {
         self.clone_boxed()
+    }
+}
+
+impl Display for dyn Type {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.type_class())
     }
 }
 
@@ -108,8 +115,6 @@ pub trait Statement: AstNode {}
 
 pub trait Expression: AstNode {}
 
-pub trait Declaration: AstNode {}
-
 #[derive(Debug)]
 pub struct StatementList(pub Vec<Box<dyn Statement>>);
 
@@ -129,13 +134,12 @@ impl AstNode for StatementList {
 
 impl Statement for StatementList {}
 
-#[derive(Debug)]
-pub enum FunctionType {
-    Fun,
-    Prg,
+pub trait Declaration: Debug {
+    fn as_any(&self) -> &dyn Any;
+    fn accept(&self, visitor: &mut dyn DeclarationVisitor);
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VariableScopeClass {
     None,
     Global,
@@ -161,7 +165,7 @@ pub enum FunctionClass {
     Method,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum UserTypeClass {
     Alias,
     Enum,
@@ -190,7 +194,7 @@ pub enum TypeClass {
     /// 'ULINT', 64 bits unsigned
     ULInt,
     /// UserType
-    UserType(StString),
+    UserType(StString, Option<UserTypeClass>),
 }
 
 impl From<Tok> for TypeClass {
@@ -206,6 +210,23 @@ impl From<Tok> for TypeClass {
             Tok::LInt => TypeClass::LInt,
             Tok::ULInt => TypeClass::ULInt,
             _ => unreachable!(),
+        }
+    }
+}
+
+impl Display for TypeClass {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            TypeClass::Bit => write!(f, "{}", Tok::Bit),
+            TypeClass::Bool => write!(f, "{}", Tok::Bool),
+            TypeClass::SInt => write!(f, "{}", Tok::SInt),
+            TypeClass::Byte => write!(f, "{}", Tok::Byte),
+            TypeClass::Int => write!(f, "{}", Tok::Int),
+            TypeClass::UInt => write!(f, "{}", Tok::UInt),
+            TypeClass::DInt => write!(f, "{}", Tok::DInt),
+            TypeClass::LInt => write!(f, "{}", Tok::LInt),
+            TypeClass::ULInt => write!(f, "{}", Tok::ULInt),
+            TypeClass::UserType(s, _) => write!(f, "{}", s.origin_string()),
         }
     }
 }

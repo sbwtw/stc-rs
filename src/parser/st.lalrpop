@@ -27,6 +27,8 @@ extern {
         "END_IF" => Tok::EndIf,
         "Function" => Tok::Function,
         "EndFunction" => Tok::EndFunction,
+        "Program" => Tok::Program,
+        "EndProgram" => Tok::EndProgram,
         "VAR" => Tok::Var,
         "VAR_GLOBAL" => Tok::VarGlobal,
         "END_VAR" => Tok::EndVar,
@@ -128,9 +130,15 @@ Term: Box<dyn Expression> = {
     "(" <Expr> ")",
 };
 
-/// Function declaration
-pub FunctionDeclaration: Box<dyn Declaration> = {
-    "Function" <name: "Identifier"> ":" <ty: Type?> <v: VariableDeclareFactor?> "EndFunction" => Box::new(FunctionDeclaration::new(name, FunctionType::Fun, ty, v.unwrap_or(vec![]))),
+/// Declaration statement
+pub DeclarationStatement: Box<dyn Statement> = {
+    Declaration => Box::new(DeclarationStatement::new(<>)),
+}
+
+/// Declarations
+pub Declaration: Box<dyn Declaration> = {
+    "Function" <name: "Identifier"> ":" <ty: Type?> <v: VariableDeclareFactor?> "EndFunction" => Box::new(FunctionDeclaration::new(name, FunctionClass::Function, ty, v.unwrap_or(vec![]))),
+    "Program" <name: "Identifier"> ":" <ty: Type?> <v: VariableDeclareFactor?> "EndProgram" => Box::new(FunctionDeclaration::new(name, FunctionClass::Program, ty, v.unwrap_or(vec![]))),
 }
 
 /// Type

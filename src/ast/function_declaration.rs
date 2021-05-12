@@ -4,7 +4,7 @@ use crate::parser::StString;
 #[derive(Debug)]
 pub struct FunctionDeclaration {
     name: StString,
-    fun_type: FunctionType,
+    fun_class: FunctionClass,
     return_type: Option<Box<dyn Type>>,
     variables: Vec<Variable>,
 }
@@ -12,13 +12,13 @@ pub struct FunctionDeclaration {
 impl FunctionDeclaration {
     pub fn new(
         name: StString,
-        fun: FunctionType,
+        fun: FunctionClass,
         ty: Option<Box<dyn Type>>,
         variables: Vec<Variable>,
     ) -> Self {
         Self {
             name,
-            fun_type: fun,
+            fun_class: fun,
             return_type: ty,
             variables,
         }
@@ -28,8 +28,12 @@ impl FunctionDeclaration {
         &self.name
     }
 
-    pub fn ty(&self) -> &FunctionType {
-        &self.fun_type
+    pub fn class(&self) -> &FunctionClass {
+        &self.fun_class
+    }
+
+    pub fn return_type(&self) -> Option<&Box<dyn Type>> {
+        self.return_type.as_ref()
     }
 
     pub fn variables(&self) -> &Vec<Variable> {
@@ -37,18 +41,12 @@ impl FunctionDeclaration {
     }
 }
 
-impl AstNode for FunctionDeclaration {
+impl Declaration for FunctionDeclaration {
     fn as_any(&self) -> &dyn Any {
         self
     }
 
-    fn accept(&self, visitor: &mut dyn AstVisitor) {
-        visitor.visit_function_declaration(self)
-    }
-
-    fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
-        visitor.visit_function_declaration(self)
+    fn accept(&self, visitor: &mut dyn DeclarationVisitor) {
+        visitor.visit_function_declare(self)
     }
 }
-
-impl Declaration for FunctionDeclaration {}

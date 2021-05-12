@@ -129,7 +129,7 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
     }
 
     fn visit_declaration_statement(&mut self, decl: &DeclarationStatement) {
-        todo!()
+        decl.declaration().accept(self)
     }
 
     fn visit_operator_expression(&mut self, expr: &OperatorExpression) {
@@ -183,9 +183,61 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
         self.write(format_args!("."));
         compo.right().accept(self);
     }
+}
 
-    fn visit_function_declaration(&mut self, fun: &FunctionDeclaration) {
-        todo!()
+fn variable_scope_start_tok(class: &VariableScopeClass) -> Tok {
+    match class {
+        VariableScopeClass::None => Tok::Var,
+        VariableScopeClass::Global => Tok::VarGlobal,
+        _ => unimplemented!(),
+    }
+}
+
+impl<W: Write> DeclarationVisitor for StringifyVisitor<W> {
+    fn visit_function_declare(&mut self, fun: &FunctionDeclaration) {
+        self.write(format_args!("{} : ", Tok::Function));
+        if let Some(ret_type) = fun.return_type() {
+            self.write(format_args!("{} ", ret_type))
+        }
+        self.writeln(format_args!(""));
+
+        // variable declarations
+        let variables = fun.variables();
+        if variables.len() > 0 {
+            let mut current_scope = None;
+            for v in variables {
+                // new group
+                if current_scope != Some(v.scope_class()) {
+                    if current_scope.is_some() {
+                        self.writeln(format_args!("{}", Tok::EndVar));
+                    }
+
+                    self.writeln(format_args!(
+                        "{}",
+                        variable_scope_start_tok(v.scope_class())
+                    ));
+
+                    current_scope = Some(v.scope_class());
+                }
+
+                // dump variable
+                self.indent += 1;
+                self.write_indent();
+                v.accept(self);
+                self.writeln(format_args!(
+                    ": {};",
+                    v.ty().expect("Variable type not exist!")
+                ));
+                self.indent -= 1;
+            }
+
+            // last group end
+            if current_scope.is_some() {
+                self.writeln(format_args!("{}", Tok::EndVar));
+            }
+        }
+
+        self.writeln(format_args!("{}", Tok::EndFunction));
     }
 }
 

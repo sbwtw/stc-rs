@@ -241,6 +241,30 @@ impl<'input> Lexer<'input> {
         }
     }
 
+    fn parse_second_char(&mut self, start: usize, ch: char) -> Option<LexerResult> {
+        let (tok, stage) = match (ch, self.buffer.next()) {
+            ('<', (_, Some('='))) => (Tok::LessEqual, None),
+            ('<', (_, Some('>'))) => (Tok::NotEqual, None),
+            ('<', x) => (Tok::Less, Some(x)),
+
+            ('>', (_, Some('='))) => (Tok::GreaterEqual, None),
+            ('>', x) => (Tok::Greater, Some(x)),
+
+            (':', (_, Some('='))) => (Tok::Assign, None),
+            (':', x) => (Tok::Colon, Some(x)),
+
+            _ => unreachable!(),
+        };
+
+        // one char eaten, stage second state
+        if let Some(s) = stage {
+            self.buffer.stage(s);
+            Some(Ok((start, tok, start + 1)))
+        } else {
+            Some(Ok((start, tok, start + 2)))
+        }
+    }
+
     fn keywords_or_identifier(&mut self, s: String) -> Tok {
         let st_str = s.into();
         if let Some(keyword) = self.keywords.get(&st_str) {
@@ -267,14 +291,9 @@ impl<'input> Iterator for Lexer<'input> {
             (i, Some(',')) => Some(Ok((i, Tok::Comma, i + 1))),
             (i, Some(';')) => Some(Ok((i, Tok::Semicolon, i + 1))),
             (i, Some('\"')) => self.parse_string(i),
-            (i, Some(':')) => match self.buffer.next() {
-                (n, Some('=')) => Some(Ok((i, Tok::Assign, n + 1))),
-                (n, x) => {
-                    self.buffer.stage((n, x));
-
-                    Some(Ok((i, Tok::Colon, i + 1)))
-                }
-            },
+            (i, Some(c @ '<')) | (i, Some(c @ ':')) | (i, Some(c @ '>')) => {
+                self.parse_second_char(i, c)
+            }
             (start, Some(c)) if c.is_ascii_digit() && c != '0' => self.parse_integer(start, c),
             (start, Some(c)) if c.is_ascii_alphabetic() || c == '_' => {
                 self.parse_identifier(start, c)
