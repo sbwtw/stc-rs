@@ -65,7 +65,7 @@ impl AstNode for Variable {
     }
 
     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
-        visitor.visit_variable(self)
+        visitor.visit_variable_mut(self)
     }
 }
 

@@ -11,6 +11,10 @@ impl ExprStatement {
     pub fn expr(&self) -> &dyn Expression {
         self.0.as_ref()
     }
+
+    pub fn expr_mut(&mut self) -> &mut dyn Expression {
+        self.0.as_mut()
+    }
 }
 
 impl AstNode for ExprStatement {

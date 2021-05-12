@@ -23,7 +23,7 @@ impl AstNode for DeclarationStatement {
     }
 
     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
-        visitor.visit_declaration_statement(self)
+        visitor.visit_declaration_statement_mut(self)
     }
 }
 

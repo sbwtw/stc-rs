@@ -3,6 +3,10 @@ mod parser;
 mod transform;
 mod utils;
 
+#[cfg(test)]
+mod test;
+
+use crate::transform::TypeAnalyzer;
 use parser::*;
 use std::fs::OpenOptions;
 use std::process::Command;
@@ -10,7 +14,11 @@ use std::process::Command;
 fn main() {
     let lexer = Lexer::new("a + b; if 3.0 + b then a - b; end_if");
 
-    let r = parser::st::StFunctionParser::new().parse(lexer).unwrap();
+    // parse
+    let mut r = parser::st::StFunctionParser::new().parse(lexer).unwrap();
+    // type analyze
+    let mut analyzer = TypeAnalyzer::new();
+    analyzer.analyze(r.as_ast_node_mut());
 
     println!("{:?}", r);
 

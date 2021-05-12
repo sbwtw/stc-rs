@@ -14,7 +14,7 @@ pub trait AstVisitor {
 }
 
 // Mutable visitor
-pub trait AstVisitorMut: AstVisitor {
+pub trait AstVisitorMut {
     fn visit_literal_mut(&mut self, literal: &mut LiteralType);
     fn visit_variable_mut(&mut self, variable: &mut Variable);
     fn visit_statement_list_mut(&mut self, stmt: &mut StatementList);

@@ -82,7 +82,7 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
     }
 
     fn visit_statement_list(&mut self, stmt: &StatementList) {
-        for s in &stmt.0 {
+        for s in stmt.statements() {
             s.accept(self);
         }
     }

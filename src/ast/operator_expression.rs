@@ -5,15 +5,15 @@ use crate::parser::Tok;
 pub struct OperatorExpression {
     op: Tok,
     ty: Option<Box<dyn Type>>,
-    exprs: Vec<Box<dyn Expression>>,
+    operands: Vec<Box<dyn Expression>>,
 }
 
 impl OperatorExpression {
-    pub fn new(op: Tok, exprs: Vec<Box<dyn Expression>>) -> Self {
+    pub fn new(op: Tok, operands: Vec<Box<dyn Expression>>) -> Self {
         Self {
             op,
             ty: None,
-            exprs,
+            operands,
         }
     }
 
@@ -25,8 +25,12 @@ impl OperatorExpression {
         self.ty.as_ref()
     }
 
+    pub fn set_ty(&mut self, ty: Option<Box<dyn Type>>) {
+        self.ty = ty;
+    }
+
     pub fn operands(&self) -> &Vec<Box<dyn Expression>> {
-        &self.exprs
+        &self.operands
     }
 }
 

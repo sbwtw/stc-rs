@@ -30,7 +30,7 @@ impl AstNode for CompoAccessExpression {
     }
 
     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
-        visitor.visit_compo_access_expression(self)
+        visitor.visit_compo_access_expression_mut(self)
     }
 }
 

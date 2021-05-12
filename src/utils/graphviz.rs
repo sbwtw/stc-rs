@@ -222,7 +222,7 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
     fn visit_statement_list(&mut self, stmt: &StatementList) {
         let name = self.unique_name("statement_list");
         let mut labels = vec![];
-        for (i, s) in stmt.0.iter().enumerate() {
+        for (i, s) in stmt.statements().iter().enumerate() {
             let pos = self.unique_name("pos");
             labels.push(format!("<{}> {}", &pos, i));
 

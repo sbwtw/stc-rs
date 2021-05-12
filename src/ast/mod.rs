@@ -69,10 +69,15 @@ impl Display for dyn Type {
 
 pub trait AsAstNode {
     fn as_ast_node(&self) -> &dyn AstNode;
+    fn as_ast_node_mut(&mut self) -> &mut dyn AstNode;
 }
 
 impl<T: AstNode> AsAstNode for T {
     fn as_ast_node(&self) -> &dyn AstNode {
+        self
+    }
+
+    fn as_ast_node_mut(&mut self) -> &mut dyn AstNode {
         self
     }
 }
@@ -115,7 +120,21 @@ pub trait Statement: AstNode {}
 pub trait Expression: AstNode {}
 
 #[derive(Debug)]
-pub struct StatementList(pub Vec<Box<dyn Statement>>);
+pub struct StatementList(Vec<Box<dyn Statement>>);
+
+impl StatementList {
+    pub fn new(v: Vec<Box<dyn Statement>>) -> Self {
+        Self(v)
+    }
+
+    pub fn statements(&self) -> &[Box<dyn Statement>] {
+        self.0.as_ref()
+    }
+
+    pub fn statements_mut(&mut self) -> &mut [Box<dyn Statement>] {
+        self.0.as_mut()
+    }
+}
 
 impl AstNode for StatementList {
     fn as_any(&self) -> &dyn Any {
@@ -127,7 +146,7 @@ impl AstNode for StatementList {
     }
 
     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
-        visitor.visit_statement_list(self)
+        visitor.visit_statement_list_mut(self)
     }
 }
 

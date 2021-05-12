@@ -1,2 +1,2 @@
-mod type_alloc;
-pub use type_alloc::TypeAllocator;
+mod type_analyze;
+pub use type_analyze::TypeAnalyzer;

@@ -50,12 +50,12 @@ Comma<T>: Vec<T> = {
     }
 };
 
-/// Top-level ST functio
+/// Top-level ST function
 pub StFunction = StatementList;
 
 /// ST Statements
 StatementList: Box<dyn Statement> = {
-    Statement+ => Box::new(StatementList(<>))
+    Statement+ => Box::new(StatementList::new(<>))
 }
 
 /// Single statement
