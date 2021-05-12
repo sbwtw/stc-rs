@@ -24,6 +24,10 @@ impl AssignExpression {
 }
 
 impl AstNode for AssignExpression {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     fn accept(&self, visitor: &mut dyn AstVisitor) {
         visitor.visit_assign_expression(self)
     }

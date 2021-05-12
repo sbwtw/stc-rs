@@ -19,6 +19,10 @@ impl OperatorExpression {
 }
 
 impl AstNode for OperatorExpression {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     fn accept(&self, visitor: &mut dyn AstVisitor) {
         visitor.visit_operator_expression(self)
     }

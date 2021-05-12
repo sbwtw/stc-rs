@@ -1,3 +1,4 @@
+use bitflags::bitflags;
 use std::fmt::{self, Debug, Display, Formatter};
 
 use crate::parser::{LiteralType, StString, Tok};
@@ -35,6 +36,7 @@ pub use compo_access_expression::CompoAccessExpression;
 
 mod function_declaration;
 pub use function_declaration::FunctionDeclaration;
+use std::any::Any;
 
 pub trait TypeClone {
     fn clone_boxed(&self) -> Box<dyn Type>;
@@ -68,6 +70,7 @@ impl<T: AstNode> AsAstNode for T {
 }
 
 pub trait AstNode: Debug + AsAstNode {
+    fn as_any(&self) -> &dyn Any;
     fn accept(&self, visitor: &mut dyn AstVisitor);
     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut);
 }
@@ -86,6 +89,10 @@ impl<T> AstNode for Box<T>
 where
     T: AstNode,
 {
+    fn as_any(&self) -> &dyn Any {
+        self.as_ref().as_any()
+    }
+
     fn accept(&self, visitor: &mut dyn AstVisitor) {
         self.as_ref().accept(visitor);
     }
@@ -105,6 +112,10 @@ pub trait Declaration: AstNode {}
 pub struct StatementList(pub Vec<Box<dyn Statement>>);
 
 impl AstNode for StatementList {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     fn accept(&self, visitor: &mut dyn AstVisitor) {
         visitor.visit_statement_list(self)
     }
@@ -123,9 +134,21 @@ pub enum FunctionType {
 }
 
 #[derive(Debug)]
-pub enum VariableGroupScope {
+pub enum VariableScopeClass {
     None,
     Global,
+    Input,
+    InOut,
+    Output,
+}
+
+bitflags! {
+    pub struct VaraibleRetainFlags: usize {
+        const NONE              = 0b00000000_00000000;
+        const RETAIN            = 0b00000000_00000001;
+        const PERSISTENT        = 0b00000000_00000010;
+        const RETAINPERSISTENT  = Self::RETAIN.bits | Self::PERSISTENT.bits;
+    }
 }
 
 #[derive(Debug)]

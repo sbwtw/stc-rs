@@ -59,6 +59,8 @@ pub enum Tok {
     To,
     /// 'FUNCTION'
     Function,
+    /// 'END_FUNCTION'
+    EndFunction,
     /// 'VAR'
     Var,
     /// 'VAR_GLOBAL'
@@ -109,6 +111,10 @@ impl Into<String> for &Tok {
             Tok::ElseIf => "ELSEIF",
             Tok::EndIf => "END_IF",
             Tok::Function => "FUNCTION",
+            Tok::EndFunction => "END_FUNCTION",
+            Tok::VarGlobal => "VAR_GLOBAL",
+            Tok::Var => "VAR",
+            Tok::EndVar => "END_VAR",
             Tok::Int => "INT",
             Tok::Identifier(s) => &s.origin_string(),
             _ => unimplemented!(),

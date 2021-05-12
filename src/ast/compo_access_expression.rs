@@ -21,6 +21,10 @@ impl CompoAccessExpression {
 }
 
 impl AstNode for CompoAccessExpression {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     fn accept(&self, visitor: &mut dyn AstVisitor) {
         visitor.visit_compo_access_expression(self)
     }

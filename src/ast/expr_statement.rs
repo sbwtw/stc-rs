@@ -14,6 +14,10 @@ impl ExprStatement {
 }
 
 impl AstNode for ExprStatement {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     fn accept(&self, visitor: &mut dyn AstVisitor) {
         visitor.visit_expr_statement(self)
     }

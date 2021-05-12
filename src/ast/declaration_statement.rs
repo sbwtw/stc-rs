@@ -14,6 +14,10 @@ impl DeclarationStatement {
 }
 
 impl AstNode for DeclarationStatement {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     fn accept(&self, visitor: &mut dyn AstVisitor) {
         visitor.visit_declaration_statement(self)
     }

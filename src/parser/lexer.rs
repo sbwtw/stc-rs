@@ -1,5 +1,6 @@
 use crate::ast::{AstNode, AstVisitor, AstVisitorMut};
 use crate::parser::Tok;
+use std::any::Any;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::str::CharIndices;
@@ -46,6 +47,12 @@ impl PartialEq for StString {
 
 impl Eq for StString {}
 
+impl PartialEq<str> for StString {
+    fn eq(&self, other: &str) -> bool {
+        self.converted_string.eq(&other.to_ascii_uppercase())
+    }
+}
+
 impl Hash for StString {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.converted_string.hash(state)
@@ -61,6 +68,10 @@ pub enum LiteralType {
 }
 
 impl AstNode for LiteralType {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     fn accept(&self, visitor: &mut dyn AstVisitor) {
         visitor.visit_literal(self)
     }
@@ -121,6 +132,10 @@ impl<'input> Lexer<'input> {
         keywords.insert(Tok::ElseIf.into(), Tok::ElseIf);
         keywords.insert(Tok::EndIf.into(), Tok::EndIf);
         keywords.insert(Tok::Function.into(), Tok::Function);
+        keywords.insert(Tok::EndFunction.into(), Tok::EndFunction);
+        keywords.insert(Tok::Var.into(), Tok::Var);
+        keywords.insert(Tok::VarGlobal.into(), Tok::VarGlobal);
+        keywords.insert(Tok::EndVar.into(), Tok::EndVar);
         keywords.insert(Tok::Int.into(), Tok::Int);
 
         Self {

@@ -8,7 +8,7 @@ use std::fs::OpenOptions;
 use std::process::Command;
 
 fn main() {
-    let lexer = Lexer::new("function test_fun : INT");
+    let lexer = Lexer::new("function test_fun : VAR_GLOBAL a,b ,c: INT; END_VAR END_FUNCTION");
 
     let r = parser::st::FunctionDeclarationParser::new()
         .parse(lexer)

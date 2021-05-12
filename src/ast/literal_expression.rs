@@ -10,6 +10,10 @@ impl LiteralExpression {
 }
 
 impl AstNode for LiteralExpression {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     fn accept(&self, visitor: &mut dyn AstVisitor) {
         visitor.visit_literal(&self.0)
     }
@@ -20,4 +24,3 @@ impl AstNode for LiteralExpression {
 }
 
 impl Expression for LiteralExpression {}
-

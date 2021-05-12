@@ -102,6 +102,10 @@ impl ElseIfStatement {
 }
 
 impl AstNode for IfStatement {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     fn accept(&self, visitor: &mut dyn AstVisitor) {
         visitor.visit_if_statement(self);
     }
