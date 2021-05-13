@@ -63,9 +63,13 @@ impl AstVisitorMut for TypeAnalyzer {
     }
 
     fn visit_variable_mut(&mut self, variable: &mut Variable) {
-        if let Some(v) = self.scope.find_variable(variable.name()) {
-            variable.set_ty(v.ty().map(|x| x.clone()))
+        if variable.ty().is_none() {
+            if let Some(v) = self.scope.find_variable(variable.name()) {
+                variable.set_ty(v.ty().map(|x| x.clone()))
+            }
         }
+
+        self.top_mut().derived_type = variable.ty()
     }
 
     fn visit_statement_list_mut(&mut self, stmt: &mut StatementList) {
@@ -94,6 +98,25 @@ impl AstVisitorMut for TypeAnalyzer {
             operand.accept_mut(self);
             operands_attr.push(self.pop());
         }
+
+        let mut result_type = &mut self.top_mut().derived_type;
+        for attr in operands_attr {
+            if let Some(true) = attr
+                .derived_type
+                .as_deref()
+                .zip(result_type.as_deref())
+                .map(|(t1, t2)| t1.type_class() == t2.type_class())
+            {
+                continue;
+            }
+
+            if result_type.is_none() {
+                *result_type = attr.derived_type.clone();
+                continue;
+            }
+        }
+
+        expr.set_ty(result_type.clone());
     }
 
     fn visit_assign_expression_mut(&mut self, assign: &mut AssignExpression) {

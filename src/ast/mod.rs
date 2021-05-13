@@ -184,7 +184,7 @@ pub enum DeclareClass {
     Method,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum UserTypeClass {
     Alias,
     Enum,
@@ -192,7 +192,7 @@ pub enum UserTypeClass {
     Union,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum TypeClass {
     /// 'BIT', one bit type
     Bit,
