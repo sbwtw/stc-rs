@@ -2,9 +2,7 @@ use crate::ast::*;
 use crate::context::ModuleContextScope;
 use crate::parser::StString;
 use once_cell::sync::Lazy;
-use std::cell::{Cell, RefCell, RefMut};
 use std::collections::HashMap;
-use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, RwLock};
 
@@ -40,6 +38,12 @@ struct FunctionWrapper {
     function: Arc<RwLock<Box<dyn Statement>>>,
 }
 
+impl FunctionWrapper {
+    fn new(decl_id: usize, function: Arc<RwLock<Box<dyn Statement>>>) -> Self {
+        Self { decl_id, function }
+    }
+}
+
 impl PartialEq for ModuleContext {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
@@ -53,6 +57,7 @@ pub struct ModuleContext {
     scope: ModuleContextScope,
     declaration_id_map: HashMap<usize, DeclarationWrapper>,
     declaration_name_map: HashMap<StString, DeclarationWrapper>,
+    function_id_map: HashMap<usize, FunctionWrapper>,
 }
 
 impl ModuleContext {
@@ -62,6 +67,7 @@ impl ModuleContext {
             scope,
             declaration_id_map: HashMap::new(),
             declaration_name_map: HashMap::new(),
+            function_id_map: HashMap::new(),
         }
     }
 
@@ -73,12 +79,33 @@ impl ModuleContext {
         &self.scope
     }
 
-    pub fn add_declaration(&mut self, decl: Box<dyn Declaration>) {
+    pub fn add_declaration(&mut self, decl: Box<dyn Declaration>) -> usize {
         let name = decl.identifier().clone();
         let wrapper = DeclarationWrapper::new(decl);
 
         self.declaration_id_map.insert(wrapper.id, wrapper.clone());
         self.declaration_name_map.insert(name, wrapper.clone());
+
+        wrapper.id
+    }
+
+    pub fn add_function(
+        &mut self,
+        decl_id: usize,
+        fun: Box<dyn Statement>,
+    ) -> Option<Arc<RwLock<Box<dyn Statement>>>> {
+        self.function_id_map
+            .insert(
+                decl_id,
+                FunctionWrapper::new(decl_id, Arc::new(RwLock::new(fun))),
+            )
+            .map(|x| x.function.clone())
+    }
+
+    pub fn get_function(&self, decl_id: usize) -> Option<Arc<RwLock<Box<dyn Statement>>>> {
+        self.function_id_map
+            .get(&decl_id)
+            .map(|x| x.function.clone())
     }
 
     pub fn get_declaration_by_id(

@@ -1,10 +1,11 @@
 use crate::ast::*;
 use crate::parser::Tok;
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct OperatorExpression {
     op: Tok,
-    ty: Option<Box<dyn Type>>,
+    ty: Option<Arc<Box<dyn Type>>>,
     operands: Vec<Box<dyn Expression>>,
 }
 
@@ -21,11 +22,11 @@ impl OperatorExpression {
         &self.op
     }
 
-    pub fn ty(&self) -> Option<&Box<dyn Type>> {
-        self.ty.as_ref()
+    pub fn ty(&self) -> Option<Arc<Box<dyn Type>>> {
+        self.ty.clone()
     }
 
-    pub fn set_ty(&mut self, ty: Option<Box<dyn Type>>) {
+    pub fn set_ty(&mut self, ty: Option<Arc<Box<dyn Type>>>) {
         self.ty = ty;
     }
 

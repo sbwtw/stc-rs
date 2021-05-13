@@ -6,7 +6,7 @@ use std::sync::Arc;
 pub struct FunctionDeclaration {
     name: StString,
     decl_class: DeclareClass,
-    return_type: Option<Box<dyn Type>>,
+    return_type: Option<Arc<Box<dyn Type>>>,
     variables: Vec<Arc<Variable>>,
 }
 
@@ -14,7 +14,7 @@ impl FunctionDeclaration {
     pub fn new(
         name: StString,
         class: DeclareClass,
-        ty: Option<Box<dyn Type>>,
+        ty: Option<Arc<Box<dyn Type>>>,
         variables: Vec<Arc<Variable>>,
     ) -> Self {
         Self {
@@ -33,8 +33,8 @@ impl FunctionDeclaration {
         &self.decl_class
     }
 
-    pub fn return_type(&self) -> Option<&Box<dyn Type>> {
-        self.return_type.as_ref()
+    pub fn return_type(&self) -> Option<Arc<Box<dyn Type>>> {
+        self.return_type.clone()
     }
 
     pub fn variables(&self) -> &Vec<Arc<Variable>> {

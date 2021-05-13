@@ -4,6 +4,7 @@ use crate::parser::StString;
 use std::cell::RefCell;
 use std::sync::{Arc, RwLock};
 
+#[derive(Clone)]
 pub struct Scope {
     units_manager: Option<Arc<RwLock<UnitsManager>>>,
     local_context: Option<Arc<RwLock<ModuleContext>>>,

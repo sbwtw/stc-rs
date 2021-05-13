@@ -6,7 +6,7 @@ use std::sync::Arc;
 #[derive(Debug)]
 pub struct Variable {
     name: StString,
-    ty: Option<Box<dyn Type>>,
+    ty: Option<Arc<Box<dyn Type>>>,
     scope: VariableScopeClass,
     retain_flags: VaraibleRetainFlags,
 }
@@ -19,7 +19,7 @@ impl Variable {
         }
     }
 
-    pub fn with_type(name: StString, ty: Box<dyn Type>) -> Self {
+    pub fn with_type(name: StString, ty: Arc<Box<dyn Type>>) -> Self {
         Self {
             name,
             ty: Some(ty),
@@ -28,7 +28,10 @@ impl Variable {
     }
 
     /// comma split variable declare list, like: a, b, c: INT;
-    pub fn multiple_variable_with_type(names: Vec<StString>, ty: Box<dyn Type>) -> Vec<Arc<Self>> {
+    pub fn multiple_variable_with_type(
+        names: Vec<StString>,
+        ty: Arc<Box<dyn Type>>,
+    ) -> Vec<Arc<Self>> {
         names
             .iter()
             .map(|x| Arc::new(Self::with_type(x.clone(), ty.clone())))
@@ -47,11 +50,11 @@ impl Variable {
         self.name.origin_string()
     }
 
-    pub fn ty(&self) -> Option<&Box<dyn Type>> {
-        self.ty.as_ref()
+    pub fn ty(&self) -> Option<Arc<Box<dyn Type>>> {
+        self.ty.clone()
     }
 
-    pub fn set_ty(&mut self, ty: Option<Box<dyn Type>>) {
+    pub fn set_ty(&mut self, ty: Option<Arc<Box<dyn Type>>>) {
         self.ty = ty
     }
 

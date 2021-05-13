@@ -18,8 +18,16 @@ impl AssignExpression {
         self.left.as_ref()
     }
 
+    pub fn left_mut(&mut self) -> &mut dyn Expression {
+        self.left.as_mut()
+    }
+
     pub fn right(&self) -> &dyn Expression {
         self.right.as_ref()
+    }
+
+    pub fn right_mut(&mut self) -> &mut dyn Expression {
+        self.right.as_mut()
     }
 }
 

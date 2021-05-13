@@ -4,6 +4,7 @@ use crate::utils::StringifyVisitor;
 use std::fmt::Arguments;
 use std::io::Write;
 use std::iter::FromIterator;
+use std::sync::Arc;
 
 /// Graphviz Labels Group
 enum GraphvizLabelGroup {
@@ -187,7 +188,7 @@ impl<W: Write> GraphvizExporter<W> {
     }
 }
 
-fn display_type(ty: Option<&Box<dyn Type>>) -> String {
+fn display_type(ty: Option<Arc<Box<dyn Type>>>) -> String {
     ty.map(|x| format!("{}", x)).unwrap_or(String::new())
 }
 

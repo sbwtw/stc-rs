@@ -143,9 +143,9 @@ pub Declaration: Box<dyn Declaration> = {
 }
 
 /// Type
-Type: Box<dyn Type> = {
-    "Int" => Box::new(IntType::new()),
-    "Identifier" => Box::new(UserType::from_name(<>)),
+Type: Arc<Box<dyn Type>> = {
+    "Int" => Arc::new(Box::new(IntType::new())),
+    "Identifier" => Arc::new(Box::new(UserType::from_name(<>))),
 }
 
 /// Variable declare groups flat

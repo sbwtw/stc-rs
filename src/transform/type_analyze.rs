@@ -1,10 +1,10 @@
 use crate::ast::*;
 use crate::context::Scope;
 use crate::parser::LiteralType;
+use std::sync::Arc;
 
 struct TypeAnalyzerAttribute {
-    scope: Scope,
-    derived_type: Option<Box<dyn Type>>,
+    derived_type: Option<Arc<Box<dyn Type>>>,
 }
 
 impl TypeAnalyzerAttribute {
@@ -15,29 +15,31 @@ impl TypeAnalyzerAttribute {
 
 impl Default for TypeAnalyzerAttribute {
     fn default() -> Self {
-        Self {
-            scope: Scope::default(),
-            derived_type: None,
-        }
+        Self { derived_type: None }
     }
 }
 
 pub struct TypeAnalyzer {
+    scope: Scope,
     attribute_stack: Vec<TypeAnalyzerAttribute>,
 }
 
 impl TypeAnalyzer {
     pub fn new() -> Self {
         Self {
+            scope: Scope::default(),
             attribute_stack: vec![],
         }
     }
 
     pub fn analyze(&mut self, ast: &mut dyn AstNode, scope: Scope) {
+        self.scope = scope;
+
         self.push(TypeAnalyzerAttribute::new());
-        self.top_mut().scope = scope;
         ast.accept_mut(self);
         self.pop();
+
+        debug_assert_eq!(self.attribute_stack.len(), 0)
     }
 
     fn top_mut(&mut self) -> &mut TypeAnalyzerAttribute {
@@ -61,7 +63,7 @@ impl AstVisitorMut for TypeAnalyzer {
     }
 
     fn visit_variable_mut(&mut self, variable: &mut Variable) {
-        if let Some(v) = self.top_mut().scope.find_variable(variable.name()) {
+        if let Some(v) = self.scope.find_variable(variable.name()) {
             variable.set_ty(v.ty().map(|x| x.clone()))
         }
     }
@@ -95,7 +97,13 @@ impl AstVisitorMut for TypeAnalyzer {
     }
 
     fn visit_assign_expression_mut(&mut self, assign: &mut AssignExpression) {
-        todo!()
+        self.push(TypeAnalyzerAttribute::new());
+        assign.right_mut().accept_mut(self);
+        self.pop();
+
+        self.push(TypeAnalyzerAttribute::new());
+        assign.left_mut().accept_mut(self);
+        self.pop();
     }
 
     fn visit_compo_access_expression_mut(&mut self, compo: &mut CompoAccessExpression) {
