@@ -32,6 +32,10 @@ impl OperatorExpression {
     pub fn operands(&self) -> &Vec<Box<dyn Expression>> {
         &self.operands
     }
+
+    pub fn operands_mut(&mut self) -> &mut [Box<dyn Expression>] {
+        self.operands.as_mut()
+    }
 }
 
 impl AstNode for OperatorExpression {

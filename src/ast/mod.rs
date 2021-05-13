@@ -155,6 +155,7 @@ impl Statement for StatementList {}
 pub trait Declaration: Debug {
     fn as_any(&self) -> &dyn Any;
     fn accept(&self, visitor: &mut dyn DeclarationVisitor);
+    fn identifier(&self) -> &StString;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -176,7 +177,7 @@ bitflags! {
 }
 
 #[derive(Debug)]
-pub enum FunctionClass {
+pub enum DeclareClass {
     Function,
     Program,
     FunctionBlock,

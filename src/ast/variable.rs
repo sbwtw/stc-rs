@@ -1,6 +1,7 @@
 use crate::ast::*;
 use crate::parser::StString;
 use std::default::Default;
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct Variable {
@@ -27,10 +28,10 @@ impl Variable {
     }
 
     /// comma split variable declare list, like: a, b, c: INT;
-    pub fn multiple_variable_with_type(names: Vec<StString>, ty: Box<dyn Type>) -> Vec<Self> {
+    pub fn multiple_variable_with_type(names: Vec<StString>, ty: Box<dyn Type>) -> Vec<Arc<Self>> {
         names
             .iter()
-            .map(|x| Self::with_type(x.clone(), ty.clone()))
+            .map(|x| Arc::new(Self::with_type(x.clone(), ty.clone())))
             .collect()
     }
 
@@ -48,6 +49,10 @@ impl Variable {
 
     pub fn ty(&self) -> Option<&Box<dyn Type>> {
         self.ty.as_ref()
+    }
+
+    pub fn set_ty(&mut self, ty: Option<Box<dyn Type>>) {
+        self.ty = ty
     }
 
     pub fn scope_class(&self) -> &VariableScopeClass {

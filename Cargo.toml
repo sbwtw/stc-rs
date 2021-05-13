@@ -10,6 +10,7 @@ build = "src/build.rs"
 [dependencies]
 lalrpop-util = "*"
 bitflags = "*"
+once_cell = "*"
 
 [build-dependencies]
 lalrpop = "*"

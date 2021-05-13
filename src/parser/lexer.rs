@@ -4,6 +4,7 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::fmt::{self, Display, Formatter};
 use std::hash::{Hash, Hasher};
+use std::rc::Rc;
 use std::str::CharIndices;
 
 pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
@@ -11,15 +12,15 @@ pub type LexerResult = Spanned<Tok, usize, LexicalError>;
 
 #[derive(Debug, Clone)]
 pub struct StString {
-    origin_string: String,
-    converted_string: String,
+    origin_string: Rc<String>,
+    converted_string: Rc<String>,
 }
 
 impl StString {
     pub fn new<S: AsRef<str>>(str: S) -> Self {
         Self {
-            origin_string: str.as_ref().to_owned(),
-            converted_string: str.as_ref().to_ascii_uppercase().to_owned(),
+            origin_string: Rc::new(str.as_ref().to_owned()),
+            converted_string: Rc::new(str.as_ref().to_ascii_uppercase().to_owned()),
         }
     }
 
@@ -50,7 +51,7 @@ impl Eq for StString {}
 
 impl PartialEq<str> for StString {
     fn eq(&self, other: &str) -> bool {
-        self.converted_string.eq(&other.to_ascii_uppercase())
+        other.to_ascii_uppercase().eq(&*self.converted_string)
     }
 }
 

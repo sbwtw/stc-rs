@@ -1,24 +1,25 @@
 use crate::ast::*;
 use crate::parser::StString;
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct FunctionDeclaration {
     name: StString,
-    fun_class: FunctionClass,
+    decl_class: DeclareClass,
     return_type: Option<Box<dyn Type>>,
-    variables: Vec<Variable>,
+    variables: Vec<Arc<Variable>>,
 }
 
 impl FunctionDeclaration {
     pub fn new(
         name: StString,
-        fun: FunctionClass,
+        class: DeclareClass,
         ty: Option<Box<dyn Type>>,
-        variables: Vec<Variable>,
+        variables: Vec<Arc<Variable>>,
     ) -> Self {
         Self {
             name,
-            fun_class: fun,
+            decl_class: class,
             return_type: ty,
             variables,
         }
@@ -28,15 +29,15 @@ impl FunctionDeclaration {
         &self.name
     }
 
-    pub fn class(&self) -> &FunctionClass {
-        &self.fun_class
+    pub fn class(&self) -> &DeclareClass {
+        &self.decl_class
     }
 
     pub fn return_type(&self) -> Option<&Box<dyn Type>> {
         self.return_type.as_ref()
     }
 
-    pub fn variables(&self) -> &Vec<Variable> {
+    pub fn variables(&self) -> &Vec<Arc<Variable>> {
         &self.variables
     }
 }
@@ -48,5 +49,9 @@ impl Declaration for FunctionDeclaration {
 
     fn accept(&self, visitor: &mut dyn DeclarationVisitor) {
         visitor.visit_function_declare(self)
+    }
+
+    fn identifier(&self) -> &StString {
+        self.name()
     }
 }

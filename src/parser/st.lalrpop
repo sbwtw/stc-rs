@@ -1,6 +1,7 @@
 use crate::ast::*;
 use crate::parser::lexer::{self, LiteralType, StString};
 use crate::parser::Tok;
+use std::sync::Arc;
 
 grammar;
 
@@ -137,8 +138,8 @@ pub DeclarationStatement: Box<dyn Statement> = {
 
 /// Declarations
 pub Declaration: Box<dyn Declaration> = {
-    "Function" <name: "Identifier"> ":" <ty: Type?> <v: VariableDeclareFactor?> "EndFunction" => Box::new(FunctionDeclaration::new(name, FunctionClass::Function, ty, v.unwrap_or(vec![]))),
-    "Program" <name: "Identifier"> ":" <ty: Type?> <v: VariableDeclareFactor?> "EndProgram" => Box::new(FunctionDeclaration::new(name, FunctionClass::Program, ty, v.unwrap_or(vec![]))),
+    "Function" <name: "Identifier"> ":" <ty: Type?> <v: VariableDeclareFactor?> "EndFunction" => Box::new(FunctionDeclaration::new(name, DeclareClass::Function, ty, v.unwrap_or(vec![]))),
+    "Program" <name: "Identifier"> ":" <ty: Type?> <v: VariableDeclareFactor?> "EndProgram" => Box::new(FunctionDeclaration::new(name, DeclareClass::Program, ty, v.unwrap_or(vec![]))),
 }
 
 /// Type
@@ -148,19 +149,19 @@ Type: Box<dyn Type> = {
 }
 
 /// Variable declare groups flat
-VariableDeclareFactor: Vec<Variable> = {
+VariableDeclareFactor: Vec<Arc<Variable>> = {
     VariableDeclareGroup,
     <mut v: VariableDeclareFactor> <mut e: VariableDeclareGroup> => { v.append(&mut e); v }
 }
 
 /// Single variable declare group, constain a list of same scope variable
-VariableDeclareGroup: Vec<Variable> = {
-    "VAR" <mut v: VariableDeclareList> "END_VAR" => { v.iter_mut().for_each(|x| x.set_scope(VariableScopeClass::None)); v },
-    "VAR_GLOBAL" <mut v: VariableDeclareList> "END_VAR" => { v.iter_mut().for_each(|x| x.set_scope(VariableScopeClass::Global)); v }
+VariableDeclareGroup: Vec<Arc<Variable>> = {
+    "VAR" <mut v: VariableDeclareList> "END_VAR" => { v.iter_mut().for_each(|x| Arc::get_mut(x).unwrap().set_scope(VariableScopeClass::None)); v },
+    "VAR_GLOBAL" <mut v: VariableDeclareList> "END_VAR" => { v.iter_mut().for_each(|x| Arc::get_mut(x).unwrap().set_scope(VariableScopeClass::Global)); v }
 }
 
 /// A list of same scope varaible
-VariableDeclareList: Vec<Variable> = {
+VariableDeclareList: Vec<Arc<Variable>> = {
     MultiVariableDeclareStatement,
     VariableDeclareStatement => vec![<>],
     <mut v: VariableDeclareList> <e: VariableDeclareStatement> => { v.push(e); v },
@@ -168,11 +169,11 @@ VariableDeclareList: Vec<Variable> = {
 }
 
 /// Single variable declare
-VariableDeclareStatement: Variable = {
-    <ident: "Identifier"> ":" <ty: Type> ";"  => Variable::with_type(<>),
+VariableDeclareStatement: Arc<Variable> = {
+    <ident: "Identifier"> ":" <ty: Type> ";"  => Arc::new(Variable::with_type(<>)),
 }
 
 /// Multiple variable declare in one statement
-MultiVariableDeclareStatement: Vec<Variable> = {
+MultiVariableDeclareStatement: Vec<Arc<Variable>> = {
     <ident_list: Comma<"Identifier">> ":" <ty: Type> ";" => Variable::multiple_variable_with_type(<>),
 }

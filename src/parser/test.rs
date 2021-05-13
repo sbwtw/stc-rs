@@ -9,7 +9,7 @@ fn test_parse_function() {
     let fun = fun.as_any().downcast_ref::<FunctionDeclaration>().unwrap();
 
     assert_eq!(fun.name(), "test_fun");
-    assert!(matches!(fun.class(), &FunctionClass::Function));
+    assert!(matches!(fun.class(), &DeclareClass::Function));
 
     let variables = fun.variables();
     assert_eq!(variables.len(), 3);
