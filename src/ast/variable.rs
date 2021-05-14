@@ -8,7 +8,7 @@ pub struct Variable {
     name: StString,
     ty: Option<Arc<Box<dyn Type>>>,
     scope: VariableScopeClass,
-    retain_flags: VaraibleRetainFlags,
+    retain_flags: VariableAnnotationFlags,
 }
 
 impl Variable {
@@ -61,6 +61,10 @@ impl Variable {
     pub fn scope_class(&self) -> &VariableScopeClass {
         &self.scope
     }
+
+    pub fn set_annotation(&mut self, flags: VariableAnnotationFlags) {
+        self.retain_flags = flags
+    }
 }
 
 impl AstNode for Variable {
@@ -85,7 +89,26 @@ impl Default for Variable {
             name: StString::new(""),
             ty: None,
             scope: VariableScopeClass::None,
-            retain_flags: VaraibleRetainFlags::NONE,
+            retain_flags: VariableAnnotationFlags::NONE,
         }
+    }
+}
+
+pub struct VariableDeclareGroup;
+
+impl VariableDeclareGroup {
+    pub fn new(
+        scope: VariableScopeClass,
+        flags: Option<VariableAnnotationFlags>,
+        mut vars: Vec<Arc<Variable>>,
+    ) -> Vec<Arc<Variable>> {
+        for mut v in vars.iter_mut() {
+            Arc::get_mut(v).unwrap().set_scope(scope);
+            Arc::get_mut(v)
+                .unwrap()
+                .set_annotation(flags.unwrap_or(VariableAnnotationFlags::NONE));
+        }
+
+        vars
     }
 }

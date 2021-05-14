@@ -27,6 +27,7 @@ pub use operator_expression::OperatorExpression;
 
 mod variable;
 pub use variable::Variable;
+pub(crate) use variable::VariableDeclareGroup;
 
 mod assign_expression;
 pub use assign_expression::AssignExpression;
@@ -158,17 +159,19 @@ pub trait Declaration: Debug {
     fn identifier(&self) -> &StString;
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum VariableScopeClass {
     None,
     Global,
     Input,
     InOut,
     Output,
+    Temp,
+    Static,
 }
 
 bitflags! {
-    pub struct VaraibleRetainFlags: usize {
+    pub struct VariableAnnotationFlags: usize {
         const NONE              = 0b00000000_00000000;
         const RETAIN            = 0b00000000_00000001;
         const PERSISTENT        = 0b00000000_00000010;

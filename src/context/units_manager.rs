@@ -1,10 +1,5 @@
-use crate::ast::*;
-use crate::context::{ModuleContext, ModuleContextScope};
-use crate::parser::StString;
-use once_cell::sync::Lazy;
-use std::cell::RefMut;
+use crate::context::ModuleContext;
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, RwLock};
 
 /// Program Organization Units Manager

@@ -32,7 +32,14 @@ extern {
         "EndProgram" => Tok::EndProgram,
         "VAR" => Tok::Var,
         "VAR_GLOBAL" => Tok::VarGlobal,
+        "VAR_INPUT" => Tok::VarInput,
+        "VAR_INOUT" => Tok::VarInOut,
+        "VAR_OUTPUT" => Tok::VarOutput,
+        "VAR_TEMP" => Tok::VarTemp,
+        "VAR_STAT" => Tok::VarStat,
         "END_VAR" => Tok::EndVar,
+        "RETAIN" => Tok::Retain,
+        "PERSISTENT" => Tok::Persistent,
         "Int" => Tok::Int,
         "Literal" => Tok::Literal(<LiteralType>),
         "Identifier" => Tok::Identifier(<StString>),
@@ -131,10 +138,10 @@ Term: Box<dyn Expression> = {
     "(" <Expr> ")",
 };
 
-/// Declaration statement
-pub DeclarationStatement: Box<dyn Statement> = {
-    Declaration => Box::new(DeclarationStatement::new(<>)),
-}
+///// Declaration statement
+//pub DeclarationStatement: Box<dyn Statement> = {
+//    Declaration => Box::new(DeclarationStatement::new(<>)),
+//}
 
 /// Declarations
 pub Declaration: Box<dyn Declaration> = {
@@ -156,8 +163,25 @@ VariableDeclareFactor: Vec<Arc<Variable>> = {
 
 /// Single variable declare group, constain a list of same scope variable
 VariableDeclareGroup: Vec<Arc<Variable>> = {
-    "VAR" <mut v: VariableDeclareList> "END_VAR" => { v.iter_mut().for_each(|x| Arc::get_mut(x).unwrap().set_scope(VariableScopeClass::None)); v },
-    "VAR_GLOBAL" <mut v: VariableDeclareList> "END_VAR" => { v.iter_mut().for_each(|x| Arc::get_mut(x).unwrap().set_scope(VariableScopeClass::Global)); v }
+    VariableDeclareGroupStart VariableDeclareGroupAnnotation? "END_VAR" => vec![],
+    <g: VariableDeclareGroupStart> <anno: VariableDeclareGroupAnnotation?> <mut v: VariableDeclareList> "END_VAR" => VariableDeclareGroup::new(g, anno, v),
+}
+
+VariableDeclareGroupStart: VariableScopeClass = {
+    "VAR" => VariableScopeClass::None,
+    "VAR_GLOBAL" => VariableScopeClass::Global,
+    "VAR_INPUT" => VariableScopeClass::Input,
+    "VAR_INOUT" => VariableScopeClass::InOut,
+    "VAR_OUTPUT" => VariableScopeClass::Output,
+    "VAR_TEMP" => VariableScopeClass::Temp,
+    "VAR_STAT" => VariableScopeClass::Static,
+}
+
+VariableDeclareGroupAnnotation: VariableAnnotationFlags = {
+    "RETAIN" => VariableAnnotationFlags::RETAIN,
+    "PERSISTENT" => VariableAnnotationFlags::PERSISTENT,
+    "RETAIN" "PERSISTENT" => VariableAnnotationFlags::RETAINPERSISTENT,
+    "PERSISTENT" "RETAIN" => VariableAnnotationFlags::RETAINPERSISTENT,
 }
 
 /// A list of same scope varaible

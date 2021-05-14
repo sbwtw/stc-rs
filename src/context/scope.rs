@@ -1,7 +1,6 @@
 use crate::ast::*;
 use crate::context::{ModuleContext, UnitsManager};
 use crate::parser::StString;
-use std::cell::RefCell;
 use std::sync::{Arc, RwLock};
 
 #[derive(Clone)]

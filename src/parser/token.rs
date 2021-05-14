@@ -69,8 +69,22 @@ pub enum Tok {
     Var,
     /// 'VAR_GLOBAL'
     VarGlobal,
+    /// 'VAR_INPUT'
+    VarInput,
+    /// 'VAR_INOUT'
+    VarInOut,
+    /// 'VAR_OUTPUT'
+    VarOutput,
+    /// 'VAR_TEMP'
+    VarTemp,
+    /// 'VAR_STAT'
+    VarStat,
     /// 'END_VAR'
     EndVar,
+    /// 'RETAIN'
+    Retain,
+    /// 'PERSISTENT'
+    Persistent,
     /// 'BIT', one bit type
     Bit,
     /// 'BOOL', boolean type
@@ -122,9 +136,13 @@ impl Into<String> for &Tok {
             Tok::EndIf => "END_IF",
             Tok::Function => "FUNCTION",
             Tok::EndFunction => "END_FUNCTION",
+            Tok::Program => "PROGRAM",
+            Tok::EndProgram => "END_PROGRAM",
             Tok::VarGlobal => "VAR_GLOBAL",
             Tok::Var => "VAR",
             Tok::EndVar => "END_VAR",
+            Tok::Retain => "RETAIN",
+            Tok::Persistent => "PERSISTENT",
             Tok::Int => "INT",
             Tok::Real => "REAL",
             Tok::LReal => "LREAL",

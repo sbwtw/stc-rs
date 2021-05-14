@@ -157,9 +157,13 @@ impl<'input> Lexer<'input> {
         keywords.insert(Tok::EndIf.into(), Tok::EndIf);
         keywords.insert(Tok::Function.into(), Tok::Function);
         keywords.insert(Tok::EndFunction.into(), Tok::EndFunction);
+        keywords.insert(Tok::Program.into(), Tok::Program);
+        keywords.insert(Tok::EndProgram.into(), Tok::EndProgram);
         keywords.insert(Tok::Var.into(), Tok::Var);
         keywords.insert(Tok::VarGlobal.into(), Tok::VarGlobal);
         keywords.insert(Tok::EndVar.into(), Tok::EndVar);
+        keywords.insert(Tok::Retain.into(), Tok::Retain);
+        keywords.insert(Tok::Persistent.into(), Tok::Persistent);
         keywords.insert(Tok::Int.into(), Tok::Int);
 
         Self {
