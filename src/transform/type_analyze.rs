@@ -58,7 +58,7 @@ impl TypeAnalyzer {
 }
 
 impl AstVisitorMut for TypeAnalyzer {
-    fn visit_literal_mut(&mut self, literal: &mut LiteralType) {
+    fn visit_literal_mut(&mut self, _literal: &mut LiteralType) {
         todo!()
     }
 
@@ -82,11 +82,11 @@ impl AstVisitorMut for TypeAnalyzer {
         stmt.expr_mut().accept_mut(self)
     }
 
-    fn visit_if_statement_mut(&mut self, stmt: &mut IfStatement) {
+    fn visit_if_statement_mut(&mut self, _stmt: &mut IfStatement) {
         todo!()
     }
 
-    fn visit_declaration_statement_mut(&mut self, decl: &mut DeclarationStatement) {
+    fn visit_declaration_statement_mut(&mut self, _decl: &mut DeclarationStatement) {
         todo!()
     }
 
@@ -129,7 +129,7 @@ impl AstVisitorMut for TypeAnalyzer {
         self.pop();
     }
 
-    fn visit_compo_access_expression_mut(&mut self, compo: &mut CompoAccessExpression) {
+    fn visit_compo_access_expression_mut(&mut self, _compo: &mut CompoAccessExpression) {
         todo!()
     }
 }

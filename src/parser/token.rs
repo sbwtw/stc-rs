@@ -37,6 +37,10 @@ pub enum Tok {
     Less,
     /// '<='
     LessEqual,
+    /// '|'
+    BitOr,
+    /// '&'
+    BitAnd,
     /// '^'
     Deref,
     /// 'POINTER'
@@ -65,6 +69,10 @@ pub enum Tok {
     Program,
     /// 'END_PROGRAM'
     EndProgram,
+    /// 'FUNCTION_BLOCK'
+    FunctionBlock,
+    /// 'END_FUNCTION_BLOCK'
+    EndFunctionBlock,
     /// 'VAR'
     Var,
     /// 'VAR_GLOBAL'
@@ -107,6 +115,10 @@ pub enum Tok {
     Real,
     /// 'LREAL', 64 bits unsigned
     LReal,
+    /// 'TIME' 32 bits time
+    Time,
+    /// 'LTIME' 64 bits time
+    LTime,
     /// 'STRING', string type
     String,
     /// Literal
@@ -129,6 +141,19 @@ impl Into<String> for &Tok {
             Tok::Semicolon => ";",
             Tok::Colon => ":",
             Tok::Assign => ":=",
+            Tok::Equal => "=",
+            Tok::NotEqual => "<>",
+            Tok::Greater => ">",
+            Tok::GreaterEqual => ">=",
+            Tok::Less => "<",
+            Tok::LessEqual => "<=",
+            Tok::BitOr => "|",
+            Tok::BitAnd => "&",
+            Tok::Deref => "^",
+            Tok::Pointer => "POINTER",
+            Tok::Array => "ARRAY",
+            Tok::Of => "OF",
+            Tok::To => "TO",
             Tok::If => "IF",
             Tok::Then => "THEN",
             Tok::Else => "ELSE",
@@ -138,16 +163,34 @@ impl Into<String> for &Tok {
             Tok::EndFunction => "END_FUNCTION",
             Tok::Program => "PROGRAM",
             Tok::EndProgram => "END_PROGRAM",
+            Tok::FunctionBlock => "FUNCTION_BLOCK",
+            Tok::EndFunctionBlock => "END_FUNCTION_BLOCK",
             Tok::VarGlobal => "VAR_GLOBAL",
             Tok::Var => "VAR",
+            Tok::VarInput => "VAR_INPUT",
+            Tok::VarInOut => "VAR_INOUT",
+            Tok::VarOutput => "VAR_OUTPUT",
+            Tok::VarTemp => "VAR_TEMP",
+            Tok::VarStat => "VAR_STAT",
             Tok::EndVar => "END_VAR",
             Tok::Retain => "RETAIN",
             Tok::Persistent => "PERSISTENT",
             Tok::Int => "INT",
             Tok::Real => "REAL",
             Tok::LReal => "LREAL",
+            Tok::Bit => "BIT",
+            Tok::Bool => "BOOL",
+            Tok::SInt => "SINT",
+            Tok::Byte => "BYTE",
+            Tok::UInt => "UINT",
+            Tok::DInt => "DINT",
+            Tok::LInt => "LINT",
+            Tok::ULInt => "ULINT",
+            Tok::Time => "TIME",
+            Tok::LTime => "LTIME",
+            Tok::String => "STRING",
+            Tok::Literal(_) => unimplemented!(),
             Tok::Identifier(s) => &s.origin_string(),
-            _ => unimplemented!(),
         };
 
         s.to_owned()

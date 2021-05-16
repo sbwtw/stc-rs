@@ -159,7 +159,7 @@ pub trait Declaration: Debug {
     fn identifier(&self) -> &StString;
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum VariableScopeClass {
     None,
     Global,

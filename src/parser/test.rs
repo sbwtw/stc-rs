@@ -39,3 +39,18 @@ fn test_parse_function() {
         TypeClass::Int
     ));
 }
+
+#[test]
+fn test_precedence() {
+    let parser = st::StFunctionParser::new();
+
+    let lexer = Lexer::new("a + b / c;");
+    let fun = parser.parse(lexer).unwrap();
+    let s: String = format!("{}", fun.as_ast_node());
+    assert_eq!(s, "a + (b / c);\n");
+
+    let lexer = Lexer::new("a + -b / c;");
+    let fun = parser.parse(lexer).unwrap();
+    let s: String = format!("{}", fun.as_ast_node());
+    assert_eq!(s, "a + ((-b) / c);\n");
+}

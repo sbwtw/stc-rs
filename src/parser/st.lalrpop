@@ -26,10 +26,10 @@ extern {
         "ELSE" => Tok::Else,
         "ELSEIF" => Tok::ElseIf,
         "END_IF" => Tok::EndIf,
-        "Function" => Tok::Function,
-        "EndFunction" => Tok::EndFunction,
-        "Program" => Tok::Program,
-        "EndProgram" => Tok::EndProgram,
+        "FUNCTION" => Tok::Function,
+        "END_FUNCTION" => Tok::EndFunction,
+        "PROGRAM" => Tok::Program,
+        "END_PROGRAM" => Tok::EndProgram,
         "VAR" => Tok::Var,
         "VAR_GLOBAL" => Tok::VarGlobal,
         "VAR_INPUT" => Tok::VarInput,
@@ -40,9 +40,9 @@ extern {
         "END_VAR" => Tok::EndVar,
         "RETAIN" => Tok::Retain,
         "PERSISTENT" => Tok::Persistent,
-        "Int" => Tok::Int,
-        "Literal" => Tok::Literal(<LiteralType>),
-        "Identifier" => Tok::Identifier(<StString>),
+        "INT" => Tok::Int,
+        "LITERAL" => Tok::Literal(<LiteralType>),
+        "IDENTIFIER" => Tok::Identifier(<StString>),
     }
 }
 
@@ -133,8 +133,8 @@ UnaryOp: Tok = {
 
 /// terminals in expression
 Term: Box<dyn Expression> = {
-    "Literal" => Box::new(LiteralExpression::new(<>)),
-    "Identifier" => Box::new(Variable::new(<>)),
+    "LITERAL" => Box::new(LiteralExpression::new(<>)),
+    "IDENTIFIER" => Box::new(Variable::new(<>)),
     "(" <Expr> ")",
 };
 
@@ -145,14 +145,14 @@ Term: Box<dyn Expression> = {
 
 /// Declarations
 pub Declaration: Box<dyn Declaration> = {
-    "Function" <name: "Identifier"> ":" <ty: Type?> <v: VariableDeclareFactor?> "EndFunction" => Box::new(FunctionDeclaration::new(name, DeclareClass::Function, ty, v.unwrap_or(vec![]))),
-    "Program" <name: "Identifier"> ":" <ty: Type?> <v: VariableDeclareFactor?> "EndProgram" => Box::new(FunctionDeclaration::new(name, DeclareClass::Program, ty, v.unwrap_or(vec![]))),
+    "FUNCTION" <name: "IDENTIFIER"> ":" <ty: Type?> <v: VariableDeclareFactor?> "END_FUNCTION" => Box::new(FunctionDeclaration::new(name, DeclareClass::Function, ty, v.unwrap_or(vec![]))),
+    "PROGRAM" <name: "IDENTIFIER"> ":" <ty: Type?> <v: VariableDeclareFactor?> "END_PROGRAM" => Box::new(FunctionDeclaration::new(name, DeclareClass::Program, ty, v.unwrap_or(vec![]))),
 }
 
 /// Type
 Type: Arc<Box<dyn Type>> = {
-    "Int" => Arc::new(Box::new(IntType::new())),
-    "Identifier" => Arc::new(Box::new(UserType::from_name(<>))),
+    "INT" => Arc::new(Box::new(IntType::new())),
+    "IDENTIFIER" => Arc::new(Box::new(UserType::from_name(<>))),
 }
 
 /// Variable declare groups flat
@@ -164,7 +164,7 @@ VariableDeclareFactor: Vec<Arc<Variable>> = {
 /// Single variable declare group, constain a list of same scope variable
 VariableDeclareGroup: Vec<Arc<Variable>> = {
     VariableDeclareGroupStart VariableDeclareGroupAnnotation? "END_VAR" => vec![],
-    <g: VariableDeclareGroupStart> <anno: VariableDeclareGroupAnnotation?> <mut v: VariableDeclareList> "END_VAR" => VariableDeclareGroup::new(g, anno, v),
+    <g: VariableDeclareGroupStart> <anno: VariableDeclareGroupAnnotation?> <v: VariableDeclareList> "END_VAR" => VariableDeclareGroup::new(g, anno, v),
 }
 
 VariableDeclareGroupStart: VariableScopeClass = {
@@ -194,10 +194,10 @@ VariableDeclareList: Vec<Arc<Variable>> = {
 
 /// Single variable declare
 VariableDeclareStatement: Arc<Variable> = {
-    <ident: "Identifier"> ":" <ty: Type> ";"  => Arc::new(Variable::with_type(<>)),
+    <ident: "IDENTIFIER"> ":" <ty: Type> ";"  => Arc::new(Variable::with_type(<>)),
 }
 
 /// Multiple variable declare in one statement
 MultiVariableDeclareStatement: Vec<Arc<Variable>> = {
-    <ident_list: Comma<"Identifier">> ":" <ty: Type> ";" => Variable::multiple_variable_with_type(<>),
+    <ident_list: Comma<"IDENTIFIER">> ":" <ty: Type> ";" => Variable::multiple_variable_with_type(<>),
 }
