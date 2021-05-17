@@ -62,6 +62,10 @@ impl Variable {
         &self.scope
     }
 
+    pub fn annotation(&self) -> VariableAnnotationFlags {
+        self.retain_flags
+    }
+
     pub fn set_annotation(&mut self, flags: VariableAnnotationFlags) {
         self.retain_flags = flags
     }
@@ -102,7 +106,7 @@ impl VariableDeclareGroup {
         flags: Option<VariableAnnotationFlags>,
         mut vars: Vec<Arc<Variable>>,
     ) -> Vec<Arc<Variable>> {
-        for mut v in vars.iter_mut() {
+        for v in vars.iter_mut() {
             Arc::get_mut(v).unwrap().set_scope(scope);
             Arc::get_mut(v)
                 .unwrap()

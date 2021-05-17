@@ -99,7 +99,7 @@ impl AstVisitorMut for TypeAnalyzer {
             operands_attr.push(self.pop());
         }
 
-        let mut result_type = &mut self.top_mut().derived_type;
+        let result_type = &mut self.top_mut().derived_type;
         for attr in operands_attr {
             if let Some(true) = attr
                 .derived_type

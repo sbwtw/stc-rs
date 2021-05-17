@@ -1,5 +1,6 @@
 use crate::ast::*;
 use crate::parser::{LiteralType, Tok};
+use crc::crc32;
 use std::hash::{Hash, Hasher};
 
 trait MyHash {
@@ -16,6 +17,23 @@ impl MyHash for Variable {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.name().hash(state);
         self.scope_class().hash(state);
+        self.annotation().hash(state);
+        if let Some(ty) = self.ty() {
+            MyHash::hash(ty.as_ref(), state)
+        }
+    }
+}
+
+impl MyHash for &dyn Type {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let type_class = format!("{}", self.type_class());
+        type_class.hash(state)
+    }
+}
+
+impl MyHash for Box<dyn Type> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.as_ref().hash(state)
     }
 }
 
@@ -34,8 +52,18 @@ impl<H: Hasher> AstHasher<H> {
         Self { hasher }
     }
 
+    pub fn add(&mut self, ast: &dyn AstNode) {
+        ast.accept(self)
+    }
+
     pub fn hash(&self) -> u64 {
         self.hasher.finish()
+    }
+}
+
+impl AstHasher<crc32::Digest> {
+    pub fn crc32() -> Self {
+        Self::new(crc32::Digest::new(crc32::IEEE))
     }
 }
 
@@ -78,11 +106,14 @@ impl<H: Hasher> AstVisitor for AstHasher<H> {
     }
 
     fn visit_declaration_statement(&mut self, _: &DeclarationStatement) {
-        todo!()
+        unimplemented!()
     }
 
     fn visit_operator_expression(&mut self, op_expr: &OperatorExpression) {
         op_expr.op().hash(&mut self.hasher);
+        if let Some(ty) = op_expr.ty() {
+            ty.hash(&mut self.hasher);
+        }
 
         for operand in op_expr.operands() {
             operand.accept(self);

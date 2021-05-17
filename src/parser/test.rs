@@ -1,5 +1,6 @@
 use crate::ast::*;
 use crate::parser::*;
+use crate::utils::AstHasher;
 
 #[test]
 fn test_parse_function() {
@@ -40,17 +41,27 @@ fn test_parse_function() {
     ));
 }
 
+fn hash_for_code<S: AsRef<str>>(s: S) -> Option<u64> {
+    let parser = st::StFunctionParser::new();
+    let lexer = Lexer::new(s.as_ref());
+    let fun = parser.parse(lexer).ok()?;
+
+    let mut hasher = AstHasher::crc32();
+    hasher.add(fun.as_ast_node());
+    Some(hasher.hash())
+}
+
 #[test]
 fn test_precedence() {
-    let parser = st::StFunctionParser::new();
+    let code1 = "a + b / c;";
+    let code2 = "a + (b / c);";
+    assert_eq!(hash_for_code(code1), hash_for_code(code2));
 
-    let lexer = Lexer::new("a + b / c;");
-    let fun = parser.parse(lexer).unwrap();
-    let s: String = format!("{}", fun.as_ast_node());
-    assert_eq!(s, "a + (b / c);\n");
+    let code1 = "a + -b / c;";
+    let code2 = "a + ((-b) / c);";
+    assert_eq!(hash_for_code(code1), hash_for_code(code2));
 
-    let lexer = Lexer::new("a + -b / c;");
-    let fun = parser.parse(lexer).unwrap();
-    let s: String = format!("{}", fun.as_ast_node());
-    assert_eq!(s, "a + ((-b) / c);\n");
+    let code1 = "a := b - a * c;";
+    let code2 = "a := (b - (a * c));";
+    assert_eq!(hash_for_code(code1), hash_for_code(code2));
 }
