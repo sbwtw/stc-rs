@@ -20,11 +20,11 @@ fn main() {
     let ctx_id = app.id();
 
     let decl = Lexer::new("function test: int VAR a: INT; b: INT; END_VAR end_function");
-    let decl = parser::st::DeclarationParser::new().parse(decl).unwrap();
+    let decl = parser::DeclarationParser::new().parse(decl).unwrap();
     let decl_id = app.add_declaration(decl);
 
     let body = Lexer::new("a := a + b;");
-    let body = parser::st::StFunctionParser::new().parse(body).unwrap();
+    let body = parser::StFunctionParser::new().parse(body).unwrap();
     app.add_function(decl_id, body);
     let fun = app.get_function(decl_id);
     mgr.add_context(Arc::new(RwLock::new(app)));

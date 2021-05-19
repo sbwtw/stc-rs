@@ -89,7 +89,7 @@ impl GraphvizAttribute {
     // }
 }
 
-#[warn(dead_code)]
+#[allow(dead_code)]
 pub struct GraphvizExporter<W: Write> {
     writer: W,
     unique_name_id: usize,

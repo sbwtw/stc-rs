@@ -39,6 +39,16 @@ mod function_declaration;
 pub use function_declaration::FunctionDeclaration;
 use std::any::Any;
 
+macro_rules! ast_stringify {
+    ($host:expr, $fmt:expr) => {{
+        let mut buf = vec![];
+        let mut stringify = StringifyVisitor::new(&mut buf);
+        $host.accept(&mut stringify);
+
+        write!($fmt, "{}", String::from_utf8_lossy(&buf))
+    }};
+}
+
 pub trait TypeClone {
     fn clone_boxed(&self) -> Box<dyn Type>;
 }
@@ -91,11 +101,7 @@ pub trait AstNode: Debug + AsAstNode {
 
 impl Display for &dyn AstNode {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut buf = vec![];
-        let mut stringify = StringifyVisitor::new(&mut buf);
-        self.accept(&mut stringify);
-
-        write!(f, "{}", String::from_utf8_lossy(&buf))
+        ast_stringify!(self, f)
     }
 }
 
@@ -157,6 +163,12 @@ pub trait Declaration: Debug {
     fn as_any(&self) -> &dyn Any;
     fn accept(&self, visitor: &mut dyn DeclarationVisitor);
     fn identifier(&self) -> &StString;
+}
+
+impl Display for &dyn Declaration {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        ast_stringify!(self, f)
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

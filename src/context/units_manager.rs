@@ -3,11 +3,13 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 /// Program Organization Units Manager
+#[allow(dead_code)]
 pub struct UnitsManager {
     active_application: Option<usize>,
     contexts: HashMap<usize, Arc<RwLock<ModuleContext>>>,
 }
 
+#[allow(dead_code)]
 impl UnitsManager {
     pub fn new() -> Self {
         Self {

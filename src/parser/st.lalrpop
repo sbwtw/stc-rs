@@ -69,7 +69,7 @@ StatementList: Box<dyn Statement> = {
 }
 
 /// Single statement
-pub Statement: Box<dyn Statement> = {
+Statement: Box<dyn Statement> = {
     DeclarationStatement,
     <e:Expr> ";" => Box::new(ExprStatement::new(e)),
     "IF" <cond: Expr> "THEN" <then_ctrl: StatementList> "END_IF" => Box::new(IfStatement::from_then(<>)),
@@ -142,7 +142,7 @@ Term: Box<dyn Expression> = {
 };
 
 /// Declaration statement
-pub DeclarationStatement: Box<dyn Statement> = {
+DeclarationStatement: Box<dyn Statement> = {
     Declaration => Box::new(DeclarationStatement::new(<>)),
 }
 

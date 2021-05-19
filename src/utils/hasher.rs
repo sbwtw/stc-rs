@@ -61,11 +61,12 @@ impl MyHash for Tok {
     }
 }
 
-#[warn(dead_code)]
+#[allow(dead_code)]
 pub struct AstHasher<H: Hasher> {
     hasher: H,
 }
 
+#[allow(dead_code)]
 impl<H: Hasher> AstHasher<H> {
     pub fn new(hasher: H) -> Self {
         Self { hasher }
@@ -81,6 +82,7 @@ impl<H: Hasher> AstHasher<H> {
 }
 
 impl AstHasher<crc32::Digest> {
+    #[allow(dead_code)]
     pub fn crc32() -> Self {
         Self::new(crc32::Digest::new(crc32::IEEE))
     }

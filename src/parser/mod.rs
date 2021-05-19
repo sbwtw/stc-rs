@@ -9,4 +9,7 @@ mod test;
 pub use token::Tok;
 
 use lalrpop_util::lalrpop_mod;
-lalrpop_mod!(pub st, "/parser/st.rs");
+
+lalrpop_mod!(st, "/parser/st.rs");
+pub use st::DeclarationParser;
+pub use st::StFunctionParser;

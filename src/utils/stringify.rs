@@ -21,7 +21,7 @@ impl StringifyAttribute {
     }
 }
 
-#[warn(dead_code)]
+#[allow(dead_code)]
 pub struct StringifyVisitor<W: Write> {
     writer: W,
     indent: usize,
@@ -281,7 +281,6 @@ impl<W: Write> DeclarationVisitor for StringifyVisitor<W> {
 
 #[cfg(test)]
 mod test {
-    use crate::parser::st::*;
     use crate::parser::*;
     use crate::utils::*;
 
