@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::parser::{LiteralType, Tok};
+use crate::parser::{LiteralValue, Tok};
 use std::fmt::Arguments;
 use std::io::Write;
 
@@ -21,6 +21,7 @@ impl StringifyAttribute {
     }
 }
 
+#[warn(dead_code)]
 pub struct StringifyVisitor<W: Write> {
     writer: W,
     indent: usize,
@@ -68,12 +69,12 @@ impl<W: Write> StringifyVisitor<W> {
 }
 
 impl<W: Write> AstVisitor for StringifyVisitor<W> {
-    fn visit_literal(&mut self, literal: &LiteralType) {
+    fn visit_literal(&mut self, literal: &LiteralValue) {
         match literal {
-            LiteralType::Real(x) => self.write(format_args!("{:?}", x)),
-            LiteralType::Int(x) => self.write(format_args!("{:?}", x)),
-            LiteralType::UInt(x) => self.write(format_args!("{:?}", x)),
-            LiteralType::String(x) => self.write(format_args!("{:?}", x)),
+            LiteralValue::Real(x) => self.write(format_args!("{:?}", x)),
+            LiteralValue::Int(x) => self.write(format_args!("{:?}", x)),
+            LiteralValue::UInt(x) => self.write(format_args!("{:?}", x)),
+            LiteralValue::String(x) => self.write(format_args!("{:?}", x)),
         }
     }
 
@@ -238,6 +239,43 @@ impl<W: Write> DeclarationVisitor for StringifyVisitor<W> {
         }
 
         self.writeln(format_args!("{}", Tok::EndFunction));
+    }
+
+    fn visit_enum_declare(&mut self, enum_decl: &EnumDeclare) {
+        self.writeln(format_args!(
+            "{} {} {}",
+            Tok::Type,
+            enum_decl.name().origin_string(),
+            Tok::Colon
+        ));
+        self.writeln(format_args!("{}", Tok::LeftParentheses));
+
+        // fields
+        self.indent += 1;
+        let field_count = enum_decl.fields().len();
+        for (index, field) in enum_decl.fields().iter().enumerate() {
+            self.write_indent();
+            self.write(format_args!("{}", field.name().origin_string()));
+            if let Some(val) = field.value() {
+                self.write(format_args!(" {} {}", Tok::Assign, val));
+            }
+
+            if field_count == index + 1 {
+                self.writeln(format_args!(""));
+            } else {
+                self.writeln(format_args!("{}", Tok::Comma))
+            }
+        }
+        self.indent -= 1;
+
+        // closed type, like: ) DINT;
+        self.write(format_args!("{}", Tok::RightParentheses));
+        if let Some(ty) = enum_decl.ty() {
+            self.write(format_args!(" {}", ty));
+        }
+        self.writeln(format_args!("{}", Tok::Semicolon));
+
+        self.writeln(format_args!("{}", Tok::EndType))
     }
 }
 

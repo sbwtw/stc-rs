@@ -5,4 +5,4 @@ mod graphviz;
 pub use graphviz::GraphvizExporter;
 
 mod hasher;
-// pub(crate) use hasher::AstHasher;
+pub(crate) use hasher::AstHasher;

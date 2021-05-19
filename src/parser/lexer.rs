@@ -62,36 +62,36 @@ impl Hash for StString {
 }
 
 #[derive(Debug, Clone)]
-pub enum LiteralType {
+pub enum LiteralValue {
     Int(i32),
     UInt(u64),
     Real(f32),
     String(String),
 }
 
-impl LiteralType {
+impl LiteralValue {
     pub fn ty(&self) -> TypeClass {
         match self {
-            LiteralType::Int(_) => TypeClass::Int,
-            LiteralType::UInt(_) => TypeClass::UInt,
-            LiteralType::Real(_) => TypeClass::Real,
-            LiteralType::String(_) => TypeClass::String,
+            LiteralValue::Int(_) => TypeClass::Int,
+            LiteralValue::UInt(_) => TypeClass::UInt,
+            LiteralValue::Real(_) => TypeClass::Real,
+            LiteralValue::String(_) => TypeClass::String,
         }
     }
 }
 
-impl Display for LiteralType {
+impl Display for LiteralValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            LiteralType::Int(x) => write!(f, "Int({})", x),
-            LiteralType::UInt(x) => write!(f, "UInt({})", x),
-            LiteralType::Real(x) => write!(f, "Real({})", x),
-            LiteralType::String(s) => write!(f, "String({})", s),
+            LiteralValue::Int(x) => write!(f, "INT#{}", x),
+            LiteralValue::UInt(x) => write!(f, "UINT#{}", x),
+            LiteralValue::Real(x) => write!(f, "REAL#{}", x),
+            LiteralValue::String(s) => write!(f, "STRING#{}", s),
         }
     }
 }
 
-impl AstNode for LiteralType {
+impl AstNode for LiteralValue {
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -164,6 +164,8 @@ impl<'input> Lexer<'input> {
         keywords.insert(Tok::EndVar.into(), Tok::EndVar);
         keywords.insert(Tok::Retain.into(), Tok::Retain);
         keywords.insert(Tok::Persistent.into(), Tok::Persistent);
+        keywords.insert(Tok::Type.into(), Tok::Type);
+        keywords.insert(Tok::EndType.into(), Tok::EndType);
         keywords.insert(Tok::Int.into(), Tok::Int);
 
         Self {
@@ -190,7 +192,7 @@ impl<'input> Lexer<'input> {
 
                     return Some(Ok((
                         start,
-                        Tok::Literal(LiteralType::UInt(s.parse().unwrap())),
+                        Tok::Literal(LiteralValue::UInt(s.parse().unwrap())),
                         end,
                     )));
                 }
@@ -215,7 +217,7 @@ impl<'input> Lexer<'input> {
 
                     return Some(Ok((
                         start,
-                        Tok::Literal(LiteralType::Real(s.parse().unwrap())),
+                        Tok::Literal(LiteralValue::Real(s.parse().unwrap())),
                         end,
                     )));
                 }
@@ -241,7 +243,7 @@ impl<'input> Lexer<'input> {
             match self.buffer.next() {
                 (_, Some('\\')) => escape = true,
                 (n, Some('\"')) => {
-                    return Some(Ok((start, Tok::Literal(LiteralType::String(s)), n + 1)))
+                    return Some(Ok((start, Tok::Literal(LiteralValue::String(s)), n + 1)))
                 }
                 (_, Some(c)) => s.push(c),
                 _ => return Some(Err(LexicalError::UnexpectedEnd)),

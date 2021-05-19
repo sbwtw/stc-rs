@@ -2,7 +2,7 @@ use crate::ast::*;
 
 // Immutable visitor
 pub trait AstVisitor {
-    fn visit_literal(&mut self, _: &LiteralType);
+    fn visit_literal(&mut self, _: &LiteralValue);
     fn visit_variable(&mut self, _: &Variable);
     fn visit_statement_list(&mut self, _: &StatementList);
     fn visit_expr_statement(&mut self, _: &ExprStatement);
@@ -15,7 +15,7 @@ pub trait AstVisitor {
 
 // Mutable visitor
 pub trait AstVisitorMut {
-    fn visit_literal_mut(&mut self, _: &mut LiteralType);
+    fn visit_literal_mut(&mut self, _: &mut LiteralValue);
     fn visit_variable_mut(&mut self, _: &mut Variable);
     fn visit_statement_list_mut(&mut self, _: &mut StatementList);
     fn visit_expr_statement_mut(&mut self, _: &mut ExprStatement);
@@ -28,4 +28,5 @@ pub trait AstVisitorMut {
 
 pub trait DeclarationVisitor {
     fn visit_function_declare(&mut self, _: &FunctionDeclaration);
+    fn visit_enum_declare(&mut self, _: &EnumDeclare);
 }

@@ -1,7 +1,7 @@
 use bitflags::bitflags;
 use std::fmt::{self, Debug, Display, Formatter};
 
-use crate::parser::{LiteralType, StString, Tok};
+use crate::parser::{LiteralValue, StString, Tok};
 use crate::utils::StringifyVisitor;
 
 mod types;
@@ -195,7 +195,7 @@ pub enum UserTypeClass {
     Union,
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum TypeClass {
     /// 'BIT', one bit type
     Bit,

@@ -93,6 +93,10 @@ pub enum Tok {
     Retain,
     /// 'PERSISTENT'
     Persistent,
+    /// 'TYPE'
+    Type,
+    /// 'END_TYPE'
+    EndType,
     /// 'BIT', one bit type
     Bit,
     /// 'BOOL', boolean type
@@ -122,7 +126,7 @@ pub enum Tok {
     /// 'STRING', string type
     String,
     /// Literal
-    Literal(LiteralType),
+    Literal(LiteralValue),
     /// Identifier
     Identifier(StString),
 }
@@ -175,6 +179,8 @@ impl Into<String> for &Tok {
             Tok::EndVar => "END_VAR",
             Tok::Retain => "RETAIN",
             Tok::Persistent => "PERSISTENT",
+            Tok::Type => "TYPE",
+            Tok::EndType => "END_TYPE",
             Tok::Int => "INT",
             Tok::Real => "REAL",
             Tok::LReal => "LREAL",

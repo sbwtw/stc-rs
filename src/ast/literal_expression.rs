@@ -1,10 +1,10 @@
 use crate::ast::*;
 
 #[derive(Debug)]
-pub struct LiteralExpression(LiteralType);
+pub struct LiteralExpression(LiteralValue);
 
 impl LiteralExpression {
-    pub fn new(val: LiteralType) -> Self {
+    pub fn new(val: LiteralValue) -> Self {
         LiteralExpression(val)
     }
 }

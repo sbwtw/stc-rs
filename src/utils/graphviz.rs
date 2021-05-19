@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::parser::LiteralType;
+use crate::parser::LiteralValue;
 use crate::utils::StringifyVisitor;
 use std::fmt::Arguments;
 use std::io::Write;
@@ -89,6 +89,7 @@ impl GraphvizAttribute {
     // }
 }
 
+#[warn(dead_code)]
 pub struct GraphvizExporter<W: Write> {
     writer: W,
     unique_name_id: usize,
@@ -193,7 +194,7 @@ fn display_type(ty: Option<Arc<Box<dyn Type>>>) -> String {
 }
 
 impl<W: Write> AstVisitor for GraphvizExporter<W> {
-    fn visit_literal(&mut self, literal: &LiteralType) {
+    fn visit_literal(&mut self, literal: &LiteralValue) {
         let name = self.unique_name("literal");
         let labels = [
             format!("Literal: {}", literal),

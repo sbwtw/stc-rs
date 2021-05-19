@@ -16,3 +16,12 @@ fn test_decl_parse() {
         }
     }
 }
+
+#[test]
+fn test_decl_parse_text() {
+    let lexer = Lexer::new("TYPE TestEnum: (E1, E2 := 10, E3) DINT; END_TYPE");
+    let parser = parser::st::DeclarationStatementParser::new();
+
+    let r = parser.parse(lexer).unwrap();
+    println!("{}", r.as_ast_node());
+}

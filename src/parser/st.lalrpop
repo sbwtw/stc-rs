@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::parser::lexer::{self, LiteralType, StString};
+use crate::parser::lexer::{self, LiteralValue, StString};
 use crate::parser::Tok;
 use std::sync::Arc;
 
@@ -40,8 +40,10 @@ extern {
         "END_VAR" => Tok::EndVar,
         "RETAIN" => Tok::Retain,
         "PERSISTENT" => Tok::Persistent,
+        "TYPE" => Tok::Type,
+        "END_TYPE" => Tok::EndType,
         "INT" => Tok::Int,
-        "LITERAL" => Tok::Literal(<LiteralType>),
+        "LITERAL" => Tok::Literal(<LiteralValue>),
         "IDENTIFIER" => Tok::Identifier(<StString>),
     }
 }
@@ -68,6 +70,7 @@ StatementList: Box<dyn Statement> = {
 
 /// Single statement
 pub Statement: Box<dyn Statement> = {
+    DeclarationStatement,
     <e:Expr> ";" => Box::new(ExprStatement::new(e)),
     "IF" <cond: Expr> "THEN" <then_ctrl: StatementList> "END_IF" => Box::new(IfStatement::from_then(<>)),
     "IF" <cond: Expr> "THEN" <then_ctrl: StatementList> "ELSE" <else_ctrl: StatementList> "END_IF" => Box::new(IfStatement::from_then_else(<>)),
@@ -138,15 +141,25 @@ Term: Box<dyn Expression> = {
     "(" <Expr> ")",
 };
 
-///// Declaration statement
-//pub DeclarationStatement: Box<dyn Statement> = {
-//    Declaration => Box::new(DeclarationStatement::new(<>)),
-//}
+/// Declaration statement
+pub DeclarationStatement: Box<dyn Statement> = {
+    Declaration => Box::new(DeclarationStatement::new(<>)),
+}
 
 /// Declarations
 pub Declaration: Box<dyn Declaration> = {
+    "TYPE" <ty: TypeDeclaration> "END_TYPE" => ty,
     "FUNCTION" <name: "IDENTIFIER"> ":" <ty: Type?> <v: VariableDeclareFactor?> "END_FUNCTION" => Box::new(FunctionDeclaration::new(name, DeclareClass::Function, ty, v.unwrap_or(vec![]))),
     "PROGRAM" <name: "IDENTIFIER"> ":" <ty: Type?> <v: VariableDeclareFactor?> "END_PROGRAM" => Box::new(FunctionDeclaration::new(name, DeclareClass::Program, ty, v.unwrap_or(vec![]))),
+}
+
+TypeDeclaration: Box<dyn Declaration> = {
+    <name: "IDENTIFIER"> ":" "(" <fields: Comma<EnumFieldDecl>> ")" <ty: Type?> ";" => Box::new(EnumDeclare::new(name, ty, fields)),
+}
+
+EnumFieldDecl: EnumField = {
+    <name: "IDENTIFIER"> => EnumField::new(name, None),
+    <name: "IDENTIFIER"> ":=" <value: "LITERAL"> => EnumField::new(name, Some(value)),
 }
 
 /// Type

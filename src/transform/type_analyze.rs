@@ -1,6 +1,6 @@
 use crate::ast::*;
 use crate::context::Scope;
-use crate::parser::LiteralType;
+use crate::parser::LiteralValue;
 use std::sync::Arc;
 
 struct TypeAnalyzerAttribute {
@@ -58,7 +58,7 @@ impl TypeAnalyzer {
 }
 
 impl AstVisitorMut for TypeAnalyzer {
-    fn visit_literal_mut(&mut self, _literal: &mut LiteralType) {
+    fn visit_literal_mut(&mut self, _literal: &mut LiteralValue) {
         todo!()
     }
 
