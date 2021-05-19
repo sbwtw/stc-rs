@@ -9,6 +9,6 @@ pub use scope::Scope;
 
 pub enum ModuleContextScope {
     Application,
-    Library,
-    System,
+    // Library,
+    // System,
 }

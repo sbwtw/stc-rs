@@ -395,7 +395,11 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
         self.connect_from_pos(&name, pos, attr.node_name);
         labels.push(label);
 
-        let labels = GraphvizLabelGroup::from_name("AssignExpr")
+        let titles = [
+            "AssignExpr",
+            &format!("Type: {}", display_type(assign.ty())),
+        ];
+        let labels = GraphvizLabelGroup::from_iter(&titles)
             .append_group(GraphvizLabelGroup::from_iter(&labels));
         self.write_node(&name, labels);
 

@@ -126,7 +126,9 @@ impl AstVisitorMut for TypeAnalyzer {
 
         self.push(TypeAnalyzerAttribute::new());
         assign.left_mut().accept_mut(self);
-        self.pop();
+        let attr = self.pop();
+
+        assign.set_ty(attr.derived_type)
     }
 
     fn visit_compo_access_expression_mut(&mut self, _compo: &mut CompoAccessExpression) {

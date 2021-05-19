@@ -22,6 +22,18 @@ impl UserType {
     pub fn from_name(name: StString) -> Self {
         Self(name, None)
     }
+
+    pub fn name(&self) -> &StString {
+        &self.0
+    }
+
+    pub fn user_type_class(&self) -> Option<&UserTypeClass> {
+        self.1.as_ref()
+    }
+
+    pub fn set_user_type_class(&mut self, type_class: Option<UserTypeClass>) {
+        self.1 = type_class
+    }
 }
 
 impl Type for UserType {
