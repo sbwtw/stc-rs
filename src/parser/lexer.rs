@@ -147,26 +147,42 @@ pub struct Lexer<'input> {
     keywords: HashMap<StString, Tok>,
 }
 
+macro_rules! keywords {
+    ($($tok:expr),*) => {{
+        let mut keywords = HashMap::new();
+        $(
+            keywords.insert($tok.into(), $tok);
+        )*
+
+        keywords
+    }};
+}
+
 impl<'input> Lexer<'input> {
     pub fn new(input: &'input str) -> Self {
-        let mut keywords = HashMap::new();
-        keywords.insert(Tok::If.into(), Tok::If);
-        keywords.insert(Tok::Else.into(), Tok::Else);
-        keywords.insert(Tok::Then.into(), Tok::Then);
-        keywords.insert(Tok::ElseIf.into(), Tok::ElseIf);
-        keywords.insert(Tok::EndIf.into(), Tok::EndIf);
-        keywords.insert(Tok::Function.into(), Tok::Function);
-        keywords.insert(Tok::EndFunction.into(), Tok::EndFunction);
-        keywords.insert(Tok::Program.into(), Tok::Program);
-        keywords.insert(Tok::EndProgram.into(), Tok::EndProgram);
-        keywords.insert(Tok::Var.into(), Tok::Var);
-        keywords.insert(Tok::VarGlobal.into(), Tok::VarGlobal);
-        keywords.insert(Tok::EndVar.into(), Tok::EndVar);
-        keywords.insert(Tok::Retain.into(), Tok::Retain);
-        keywords.insert(Tok::Persistent.into(), Tok::Persistent);
-        keywords.insert(Tok::Type.into(), Tok::Type);
-        keywords.insert(Tok::EndType.into(), Tok::EndType);
-        keywords.insert(Tok::Int.into(), Tok::Int);
+        let keywords = keywords![
+            Tok::Xor,
+            Tok::Mod,
+            Tok::Not,
+            Tok::If,
+            Tok::Else,
+            Tok::Then,
+            Tok::ElseIf,
+            Tok::EndIf,
+            Tok::Function,
+            Tok::EndFunction,
+            Tok::Program,
+            Tok::EndProgram,
+            Tok::Var,
+            Tok::VarGlobal,
+            Tok::EndVar,
+            Tok::Retain,
+            Tok::Persistent,
+            Tok::Type,
+            Tok::EndType,
+            Tok::Int,
+            Tok::Bool
+        ];
 
         Self {
             buffer: LexerBuffer::new(input),
@@ -283,6 +299,9 @@ impl<'input> Lexer<'input> {
             (':', (_, Some('='))) => (Tok::Assign, None),
             (':', x) => (Tok::Colon, Some(x)),
 
+            ('*', (_, Some('*'))) => (Tok::Power, None),
+            ('*', x) => (Tok::Multiply, Some(x)),
+
             _ => unreachable!(),
         };
 
@@ -314,14 +333,16 @@ impl<'input> Iterator for Lexer<'input> {
             (i, Some('.')) => Some(Ok((i, Tok::Access, i + 1))),
             (i, Some('+')) => Some(Ok((i, Tok::Plus, i + 1))),
             (i, Some('-')) => Some(Ok((i, Tok::Minus, i + 1))),
-            (i, Some('*')) => Some(Ok((i, Tok::Multiply, i + 1))),
             (i, Some('/')) => Some(Ok((i, Tok::Division, i + 1))),
             (i, Some('(')) => Some(Ok((i, Tok::LeftParentheses, i + 1))),
             (i, Some(')')) => Some(Ok((i, Tok::RightParentheses, i + 1))),
             (i, Some(',')) => Some(Ok((i, Tok::Comma, i + 1))),
             (i, Some(';')) => Some(Ok((i, Tok::Semicolon, i + 1))),
+            (i, Some('|')) => Some(Ok((i, Tok::BitOr, i + 1))),
+            (i, Some('&')) => Some(Ok((i, Tok::BitAnd, i + 1))),
+            (i, Some('=')) => Some(Ok((i, Tok::Equal, i + 1))),
             (i, Some('\"')) => self.parse_string(i),
-            (i, Some(c @ '<')) | (i, Some(c @ ':')) | (i, Some(c @ '>')) => {
+            (i, Some(c @ '<')) | (i, Some(c @ ':')) | (i, Some(c @ '>')) | (i, Some(c @ '*')) => {
                 self.parse_second_char(i, c)
             }
             (start, Some(c)) if c.is_ascii_digit() && c != '0' => self.parse_integer(start, c),
@@ -371,6 +392,20 @@ mod test {
         assert!(matches!(lexer.next(), Some(Ok((0, Tok::Literal(_), 1)))));
         assert!(matches!(lexer.next(), Some(Ok((2, Tok::Plus, 3)))));
         assert!(matches!(lexer.next(), Some(Ok((4, Tok::Identifier(_), 5)))));
+        assert!(matches!(lexer.next(), Some(Ok((5, Tok::Semicolon, 6)))));
+    }
+
+    #[test]
+    fn test_zero_number() {
+        let s = "a + 0;";
+
+        let mut lexer = Lexer::new(s);
+
+        assert!(matches!(lexer.next(), Some(Ok((0, Tok::Identifier(_), 1)))));
+        assert!(matches!(lexer.next(), Some(Ok((2, Tok::Plus, 3)))));
+        // TODO: failed
+        // println!("{:?}", lexer.next());
+        assert!(matches!(lexer.next(), Some(Ok((4, Tok::Literal(_), 5)))));
         assert!(matches!(lexer.next(), Some(Ok((5, Tok::Semicolon, 6)))));
     }
 }

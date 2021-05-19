@@ -11,6 +11,8 @@ pub enum Tok {
     Minus,
     /// '*'
     Multiply,
+    /// '**'
+    Power,
     /// '/'
     Division,
     /// '('
@@ -43,6 +45,12 @@ pub enum Tok {
     BitAnd,
     /// '^'
     Deref,
+    /// 'MOD'
+    Mod,
+    /// 'NOT'
+    Not,
+    /// 'XOR'
+    Xor,
     /// 'POINTER'
     Pointer,
     /// 'ARRAY'
@@ -131,13 +139,40 @@ pub enum Tok {
     Identifier(StString),
 }
 
+impl Tok {
+    pub fn is_type(&self) -> bool {
+        match self {
+            Tok::Int | Tok::Bool => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_operator(&self) -> bool {
+        match self {
+            Tok::Plus
+            | Tok::Minus
+            | Tok::Division
+            | Tok::Multiply
+            | Tok::BitOr
+            | Tok::BitAnd
+            | Tok::Mod
+            | Tok::Power
+            | Tok::Xor => true,
+            _ => false,
+        }
+    }
+}
+
 impl Into<String> for &Tok {
     fn into(self) -> String {
-        let s = match &self {
+        let tmp_string;
+
+        let s = match self {
             Tok::Access => ".",
             Tok::Plus => "+",
             Tok::Minus => "-",
             Tok::Multiply => "*",
+            Tok::Power => "**",
             Tok::Division => "/",
             Tok::LeftParentheses => "(",
             Tok::RightParentheses => ")",
@@ -154,6 +189,9 @@ impl Into<String> for &Tok {
             Tok::BitOr => "|",
             Tok::BitAnd => "&",
             Tok::Deref => "^",
+            Tok::Mod => "MOD",
+            Tok::Xor => "XOR",
+            Tok::Not => "NOT",
             Tok::Pointer => "POINTER",
             Tok::Array => "ARRAY",
             Tok::Of => "OF",
@@ -195,8 +233,11 @@ impl Into<String> for &Tok {
             Tok::Time => "TIME",
             Tok::LTime => "LTIME",
             Tok::String => "STRING",
-            Tok::Literal(_) => unimplemented!(),
-            Tok::Identifier(s) => &s.origin_string(),
+            Tok::Literal(x) => {
+                tmp_string = format!("{}", x);
+                tmp_string.as_str()
+            }
+            Tok::Identifier(s) => s.origin_string(),
         };
 
         s.to_owned()

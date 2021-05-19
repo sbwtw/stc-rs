@@ -1,6 +1,5 @@
 use crate::ast::*;
-use crate::parser::lexer::{self, LiteralValue, StString};
-use crate::parser::Tok;
+use crate::parser::*;
 use std::sync::Arc;
 
 grammar;
@@ -14,6 +13,7 @@ extern {
         "+" => Tok::Plus,
         "-" => Tok::Minus,
         "*" => Tok::Multiply,
+        "**" => Tok::Power,
         "/" => Tok::Division,
         "(" => Tok::LeftParentheses,
         ")" => Tok::RightParentheses,
@@ -21,6 +21,17 @@ extern {
         ";" => Tok::Semicolon,
         ":=" => Tok::Assign,
         ":" => Tok::Colon,
+        "=" => Tok::Equal,
+        "<>" => Tok::NotEqual,
+        ">" => Tok::Greater,
+        ">=" => Tok::GreaterEqual,
+        "<" => Tok::Less,
+        "<=" => Tok::LessEqual,
+        "|" => Tok::BitOr,
+        "&" => Tok::BitAnd,
+        "XOR" => Tok::Xor,
+        "NOT" => Tok::Not,
+        "MOD" => Tok::Mod,
         "IF" => Tok::If,
         "THEN" => Tok::Then,
         "ELSE" => Tok::Else,
@@ -89,9 +100,46 @@ ElseIfStatement: ElseIfStatement = {
 
 /// Expression
 Expr: Box<dyn Expression> = {
-    <lhs: Expr> ":=" <rhs: OpExpr> => Box::new(AssignExpression::new(<>)),
-    OpExpr,
+    <lhs: Expr> ":=" <rhs: BitOrExpr> => Box::new(AssignExpression::new(<>)),
+    BitOrExpr,
 };
+
+BitOrExpr: Box<dyn Expression> = {
+    <lhs: BitOrExpr> <op: "|"> <rhs: XorExpr> => Box::new(OperatorExpression::new(op, vec![lhs, rhs])),
+    XorExpr,
+}
+
+XorExpr: Box<dyn Expression> = {
+    <lhs: XorExpr> <op: "XOR"> <rhs: BitAndExpr> => Box::new(OperatorExpression::new(op, vec![lhs, rhs])),
+    BitAndExpr,
+}
+
+BitAndExpr: Box<dyn Expression> = {
+    <lhs: BitAndExpr> <op: "&"> <rhs: EquExpr> => Box::new(OperatorExpression::new(op, vec![lhs, rhs])),
+    EquExpr,
+}
+
+EquOp: Tok = {
+    "=" => Tok::Equal,
+    "<>" => Tok::NotEqual,
+}
+
+EquExpr: Box<dyn Expression> = {
+    <lhs: EquExpr> <op: EquOp> <rhs: CmpExpr> => Box::new(OperatorExpression::new(op, vec![lhs, rhs])),
+    CmpExpr,
+}
+
+CmpOp: Tok = {
+    ">" => Tok::Greater,
+    ">=" => Tok::GreaterEqual,
+    "<" => Tok::Less,
+    "<=" => Tok::LessEqual,
+}
+
+CmpExpr: Box<dyn Expression> = {
+    <lhs: CmpExpr> <op: CmpOp> <rhs: OpExpr> => Box::new(OperatorExpression::new(op, vec![lhs, rhs])),
+    OpExpr,
+}
 
 /// Low-priority op
 ExprOp: Tok = {
@@ -105,16 +153,28 @@ OpExpr: Box<dyn Expression> = {
     Factor,
 }
 
-/// High-priority factor
-Factor: Box<dyn Expression> = {
-    <e1: Factor> <op: FactorOp> <e2: UnaryFactor> => Box::new(OperatorExpression::new(op, vec![e1, e2])),
-    UnaryFactor,
-};
-
 /// High-priority op
 FactorOp: Tok = {
     "*" => Tok::Multiply,
     "/" => Tok::Division,
+    "MOD" => Tok::Mod,
+};
+
+/// High-priority factor
+Factor: Box<dyn Expression> = {
+    <e1: Factor> <op: FactorOp> <e2: PowerExpr> => Box::new(OperatorExpression::new(op, vec![e1, e2])),
+    PowerExpr,
+};
+
+PowerExpr: Box<dyn Expression> = {
+    <e1: PowerExpr> <op: "**"> <e2: UnaryFactor> => Box::new(OperatorExpression::new(op, vec![e1, e2])),
+    UnaryFactor,
+}
+
+/// Top priority unary op
+UnaryOp: Tok = {
+    "-" => Tok::Minus,
+    "NOT" => Tok::Not,
 };
 
 /// Top priority unary factor
@@ -128,11 +188,6 @@ CompoFactor: Box<dyn Expression> = {
     <left: CompoFactor> "." <right: Term> => Box::new(CompoAccessExpression::new(<>)),
     Term,
 }
-
-/// Top priority unary op
-UnaryOp: Tok = {
-    "-" => Tok::Minus,
-};
 
 /// terminals in expression
 Term: Box<dyn Expression> = {

@@ -64,4 +64,12 @@ fn test_precedence() {
     let code1 = "a := b - a * c;";
     let code2 = "a := (b - (a * c));";
     assert_eq!(hash_for_code(code1), hash_for_code(code2));
+
+    let code1 = "a := a < 5 | a > 3;";
+    let code2 = "a := (a < 5) | a > 3;";
+    assert_eq!(hash_for_code(code1), hash_for_code(code2));
+
+    let code1 = "a := a & 5 | a ** -3 MOD b = 1;";
+    let code2 = "a := (a & 5) | (((a ** (-3)) MOD b) = 1);";
+    assert_eq!(hash_for_code(code1), hash_for_code(code2));
 }

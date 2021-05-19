@@ -37,10 +37,6 @@ impl<W: Write> StringifyVisitor<W> {
         }
     }
 
-    fn write_op(&mut self, op: &Tok) {
-        write!(self.writer, "{}", op).unwrap();
-    }
-
     fn write_indent(&mut self) {
         for _ in 0..self.indent {
             write!(self.writer, "    ").unwrap();
@@ -143,29 +139,28 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
         let op = expr.op().clone();
         let operands = expr.operands();
 
-        match op {
-            Tok::Minus if operands.len() == 1 => {
-                self.write_op(&op);
+        if operands.len() == 1 {
+            match op {
+                Tok::Not => self.write(format_args!("{} ", Tok::Not)),
+                Tok::Minus => self.write(format_args!("{}", Tok::Minus)),
+                _ => panic!("invalid unary operator!"),
+            };
 
-                self.push(StringifyAttribute::sub_expression());
-                operands[0].accept(self);
-                self.pop();
-            }
-            _ => {
-                assert_eq!(operands.len(), 2);
+            self.push(StringifyAttribute::sub_expression());
+            operands[0].accept(self);
+            self.pop();
+        } else {
+            assert_eq!(operands.len(), 2);
 
-                self.push(StringifyAttribute::sub_expression());
-                operands[0].accept(self);
-                self.pop();
+            self.push(StringifyAttribute::sub_expression());
+            operands[0].accept(self);
+            self.pop();
 
-                self.write(format_args!(" "));
-                self.write_op(&op);
-                self.write(format_args!(" "));
+            self.write(format_args!(" {} ", op));
 
-                self.push(StringifyAttribute::sub_expression());
-                operands[1].accept(self);
-                self.pop();
-            }
+            self.push(StringifyAttribute::sub_expression());
+            operands[1].accept(self);
+            self.pop();
         }
 
         if sub_expression {
@@ -175,7 +170,7 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
 
     fn visit_assign_expression(&mut self, assign: &AssignExpression) {
         assign.left().accept(self);
-        self.write(format_args!(" := "));
+        self.write(format_args!(" {} ", Tok::Assign));
         assign.right().accept(self);
     }
 
@@ -298,8 +293,10 @@ mod test {
     #[test]
     fn stringify() {
         let buf_str = parse_string("2-3.0/3; -1+\"a\\\"s\\\"d\";");
-
         assert_eq!(buf_str, "2 - (3.0 / 3);\n(-1) + \"a\\\"s\\\"d\";\n");
+
+        let buf_str = parse_string("2-3.0/3; NOT 1+\"a\\\"s\\\"d\";");
+        assert_eq!(buf_str, "2 - (3.0 / 3);\n(NOT 1) + \"a\\\"s\\\"d\";\n");
     }
 
     #[test]
