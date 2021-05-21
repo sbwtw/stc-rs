@@ -23,7 +23,7 @@ fn main() {
     let decl = parser::DeclarationParser::new().parse(decl).unwrap();
     let decl_id = app.add_declaration(decl);
 
-    let body = Lexer::new("a := a + NOT b;");
+    let body = Lexer::new("a.b := 2 > b | c <> d + NOT b;");
     let body = parser::StFunctionParser::new().parse(body).unwrap();
     app.add_function(decl_id, body);
     let fun = app.get_function(decl_id);

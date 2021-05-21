@@ -198,7 +198,7 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
         let name = self.unique_name("literal");
         let labels = [
             format!("Literal: {}", literal),
-            format!("Type: {}", literal.ty()),
+            format!("Type: {}", literal.ty().type_class()),
         ];
         self.write_node(&name, GraphvizLabelGroup::from_iter(&labels));
 

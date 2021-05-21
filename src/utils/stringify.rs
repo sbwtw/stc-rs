@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::parser::{LiteralValue, Tok};
+use crate::parser::{BitValue, LiteralValue, Tok};
 use std::fmt::Arguments;
 use std::io::Write;
 
@@ -67,6 +67,9 @@ impl<W: Write> StringifyVisitor<W> {
 impl<W: Write> AstVisitor for StringifyVisitor<W> {
     fn visit_literal(&mut self, literal: &LiteralValue) {
         match literal {
+            LiteralValue::Bit(BitValue::Zero) => self.write(format_args!("{}", 0)),
+            LiteralValue::Bit(BitValue::One) => self.write(format_args!("{}", 1)),
+            LiteralValue::Bool(x) => self.write(format_args!("{:?}", x)),
             LiteralValue::Int(x) => self.write(format_args!("{:?}", x)),
             LiteralValue::UInt(x) => self.write(format_args!("{:?}", x)),
             LiteralValue::Byte(x) => self.write(format_args!("{:?}", x)),

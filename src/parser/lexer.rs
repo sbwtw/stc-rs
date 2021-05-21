@@ -1,4 +1,4 @@
-use crate::ast::{AstNode, AstVisitor, AstVisitorMut, TypeClass};
+use crate::ast::*;
 use crate::parser::Tok;
 use std::any::Any;
 use std::collections::HashMap;
@@ -62,7 +62,15 @@ impl Hash for StString {
 }
 
 #[derive(Debug, Clone)]
+pub enum BitValue {
+    Zero,
+    One,
+}
+
+#[derive(Debug, Clone)]
 pub enum LiteralValue {
+    Bit(BitValue),
+    Bool(bool),
     Byte(u8),
     SInt(i8),
     Int(i16),
@@ -76,18 +84,20 @@ pub enum LiteralValue {
 }
 
 impl LiteralValue {
-    pub fn ty(&self) -> TypeClass {
+    pub fn ty(&self) -> Box<dyn Type> {
         match self {
-            LiteralValue::Byte(_) => TypeClass::Byte,
-            LiteralValue::SInt(_) => TypeClass::SInt,
-            LiteralValue::Int(_) => TypeClass::Int,
-            LiteralValue::UInt(_) => TypeClass::UInt,
-            LiteralValue::DInt(_) => TypeClass::DInt,
-            LiteralValue::UDInt(_) => TypeClass::UDInt,
-            LiteralValue::LInt(_) => TypeClass::LInt,
-            LiteralValue::ULInt(_) => TypeClass::ULInt,
-            LiteralValue::Real(_) => TypeClass::Real,
-            LiteralValue::String(_) => TypeClass::String,
+            LiteralValue::Bit(_) => Box::new(BitType::new()),
+            LiteralValue::Bool(_) => Box::new(BoolType::new()),
+            LiteralValue::Byte(_) => Box::new(ByteType::new()),
+            LiteralValue::SInt(_) => Box::new(SIntType::new()),
+            LiteralValue::Int(_) => Box::new(IntType::new()),
+            LiteralValue::UInt(_) => Box::new(UIntType::new()),
+            LiteralValue::DInt(_) => Box::new(DIntType::new()),
+            LiteralValue::UDInt(_) => Box::new(UDIntType::new()),
+            LiteralValue::LInt(_) => Box::new(LIntType::new()),
+            LiteralValue::ULInt(_) => Box::new(ULIntType::new()),
+            LiteralValue::Real(_) => Box::new(RealType::new()),
+            LiteralValue::String(_) => Box::new(StringType::new()),
         }
     }
 }
@@ -95,6 +105,9 @@ impl LiteralValue {
 impl Display for LiteralValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
+            LiteralValue::Bit(BitValue::Zero) => write!(f, "{}#{}", Tok::Bit, 0),
+            LiteralValue::Bit(BitValue::One) => write!(f, "{}#{}", Tok::Bit, 1),
+            LiteralValue::Bool(x) => write!(f, "{}#{}", Tok::Bool, x),
             LiteralValue::Int(x) => write!(f, "{}#{}", Tok::Int, x),
             LiteralValue::UInt(x) => write!(f, "{}#{}", Tok::UInt, x),
             LiteralValue::Byte(x) => write!(f, "{}#{}", Tok::Byte, x),
@@ -213,7 +226,11 @@ impl<'input> Lexer<'input> {
         let start_with_zero = ch == '0';
 
         if start_with_zero {
-            return Some(Ok((start, Tok::Literal(LiteralValue::SInt(0)), start + 1)));
+            return Some(Ok((
+                start,
+                Tok::Literal(LiteralValue::Bit(BitValue::Zero)),
+                start + 1,
+            )));
         }
 
         loop {
@@ -380,7 +397,7 @@ impl<'input> Iterator for Lexer<'input> {
 
 #[cfg(test)]
 mod test {
-    use crate::parser::{Lexer, LiteralValue, StString, Tok};
+    use crate::parser::{BitValue, Lexer, LiteralValue, StString, Tok};
 
     #[test]
     fn test_st_string() {
@@ -427,7 +444,7 @@ mod test {
         assert!(matches!(lexer.next(), Some(Ok((2, Tok::Plus, 3)))));
         assert!(matches!(
             lexer.next(),
-            Some(Ok((4, Tok::Literal(LiteralValue::SInt(0)), 5)))
+            Some(Ok((4, Tok::Literal(LiteralValue::Bit(BitValue::Zero)), 5)))
         ));
         assert!(matches!(lexer.next(), Some(Ok((5, Tok::Semicolon, 6)))));
     }

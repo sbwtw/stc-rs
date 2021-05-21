@@ -58,8 +58,8 @@ impl TypeAnalyzer {
 }
 
 impl AstVisitorMut for TypeAnalyzer {
-    fn visit_literal_mut(&mut self, _literal: &mut LiteralValue) {
-        todo!()
+    fn visit_literal_mut(&mut self, literal: &mut LiteralValue) {
+        self.top_mut().derived_type = Some(Arc::new(literal.ty()))
     }
 
     fn visit_variable_mut(&mut self, variable: &mut Variable) {
@@ -131,7 +131,16 @@ impl AstVisitorMut for TypeAnalyzer {
         assign.set_ty(attr.derived_type)
     }
 
-    fn visit_compo_access_expression_mut(&mut self, _compo: &mut CompoAccessExpression) {
-        todo!()
+    fn visit_compo_access_expression_mut(&mut self, compo: &mut CompoAccessExpression) {
+        self.push(TypeAnalyzerAttribute::new());
+        compo.left_mut().accept_mut(self);
+        self.pop();
+
+        self.push(TypeAnalyzerAttribute::new());
+        compo.right_mut().accept_mut(self);
+        let attr = self.pop();
+
+        compo.set_ty(attr.derived_type.clone());
+        self.top_mut().derived_type = attr.derived_type
     }
 }
