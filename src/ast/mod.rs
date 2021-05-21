@@ -223,6 +223,8 @@ pub enum TypeClass {
     UInt,
     /// 'DINT', 32 bits signed
     DInt,
+    /// 'UDINT' 32 bits unsigned
+    UDInt,
     /// 'LINT', 64 bits signed
     LInt,
     /// 'ULINT', 64 bits unsigned
@@ -264,6 +266,7 @@ impl Display for TypeClass {
             TypeClass::Int => write!(f, "{}", Tok::Int),
             TypeClass::UInt => write!(f, "{}", Tok::UInt),
             TypeClass::DInt => write!(f, "{}", Tok::DInt),
+            TypeClass::UDInt => write!(f, "{}", Tok::UDInt),
             TypeClass::LInt => write!(f, "{}", Tok::LInt),
             TypeClass::ULInt => write!(f, "{}", Tok::ULInt),
             TypeClass::Real => write!(f, "{}", Tok::Real),

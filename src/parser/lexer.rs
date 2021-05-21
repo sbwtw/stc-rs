@@ -63,8 +63,14 @@ impl Hash for StString {
 
 #[derive(Debug, Clone)]
 pub enum LiteralValue {
-    Int(i32),
-    UInt(u64),
+    Byte(u8),
+    SInt(i8),
+    Int(i16),
+    UInt(u16),
+    DInt(i32),
+    UDInt(u32),
+    LInt(i64),
+    ULInt(u64),
     Real(f32),
     String(String),
 }
@@ -72,8 +78,14 @@ pub enum LiteralValue {
 impl LiteralValue {
     pub fn ty(&self) -> TypeClass {
         match self {
+            LiteralValue::Byte(_) => TypeClass::Byte,
+            LiteralValue::SInt(_) => TypeClass::SInt,
             LiteralValue::Int(_) => TypeClass::Int,
             LiteralValue::UInt(_) => TypeClass::UInt,
+            LiteralValue::DInt(_) => TypeClass::DInt,
+            LiteralValue::UDInt(_) => TypeClass::UDInt,
+            LiteralValue::LInt(_) => TypeClass::LInt,
+            LiteralValue::ULInt(_) => TypeClass::ULInt,
             LiteralValue::Real(_) => TypeClass::Real,
             LiteralValue::String(_) => TypeClass::String,
         }
@@ -83,10 +95,16 @@ impl LiteralValue {
 impl Display for LiteralValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            LiteralValue::Int(x) => write!(f, "INT#{}", x),
-            LiteralValue::UInt(x) => write!(f, "UINT#{}", x),
-            LiteralValue::Real(x) => write!(f, "REAL#{}", x),
-            LiteralValue::String(s) => write!(f, "STRING#{}", s),
+            LiteralValue::Int(x) => write!(f, "{}#{}", Tok::Int, x),
+            LiteralValue::UInt(x) => write!(f, "{}#{}", Tok::UInt, x),
+            LiteralValue::Byte(x) => write!(f, "{}#{}", Tok::Byte, x),
+            LiteralValue::SInt(x) => write!(f, "{}#{}", Tok::SInt, x),
+            LiteralValue::DInt(x) => write!(f, "{}#{}", Tok::DInt, x),
+            LiteralValue::UDInt(x) => write!(f, "{}#{}", Tok::UDInt, x),
+            LiteralValue::LInt(x) => write!(f, "{}#{}", Tok::LInt, x),
+            LiteralValue::ULInt(x) => write!(f, "{}#{}", Tok::ULInt, x),
+            LiteralValue::Real(x) => write!(f, "{}#{}", Tok::Real, x),
+            LiteralValue::String(s) => write!(f, "{}#{}", Tok::String, s),
         }
     }
 }
@@ -190,8 +208,13 @@ impl<'input> Lexer<'input> {
         }
     }
 
-    fn parse_integer(&mut self, start: usize, ch: char) -> Option<LexerResult> {
+    fn parse_number(&mut self, start: usize, ch: char) -> Option<LexerResult> {
         let mut s = String::from(ch);
+        let start_with_zero = ch == '0';
+
+        if start_with_zero {
+            return Some(Ok((start, Tok::Literal(LiteralValue::SInt(0)), start + 1)));
+        }
 
         loop {
             match self.buffer.next() {
@@ -345,7 +368,7 @@ impl<'input> Iterator for Lexer<'input> {
             (i, Some(c @ '<')) | (i, Some(c @ ':')) | (i, Some(c @ '>')) | (i, Some(c @ '*')) => {
                 self.parse_second_char(i, c)
             }
-            (start, Some(c)) if c.is_ascii_digit() && c != '0' => self.parse_integer(start, c),
+            (start, Some(c)) if c.is_ascii_digit() => self.parse_number(start, c),
             (start, Some(c)) if c.is_ascii_alphabetic() || c == '_' => {
                 self.parse_identifier(start, c)
             }
@@ -357,7 +380,7 @@ impl<'input> Iterator for Lexer<'input> {
 
 #[cfg(test)]
 mod test {
-    use crate::parser::{Lexer, StString, Tok};
+    use crate::parser::{Lexer, LiteralValue, StString, Tok};
 
     #[test]
     fn test_st_string() {
@@ -398,14 +421,14 @@ mod test {
     #[test]
     fn test_zero_number() {
         let s = "a + 0;";
-
         let mut lexer = Lexer::new(s);
 
         assert!(matches!(lexer.next(), Some(Ok((0, Tok::Identifier(_), 1)))));
         assert!(matches!(lexer.next(), Some(Ok((2, Tok::Plus, 3)))));
-        // TODO: failed
-        // println!("{:?}", lexer.next());
-        assert!(matches!(lexer.next(), Some(Ok((4, Tok::Literal(_), 5)))));
+        assert!(matches!(
+            lexer.next(),
+            Some(Ok((4, Tok::Literal(LiteralValue::SInt(0)), 5)))
+        ));
         assert!(matches!(lexer.next(), Some(Ok((5, Tok::Semicolon, 6)))));
     }
 }

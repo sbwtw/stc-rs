@@ -119,6 +119,8 @@ pub enum Tok {
     UInt,
     /// 'DINT', 32 bits signed
     DInt,
+    /// 'UDINT', 32bits unsigned
+    UDInt,
     /// 'LINT', 64 bits signed
     LInt,
     /// 'ULINT', 64 bits unsigned
@@ -228,6 +230,7 @@ impl Into<String> for &Tok {
             Tok::Byte => "BYTE",
             Tok::UInt => "UINT",
             Tok::DInt => "DINT",
+            Tok::UDInt => "UDINT",
             Tok::LInt => "LINT",
             Tok::ULInt => "ULINT",
             Tok::Time => "TIME",
