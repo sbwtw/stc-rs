@@ -1,5 +1,5 @@
 use crate::ast::*;
-use std::sync::Arc;
+use std::rc::Rc;
 
 macro_rules! builtin_type_impl {
     (struct $name:ident, $class:expr) => {
@@ -75,12 +75,12 @@ impl EnumField {
 #[derive(Debug, Clone)]
 pub struct EnumDeclare {
     name: StString,
-    ty: Option<Arc<Box<dyn Type>>>,
+    ty: Option<Rc<Box<dyn Type>>>,
     fields: Vec<EnumField>,
 }
 
 impl EnumDeclare {
-    pub fn new(name: StString, ty: Option<Arc<Box<dyn Type>>>, fields: Vec<EnumField>) -> Self {
+    pub fn new(name: StString, ty: Option<Rc<Box<dyn Type>>>, fields: Vec<EnumField>) -> Self {
         Self { name, ty, fields }
     }
 
@@ -88,7 +88,7 @@ impl EnumDeclare {
         &self.name
     }
 
-    pub fn ty(&self) -> Option<Arc<Box<dyn Type>>> {
+    pub fn ty(&self) -> Option<Rc<Box<dyn Type>>> {
         self.ty.clone()
     }
 
@@ -110,6 +110,78 @@ impl Declaration for EnumDeclare {
 
     fn accept(&self, visitor: &mut dyn DeclarationVisitor) {
         visitor.visit_enum_declare(self)
+    }
+
+    fn identifier(&self) -> &StString {
+        self.name()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct AliasDeclare {
+    name: StString,
+    alias: Rc<Box<dyn Type>>,
+}
+
+impl AliasDeclare {
+    pub fn new(name: StString, alias: Rc<Box<dyn Type>>) -> Self {
+        Self { name, alias }
+    }
+
+    pub fn name(&self) -> &StString {
+        &self.name
+    }
+}
+
+impl Type for AliasDeclare {
+    fn type_class(&self) -> TypeClass {
+        TypeClass::UserType(self.name.clone(), Some(UserTypeClass::Alias))
+    }
+}
+
+impl Declaration for AliasDeclare {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn accept(&self, visitor: &mut dyn DeclarationVisitor) {
+        visitor.visit_alias_declare(self)
+    }
+
+    fn identifier(&self) -> &StString {
+        self.name()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct StructDeclare {
+    name: StString,
+    variables: Vec<Rc<Variable>>,
+}
+
+impl StructDeclare {
+    pub fn new(name: StString, variables: Vec<Rc<Variable>>) -> Self {
+        Self { name, variables }
+    }
+
+    pub fn name(&self) -> &StString {
+        &self.name
+    }
+}
+
+impl Type for StructDeclare {
+    fn type_class(&self) -> TypeClass {
+        TypeClass::UserType(self.name.clone(), Some(UserTypeClass::Struct))
+    }
+}
+
+impl Declaration for StructDeclare {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn accept(&self, visitor: &mut dyn DeclarationVisitor) {
+        visitor.visit_struct_declare(self)
     }
 
     fn identifier(&self) -> &StString {

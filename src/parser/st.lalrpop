@@ -1,6 +1,6 @@
 use crate::ast::*;
 use crate::parser::*;
-use std::sync::Arc;
+use std::rc::Rc;
 
 grammar;
 
@@ -41,6 +41,8 @@ extern {
         "END_FUNCTION" => Tok::EndFunction,
         "PROGRAM" => Tok::Program,
         "END_PROGRAM" => Tok::EndProgram,
+        "STRUCT" => Tok::Struct,
+        "END_STRUCT" => Tok::EndStruct,
         "VAR" => Tok::Var,
         "VAR_GLOBAL" => Tok::VarGlobal,
         "VAR_INPUT" => Tok::VarInput,
@@ -54,6 +56,7 @@ extern {
         "TYPE" => Tok::Type,
         "END_TYPE" => Tok::EndType,
         "INT" => Tok::Int,
+        "BOOL" => Tok::Bool,
         "LITERAL" => Tok::Literal(<LiteralValue>),
         "IDENTIFIER" => Tok::Identifier(<StString>),
     }
@@ -210,6 +213,8 @@ pub Declaration: Box<dyn Declaration> = {
 
 TypeDeclaration: Box<dyn Declaration> = {
     <name: "IDENTIFIER"> ":" "(" <fields: Comma<EnumFieldDecl>> ")" <ty: Type?> ";" => Box::new(EnumDeclare::new(name, ty, fields)),
+    <name: "IDENTIFIER"> ":" <alias: Type> ";" => Box::new(AliasDeclare::new(<>)),
+    <name: "IDENTIFIER"> ":" "STRUCT" <vars: VariableDeclareList> "END_STRUCT" => Box::new(StructDeclare::new(<>)),
 }
 
 EnumFieldDecl: EnumField = {
@@ -218,19 +223,20 @@ EnumFieldDecl: EnumField = {
 }
 
 /// Type
-Type: Arc<Box<dyn Type>> = {
-    "INT" => Arc::new(Box::new(IntType::new())),
-    "IDENTIFIER" => Arc::new(Box::new(UserType::from_name(<>))),
+Type: Rc<Box<dyn Type>> = {
+    "INT" => Rc::new(Box::new(IntType::new())),
+    "BOOL" => Rc::new(Box::new(BoolType::new())),
+    "IDENTIFIER" => Rc::new(Box::new(UserType::from_name(<>))),
 }
 
 /// Variable declare groups flat
-VariableDeclareFactor: Vec<Arc<Variable>> = {
+VariableDeclareFactor: Vec<Rc<Variable>> = {
     VariableDeclareGroup,
     <mut v: VariableDeclareFactor> <mut e: VariableDeclareGroup> => { v.append(&mut e); v }
 }
 
 /// Single variable declare group, constain a list of same scope variable
-VariableDeclareGroup: Vec<Arc<Variable>> = {
+VariableDeclareGroup: Vec<Rc<Variable>> = {
     VariableDeclareGroupStart VariableDeclareGroupAnnotation? "END_VAR" => vec![],
     <g: VariableDeclareGroupStart> <anno: VariableDeclareGroupAnnotation?> <v: VariableDeclareList> "END_VAR" => VariableDeclareGroup::new(g, anno, v),
 }
@@ -253,7 +259,7 @@ VariableDeclareGroupAnnotation: VariableAnnotationFlags = {
 }
 
 /// A list of same scope varaible
-VariableDeclareList: Vec<Arc<Variable>> = {
+VariableDeclareList: Vec<Rc<Variable>> = {
     MultiVariableDeclareStatement,
     VariableDeclareStatement => vec![<>],
     <mut v: VariableDeclareList> <e: VariableDeclareStatement> => { v.push(e); v },
@@ -261,11 +267,11 @@ VariableDeclareList: Vec<Arc<Variable>> = {
 }
 
 /// Single variable declare
-VariableDeclareStatement: Arc<Variable> = {
-    <ident: "IDENTIFIER"> ":" <ty: Type> ";"  => Arc::new(Variable::with_type(<>)),
+VariableDeclareStatement: Rc<Variable> = {
+    <ident: "IDENTIFIER"> ":" <ty: Type> ";"  => Rc::new(Variable::with_type(<>)),
 }
 
 /// Multiple variable declare in one statement
-MultiVariableDeclareStatement: Vec<Arc<Variable>> = {
+MultiVariableDeclareStatement: Vec<Rc<Variable>> = {
     <ident_list: Comma<"IDENTIFIER">> ":" <ty: Type> ";" => Variable::multiple_variable_with_type(<>),
 }

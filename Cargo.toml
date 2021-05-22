@@ -12,6 +12,7 @@ lalrpop-util = "*"
 bitflags = "*"
 once_cell = "*"
 crc = "*"
+regex = "*"
 
 [build-dependencies]
 lalrpop = "*"

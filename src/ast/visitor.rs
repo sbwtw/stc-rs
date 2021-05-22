@@ -29,4 +29,6 @@ pub trait AstVisitorMut {
 pub trait DeclarationVisitor {
     fn visit_function_declare(&mut self, _: &FunctionDeclaration);
     fn visit_enum_declare(&mut self, _: &EnumDeclare);
+    fn visit_struct_declare(&mut self, _: &StructDeclare);
+    fn visit_alias_declare(&mut self, _: &AliasDeclare);
 }

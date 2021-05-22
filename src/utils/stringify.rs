@@ -281,6 +281,14 @@ impl<W: Write> DeclarationVisitor for StringifyVisitor<W> {
 
         self.writeln(format_args!("{}", Tok::EndType))
     }
+
+    fn visit_struct_declare(&mut self, _: &StructDeclare) {
+        todo!()
+    }
+
+    fn visit_alias_declare(&mut self, _: &AliasDeclare) {
+        todo!()
+    }
 }
 
 #[cfg(test)]

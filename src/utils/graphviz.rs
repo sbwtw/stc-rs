@@ -1,10 +1,12 @@
 use crate::ast::*;
 use crate::parser::LiteralValue;
 use crate::utils::StringifyVisitor;
+use regex::Regex;
+use std::borrow::Cow;
 use std::fmt::Arguments;
 use std::io::Write;
 use std::iter::FromIterator;
-use std::sync::Arc;
+use std::rc::Rc;
 
 /// Graphviz Labels Group
 enum GraphvizLabelGroup {
@@ -51,6 +53,12 @@ where
 
         Self::Labels(labels)
     }
+}
+
+fn graphviz_escape<S: AsRef<str>>(s: &S) -> Cow<str> {
+    let regex = Regex::new(r#"([<>|"])"#).unwrap();
+
+    regex.replace_all(s.as_ref(), "\\$1")
 }
 
 /// Labels group to string
@@ -189,7 +197,7 @@ impl<W: Write> GraphvizExporter<W> {
     }
 }
 
-fn display_type(ty: Option<Arc<Box<dyn Type>>>) -> String {
+fn display_type(ty: Option<Rc<Box<dyn Type>>>) -> String {
     ty.map(|x| format!("{}", x)).unwrap_or(String::new())
 }
 
@@ -255,7 +263,7 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
         self.write_node(
             &name,
             GraphvizLabelGroup::from_name("ExprStatement")
-                .append_group(GraphvizLabelGroup::from_name(s)),
+                .append_group(GraphvizLabelGroup::from_name(graphviz_escape(&s))),
         );
         self.connect(&name, attr.node_name);
         if let Some(top) = self.top_mut() {
@@ -353,13 +361,14 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
     fn visit_operator_expression(&mut self, expr: &OperatorExpression) {
         let name = self.unique_name("operator_expression");
 
+        let op_str = format!("{}", expr.op());
         let labels = [
-            format!("Operator '{}'", expr.op()),
+            format!("Operator '{}'", graphviz_escape(&op_str)),
             format!("Type: {}", display_type(expr.ty())),
         ];
         let s = format!("{}", expr.as_ast_node());
-        let labels =
-            GraphvizLabelGroup::from_iter(&labels).append_group(GraphvizLabelGroup::from_name(s));
+        let labels = GraphvizLabelGroup::from_iter(&labels)
+            .append_group(GraphvizLabelGroup::from_name(graphviz_escape(&s)));
         self.write_node(&name, labels);
 
         for operand in expr.operands() {

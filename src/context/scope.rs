@@ -1,6 +1,7 @@
 use crate::ast::*;
 use crate::context::{ModuleContext, UnitsManager};
 use crate::parser::StString;
+use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 
 #[derive(Clone)]
@@ -34,7 +35,7 @@ impl Scope {
         }
     }
 
-    pub fn find_variable(&self, ident: &StString) -> Option<Arc<Variable>> {
+    pub fn find_variable(&self, ident: &StString) -> Option<Rc<Variable>> {
         self.local_declaration.as_ref().and_then(|decl| {
             decl.read()
                 .unwrap()

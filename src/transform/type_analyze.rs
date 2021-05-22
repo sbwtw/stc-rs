@@ -1,10 +1,10 @@
 use crate::ast::*;
 use crate::context::Scope;
 use crate::parser::LiteralValue;
-use std::sync::Arc;
+use std::rc::Rc;
 
 struct TypeAnalyzerAttribute {
-    derived_type: Option<Arc<Box<dyn Type>>>,
+    derived_type: Option<Rc<Box<dyn Type>>>,
 }
 
 impl TypeAnalyzerAttribute {
@@ -59,7 +59,7 @@ impl TypeAnalyzer {
 
 impl AstVisitorMut for TypeAnalyzer {
     fn visit_literal_mut(&mut self, literal: &mut LiteralValue) {
-        self.top_mut().derived_type = Some(Arc::new(literal.ty()))
+        self.top_mut().derived_type = Some(Rc::new(literal.ty()))
     }
 
     fn visit_variable_mut(&mut self, variable: &mut Variable) {

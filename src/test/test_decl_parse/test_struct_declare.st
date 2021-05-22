@@ -1,0 +1,9 @@
+TYPE
+
+MyStruct:
+STRUCT
+    a: INT;
+    b: BOOL;
+END_STRUCT
+
+END_TYPE

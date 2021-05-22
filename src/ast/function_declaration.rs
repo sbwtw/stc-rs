@@ -1,21 +1,21 @@
 use crate::ast::*;
 use crate::parser::StString;
-use std::sync::Arc;
+use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct FunctionDeclaration {
     name: StString,
     decl_class: DeclareClass,
-    return_type: Option<Arc<Box<dyn Type>>>,
-    variables: Vec<Arc<Variable>>,
+    return_type: Option<Rc<Box<dyn Type>>>,
+    variables: Vec<Rc<Variable>>,
 }
 
 impl FunctionDeclaration {
     pub fn new(
         name: StString,
         class: DeclareClass,
-        ty: Option<Arc<Box<dyn Type>>>,
-        variables: Vec<Arc<Variable>>,
+        ty: Option<Rc<Box<dyn Type>>>,
+        variables: Vec<Rc<Variable>>,
     ) -> Self {
         Self {
             name,
@@ -33,11 +33,11 @@ impl FunctionDeclaration {
         &self.decl_class
     }
 
-    pub fn return_type(&self) -> Option<Arc<Box<dyn Type>>> {
+    pub fn return_type(&self) -> Option<Rc<Box<dyn Type>>> {
         self.return_type.clone()
     }
 
-    pub fn variables(&self) -> &Vec<Arc<Variable>> {
+    pub fn variables(&self) -> &Vec<Rc<Variable>> {
         &self.variables
     }
 }

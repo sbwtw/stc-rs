@@ -192,6 +192,8 @@ macro_rules! keywords {
 impl<'input> Lexer<'input> {
     pub fn new(input: &'input str) -> Self {
         let keywords = keywords![
+            Tok::BitAnd,
+            Tok::BitOr,
             Tok::Xor,
             Tok::Mod,
             Tok::Not,
@@ -204,6 +206,8 @@ impl<'input> Lexer<'input> {
             Tok::EndFunction,
             Tok::Program,
             Tok::EndProgram,
+            Tok::Struct,
+            Tok::EndStruct,
             Tok::Var,
             Tok::VarGlobal,
             Tok::EndVar,
@@ -342,6 +346,9 @@ impl<'input> Lexer<'input> {
             ('*', (_, Some('*'))) => (Tok::Power, None),
             ('*', x) => (Tok::Multiply, Some(x)),
 
+            ('=', (_, Some('>'))) => (Tok::AssignRight, None),
+            ('=', x) => (Tok::Equal, Some(x)),
+
             _ => unreachable!(),
         };
 
@@ -378,13 +385,14 @@ impl<'input> Iterator for Lexer<'input> {
             (i, Some(')')) => Some(Ok((i, Tok::RightParentheses, i + 1))),
             (i, Some(',')) => Some(Ok((i, Tok::Comma, i + 1))),
             (i, Some(';')) => Some(Ok((i, Tok::Semicolon, i + 1))),
-            (i, Some('|')) => Some(Ok((i, Tok::BitOr, i + 1))),
+            // (i, Some('|')) => Some(Ok((i, Tok::BitOr, i + 1))),
             (i, Some('&')) => Some(Ok((i, Tok::BitAnd, i + 1))),
-            (i, Some('=')) => Some(Ok((i, Tok::Equal, i + 1))),
             (i, Some('\"')) => self.parse_string(i),
-            (i, Some(c @ '<')) | (i, Some(c @ ':')) | (i, Some(c @ '>')) | (i, Some(c @ '*')) => {
-                self.parse_second_char(i, c)
-            }
+            (i, Some(c @ '<'))
+            | (i, Some(c @ ':'))
+            | (i, Some(c @ '>'))
+            | (i, Some(c @ '='))
+            | (i, Some(c @ '*')) => self.parse_second_char(i, c),
             (start, Some(c)) if c.is_ascii_digit() => self.parse_number(start, c),
             (start, Some(c)) if c.is_ascii_alphabetic() || c == '_' => {
                 self.parse_identifier(start, c)

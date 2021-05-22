@@ -1,11 +1,11 @@
 use crate::ast::*;
-use std::sync::Arc;
+use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct AssignExpression {
     left: Box<dyn Expression>,
     right: Box<dyn Expression>,
-    ty: Option<Arc<Box<dyn Type>>>,
+    ty: Option<Rc<Box<dyn Type>>>,
 }
 
 impl AssignExpression {
@@ -33,11 +33,11 @@ impl AssignExpression {
         self.right.as_mut()
     }
 
-    pub fn ty(&self) -> Option<Arc<Box<dyn Type>>> {
+    pub fn ty(&self) -> Option<Rc<Box<dyn Type>>> {
         self.ty.clone()
     }
 
-    pub fn set_ty(&mut self, ty: Option<Arc<Box<dyn Type>>>) {
+    pub fn set_ty(&mut self, ty: Option<Rc<Box<dyn Type>>>) {
         self.ty = ty
     }
 }

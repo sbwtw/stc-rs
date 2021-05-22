@@ -381,6 +381,7 @@ dependencies = [
  "lalrpop",
  "lalrpop-util",
  "once_cell",
+ "regex",
 ]
 
 [[package]]

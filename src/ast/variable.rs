@@ -1,12 +1,12 @@
 use crate::ast::*;
 use crate::parser::StString;
 use std::default::Default;
-use std::sync::Arc;
+use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct Variable {
     name: StString,
-    ty: Option<Arc<Box<dyn Type>>>,
+    ty: Option<Rc<Box<dyn Type>>>,
     scope: VariableScopeClass,
     retain_flags: VariableAnnotationFlags,
 }
@@ -19,7 +19,7 @@ impl Variable {
         }
     }
 
-    pub fn with_type(name: StString, ty: Arc<Box<dyn Type>>) -> Self {
+    pub fn with_type(name: StString, ty: Rc<Box<dyn Type>>) -> Self {
         Self {
             name,
             ty: Some(ty),
@@ -30,11 +30,11 @@ impl Variable {
     /// comma split variable declare list, like: a, b, c: INT;
     pub fn multiple_variable_with_type(
         names: Vec<StString>,
-        ty: Arc<Box<dyn Type>>,
-    ) -> Vec<Arc<Self>> {
+        ty: Rc<Box<dyn Type>>,
+    ) -> Vec<Rc<Self>> {
         names
             .iter()
-            .map(|x| Arc::new(Self::with_type(x.clone(), ty.clone())))
+            .map(|x| Rc::new(Self::with_type(x.clone(), ty.clone())))
             .collect()
     }
 
@@ -50,11 +50,11 @@ impl Variable {
         self.name.origin_string()
     }
 
-    pub fn ty(&self) -> Option<Arc<Box<dyn Type>>> {
+    pub fn ty(&self) -> Option<Rc<Box<dyn Type>>> {
         self.ty.clone()
     }
 
-    pub fn set_ty(&mut self, ty: Option<Arc<Box<dyn Type>>>) {
+    pub fn set_ty(&mut self, ty: Option<Rc<Box<dyn Type>>>) {
         self.ty = ty
     }
 
@@ -104,11 +104,11 @@ impl VariableDeclareGroup {
     pub fn new(
         scope: VariableScopeClass,
         flags: Option<VariableAnnotationFlags>,
-        mut vars: Vec<Arc<Variable>>,
-    ) -> Vec<Arc<Variable>> {
+        mut vars: Vec<Rc<Variable>>,
+    ) -> Vec<Rc<Variable>> {
         for v in vars.iter_mut() {
-            Arc::get_mut(v).unwrap().set_scope(scope);
-            Arc::get_mut(v)
+            Rc::get_mut(v).unwrap().set_scope(scope);
+            Rc::get_mut(v)
                 .unwrap()
                 .set_annotation(flags.unwrap_or(VariableAnnotationFlags::NONE));
         }

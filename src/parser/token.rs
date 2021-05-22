@@ -27,6 +27,8 @@ pub enum Tok {
     Colon,
     /// ':='
     Assign,
+    /// '=>'
+    AssignRight,
     /// '='
     Equal,
     /// '<>'
@@ -39,9 +41,9 @@ pub enum Tok {
     Less,
     /// '<='
     LessEqual,
-    /// '|'
+    /// '|' or 'OR'
     BitOr,
-    /// '&'
+    /// '&' or 'AND'
     BitAnd,
     /// '^'
     Deref,
@@ -81,6 +83,10 @@ pub enum Tok {
     FunctionBlock,
     /// 'END_FUNCTION_BLOCK'
     EndFunctionBlock,
+    /// 'STRUCT'
+    Struct,
+    /// 'END_STRUCT'
+    EndStruct,
     /// 'VAR'
     Var,
     /// 'VAR_GLOBAL'
@@ -182,14 +188,15 @@ impl Into<String> for &Tok {
             Tok::Semicolon => ";",
             Tok::Colon => ":",
             Tok::Assign => ":=",
+            Tok::AssignRight => "=>",
             Tok::Equal => "=",
             Tok::NotEqual => "<>",
             Tok::Greater => ">",
             Tok::GreaterEqual => ">=",
             Tok::Less => "<",
             Tok::LessEqual => "<=",
-            Tok::BitOr => "|",
-            Tok::BitAnd => "&",
+            Tok::BitOr => "OR",
+            Tok::BitAnd => "AND",
             Tok::Deref => "^",
             Tok::Mod => "MOD",
             Tok::Xor => "XOR",
@@ -209,6 +216,8 @@ impl Into<String> for &Tok {
             Tok::EndProgram => "END_PROGRAM",
             Tok::FunctionBlock => "FUNCTION_BLOCK",
             Tok::EndFunctionBlock => "END_FUNCTION_BLOCK",
+            Tok::Struct => "STRUCT",
+            Tok::EndStruct => "END_STRUCT",
             Tok::VarGlobal => "VAR_GLOBAL",
             Tok::Var => "VAR",
             Tok::VarInput => "VAR_INPUT",
