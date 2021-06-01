@@ -297,7 +297,7 @@ mod test {
     use crate::utils::*;
 
     fn parse_string<S: AsRef<str>>(s: S) -> String {
-        let lexer = Lexer::new(s.as_ref());
+        let lexer = StLexer::new(s.as_ref());
         let r = StFunctionParser::new().parse(lexer).unwrap();
 
         let mut buf = vec![];

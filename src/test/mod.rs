@@ -1,4 +1,4 @@
-use crate::parser::{self, Lexer};
+use crate::parser::{self, StLexer};
 use std::fs;
 
 #[test]
@@ -9,7 +9,7 @@ fn test_decl_parse() {
         let f = entry.unwrap().path();
         let code = fs::read_to_string(f).unwrap();
 
-        let lexer = Lexer::new(&code);
+        let lexer = StLexer::new(&code);
         match parser.parse(lexer) {
             Ok(_) => {}
             Err(e) => panic!("{:?}", e),
@@ -20,7 +20,7 @@ fn test_decl_parse() {
 #[test]
 #[ignore]
 fn test_decl_parse_text() {
-    let lexer = Lexer::new("TYPE TestEnum: (E1, E2 := 10, E3) DINT; END_TYPE");
+    let lexer = StLexer::new("TYPE TestEnum: (E1, E2 := 10, E3) DINT; END_TYPE");
     let parser = parser::DeclarationParser::new();
 
     let r = parser.parse(lexer).unwrap();

@@ -4,7 +4,7 @@ use crate::utils::AstHasher;
 
 #[test]
 fn test_parse_function() {
-    let lexer = Lexer::new("function test_fun : VAR_GLOBAL a,b ,c: INT; END_VAR END_FUNCTION");
+    let lexer = StLexer::new("function test_fun : VAR_GLOBAL a,b ,c: INT; END_VAR END_FUNCTION");
 
     let fun = st::DeclarationParser::new().parse(lexer).unwrap();
     let fun = fun.as_any().downcast_ref::<FunctionDeclaration>().unwrap();
@@ -21,7 +21,7 @@ fn test_parse_function() {
         VariableScopeClass::Global,
     ));
 
-    let lexer = Lexer::new(
+    let lexer = StLexer::new(
         "function test_fun : VAR_GLOBAL a,b ,c: INT; END_VAR VAR Bx1: INT; END_VAR END_FUNCTION",
     );
 
@@ -43,7 +43,7 @@ fn test_parse_function() {
 
 fn hash_for_code<S: AsRef<str>>(s: S) -> Option<u64> {
     let parser = st::StFunctionParser::new();
-    let lexer = Lexer::new(s.as_ref());
+    let lexer = StLexer::new(s.as_ref());
     let fun = parser.parse(lexer).ok()?;
 
     let mut hasher = AstHasher::crc32();

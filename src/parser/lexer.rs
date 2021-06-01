@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::parser::Tok;
+use crate::parser::{Lexer, Tok};
 use std::any::Any;
 use std::collections::HashMap;
 use std::fmt::{self, Display, Formatter};
@@ -173,7 +173,7 @@ impl<'input> LexerBuffer<'input> {
     }
 }
 
-pub struct Lexer<'input> {
+pub struct StLexer<'input> {
     buffer: LexerBuffer<'input>,
     keywords: HashMap<StString, Tok>,
 }
@@ -189,7 +189,7 @@ macro_rules! keywords {
     }};
 }
 
-impl<'input> Lexer<'input> {
+impl<'input> StLexer<'input> {
     pub fn new(input: &'input str) -> Self {
         let keywords = keywords![
             Tok::BitAnd,
@@ -371,7 +371,7 @@ impl<'input> Lexer<'input> {
     }
 }
 
-impl<'input> Iterator for Lexer<'input> {
+impl<'input> Iterator for StLexer<'input> {
     type Item = LexerResult;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -403,9 +403,13 @@ impl<'input> Iterator for Lexer<'input> {
     }
 }
 
+impl<'input> Lexer for StLexer<'input> {
+    // fn next(&mut self) -> Result<(usize, Tok, usize), LexicalError> {}
+}
+
 #[cfg(test)]
 mod test {
-    use crate::parser::{BitValue, Lexer, LiteralValue, StString, Tok};
+    use crate::parser::*;
 
     #[test]
     fn test_st_string() {
@@ -425,7 +429,7 @@ mod test {
     #[test]
     fn test_st_keywords() {
         let s = "if abc";
-        let mut lexer = Lexer::new(s);
+        let mut lexer = StLexer::new(s);
 
         assert!(matches!(lexer.next(), Some(Ok((0, Tok::If, 2)))));
         assert!(matches!(lexer.next(), Some(Ok((3, Tok::Identifier(_), 6)))));
@@ -435,7 +439,7 @@ mod test {
     #[test]
     fn test_identifier_semicolon() {
         let s = "1 + a;";
-        let mut lexer = Lexer::new(s);
+        let mut lexer = StLexer::new(s);
 
         assert!(matches!(lexer.next(), Some(Ok((0, Tok::Literal(_), 1)))));
         assert!(matches!(lexer.next(), Some(Ok((2, Tok::Plus, 3)))));
@@ -446,7 +450,7 @@ mod test {
     #[test]
     fn test_zero_number() {
         let s = "a + 0;";
-        let mut lexer = Lexer::new(s);
+        let mut lexer = StLexer::new(s);
 
         assert!(matches!(lexer.next(), Some(Ok((0, Tok::Identifier(_), 1)))));
         assert!(matches!(lexer.next(), Some(Ok((2, Tok::Plus, 3)))));
