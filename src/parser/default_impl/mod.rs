@@ -49,16 +49,16 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         }
     }
 
-    fn next(&mut self) -> Result<Rc<LexerItem>, ParseError> {
+    fn next(&mut self) -> Result<Option<Rc<LexerItem>>, ParseError> {
         while self.next >= self.tokens.len() {
             match self.lexer.next() {
                 Some(Ok(item)) => self.tokens.push(Rc::new(item)),
                 Some(Err(e)) => return Err(ParseError::LexerError(e)),
-                None => return Err(ParseError::UnexpectedEnd),
+                None => return Ok(None),
             }
         }
 
-        let r = Ok(self.tokens[self.next].clone());
+        let r = Ok(Some(self.tokens[self.next].clone()));
         self.next += 1;
 
         r
@@ -70,13 +70,17 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         loop {
             match self.parse_statement() {
                 Ok(Some(stmt)) => statements.push(stmt),
-                Ok(None) => return Err(ParseError::InvalidToken(self.next)),
-                Err(ParseError::UnexpectedEnd) => {
-                    return Ok(Box::new(StatementList::new(statements)))
-                }
+                Ok(None) => break,
                 Err(e) => return Err(e),
             }
         }
+
+        match self.next()? {
+            None => {}
+            _ => return Err(ParseError::InvalidToken(self.next)),
+        }
+
+        Ok(Box::new(StatementList::new(statements)))
     }
 
     fn parse_declaration(&mut self) -> Result<Box<dyn Declaration>, ParseError> {
@@ -97,8 +101,8 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             }
         };
 
-        match &*self.next()? {
-            (_, Tok::Semicolon, _) => {}
+        match self.next()?.as_deref() {
+            Some((_, Tok::Semicolon, _)) => {}
             _ => {
                 self.next = pos;
                 return Ok(None);
@@ -135,8 +139,8 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             }
         };
 
-        match &*self.next()? {
-            (_, Tok::Assign, _) => {}
+        match self.next()?.as_deref() {
+            Some((_, Tok::Assign, _)) => {}
             _ => {
                 self.next = pos;
                 return Ok(None);
@@ -173,9 +177,10 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     fn parse_literal_expr(&mut self) -> ParseResult<Box<dyn Expression>> {
         let pos = self.next;
 
-        let (_, tok, _) = &*self.next()?;
-        match tok {
-            Tok::Literal(val) => return Ok(Some(Box::new(LiteralExpression::new(val.clone())))),
+        match self.next()?.as_deref() {
+            Some((_, Tok::Literal(val), _)) => {
+                return Ok(Some(Box::new(LiteralExpression::new(val.clone()))))
+            }
             _ => {}
         }
 
@@ -186,8 +191,8 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     fn parse_variable_expr(&mut self) -> ParseResult<Box<dyn Expression>> {
         let pos = self.next;
 
-        let var = match &*self.next()? {
-            (_, Tok::Identifier(ident), _) => Variable::new(ident.clone()),
+        let var = match self.next()?.as_deref() {
+            Some((_, Tok::Identifier(ident), _)) => Variable::new(ident.clone()),
             _ => {
                 self.next = pos;
                 return Ok(None);
