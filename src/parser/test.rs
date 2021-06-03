@@ -1,4 +1,3 @@
-use crate::ast::*;
 use crate::parser::*;
 use crate::utils::AstHasher;
 
@@ -6,7 +5,7 @@ use crate::utils::AstHasher;
 fn test_parse_function() {
     let lexer = StLexer::new("function test_fun : VAR_GLOBAL a,b ,c: INT; END_VAR END_FUNCTION");
 
-    let fun = st::DeclarationParser::new().parse(lexer).unwrap();
+    let fun = StDeclarationParser::new().parse(lexer).unwrap();
     let fun = fun.as_any().downcast_ref::<FunctionDeclaration>().unwrap();
 
     assert_eq!(fun.name(), "test_fun");
@@ -25,7 +24,7 @@ fn test_parse_function() {
         "function test_fun : VAR_GLOBAL a,b ,c: INT; END_VAR VAR Bx1: INT; END_VAR END_FUNCTION",
     );
 
-    let fun = st::DeclarationParser::new().parse(lexer).unwrap();
+    let fun = StDeclarationParser::new().parse(lexer).unwrap();
     let fun = fun.as_any().downcast_ref::<FunctionDeclaration>().unwrap();
 
     let variables = fun.variables();
@@ -42,7 +41,7 @@ fn test_parse_function() {
 }
 
 fn hash_for_code<S: AsRef<str>>(s: S) -> Option<u64> {
-    let parser = st::StFunctionParser::new();
+    let parser = StFunctionParser::new();
     let lexer = StLexer::new(s.as_ref());
     let fun = parser.parse(lexer).ok()?;
 

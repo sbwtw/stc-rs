@@ -20,7 +20,7 @@ fn main() {
     let ctx_id = app.id();
 
     let decl = StLexer::new("function test: int VAR a: INT; b: INT; END_VAR end_function");
-    let decl = parser::DeclarationParser::new().parse(decl).unwrap();
+    let decl = parser::StDeclarationParser::new().parse(decl).unwrap();
     let decl_id = app.add_declaration(decl);
 
     let body = StLexer::new("a.b := 2 < b OR c = d + NOT b;");

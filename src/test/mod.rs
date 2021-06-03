@@ -3,7 +3,7 @@ use std::fs;
 
 #[test]
 fn test_decl_parse() {
-    let parser = parser::DeclarationParser::new();
+    let parser = parser::StDeclarationParser::new();
 
     for entry in fs::read_dir("src/test/test_decl_parse").unwrap() {
         let f = entry.unwrap().path();
@@ -21,7 +21,7 @@ fn test_decl_parse() {
 #[ignore]
 fn test_decl_parse_text() {
     let lexer = StLexer::new("TYPE TestEnum: (E1, E2 := 10, E3) DINT; END_TYPE");
-    let parser = parser::DeclarationParser::new();
+    let parser = parser::StDeclarationParser::new();
 
     let r = parser.parse(lexer).unwrap();
     println!("{}", r.as_ref());

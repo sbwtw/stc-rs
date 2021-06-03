@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::parser::{Lexer, Tok};
+use crate::parser::Tok;
 use std::any::Any;
 use std::collections::HashMap;
 use std::fmt::{self, Display, Formatter};
@@ -401,10 +401,6 @@ impl<'input> Iterator for StLexer<'input> {
             (_, None) => None,
         }
     }
-}
-
-impl<'input> Lexer for StLexer<'input> {
-    // fn next(&mut self) -> Result<(usize, Tok, usize), LexicalError> {}
 }
 
 #[cfg(test)]

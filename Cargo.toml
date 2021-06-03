@@ -8,11 +8,15 @@ build = "src/build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-lalrpop-util = "*"
+lalrpop-util = { version = "*", optional = true }
 bitflags = "*"
 once_cell = "*"
 crc = "*"
 regex = "*"
 
 [build-dependencies]
-lalrpop = "*"
+lalrpop = { version = "*", optional = true }
+
+[features]
+default = ["use_lalrpop"]
+use_lalrpop = ["lalrpop", "lalrpop-util"]
