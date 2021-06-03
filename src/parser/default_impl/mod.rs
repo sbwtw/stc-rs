@@ -2,6 +2,13 @@ use crate::ast::*;
 use crate::parser::*;
 use std::rc::Rc;
 
+///
+/// A  ->  Aα | β
+///
+/// A  ->  βA'
+/// A' ->  αA' | ε
+///
+
 type ParseResult<T> = Result<Option<T>, ParseError>;
 
 pub struct StDeclarationParser {}
@@ -101,64 +108,107 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             }
         };
 
-        match self.next()?.as_deref() {
-            Some((_, Tok::Semicolon, _)) => {}
-            _ => {
-                self.next = pos;
-                return Ok(None);
-            }
+        if !matches!(self.next()?.as_deref(), Some((_, Tok::Semicolon, _))) {
+            self.next = pos;
+            return Ok(None);
         }
 
         Ok(Some(Box::new(ExprStatement::new(expr))))
     }
 
+    /// expr: expr ":=" BitOrExpr
+    ///     | BitOrExpr  
+    ///
+    /// expr: BitOrExpr expr'
+    /// expr': ":=" BitOrExpr expr' | ε
     fn parse_expression(&mut self) -> ParseResult<Box<dyn Expression>> {
-        if let Some(r) = self.parse_assign_expression()? {
-            return Ok(Some(r));
-        }
-
-        if let Some(r) = self.parse_bitor_expression()? {
-            return Ok(Some(r));
+        if let Some(bitor) = self.parse_bitor_expression()? {
+            return match self.parse_expression_fix()? {
+                Some(fix) => Ok(Some(Box::new(AssignExpression::new(bitor, fix)))),
+                None => Ok(Some(bitor)),
+            };
         }
 
         Ok(None)
+    }
+
+    fn parse_expression_fix(&mut self) -> ParseResult<Box<dyn Expression>> {
+        let pos = self.next;
+        if !matches!(self.next()?.as_deref(), Some((_, Tok::Assign, _))) {
+            self.next = pos;
+            return Ok(None);
+        }
+
+        let bitor = match self.parse_bitor_expression()? {
+            Some(bitor) => bitor,
+            _ => {
+                self.next = pos;
+                return Ok(None);
+            }
+        };
+
+        let pos = self.next;
+        match self.parse_expression_fix()? {
+            Some(rhs) => Ok(Some(Box::new(AssignExpression::new(bitor, rhs)))),
+            _ => {
+                self.next = pos;
+                Ok(Some(bitor))
+            }
+        }
     }
 
     fn parse_op_expression(&mut self) -> ParseResult<Box<dyn Expression>> {
         todo!()
     }
 
-    fn parse_assign_expression(&mut self) -> ParseResult<Box<dyn Expression>> {
+    /// bitor: bitor "|" xor
+    ///      | xor
+    ///
+    /// bitor: xor bitor'
+    /// bitor': "|" xor bitor' | ε
+    fn parse_bitor_expression(&mut self) -> ParseResult<Box<dyn Expression>> {
+        if let Some(xor) = self.parse_xor_expression()? {
+            return match self.parse_bitor_expression_fix()? {
+                Some(fix) => Ok(Some(Box::new(OperatorExpression::new(
+                    Tok::BitOr,
+                    vec![xor, fix],
+                )))),
+                None => Ok(Some(xor)),
+            };
+        }
+
+        Ok(None)
+    }
+
+    fn parse_bitor_expression_fix(&mut self) -> ParseResult<Box<dyn Expression>> {
         let pos = self.next;
+        if !matches!(self.next()?.as_deref(), Some((_, Tok::BitOr, _))) {
+            self.next = pos;
+            return Ok(None);
+        }
 
-        let lhs = match self.parse_variable_expr()? {
-            Some(var) => var,
-            None => {
-                self.next = pos;
-                return Ok(None);
-            }
-        };
-
-        match self.next()?.as_deref() {
-            Some((_, Tok::Assign, _)) => {}
+        let xor = match self.parse_xor_expression()? {
+            Some(xor) => xor,
             _ => {
                 self.next = pos;
                 return Ok(None);
             }
-        }
-
-        let rhs = match self.parse_expression()? {
-            Some(expr) => expr,
-            None => {
-                self.next = pos;
-                return Ok(None);
-            }
         };
 
-        Ok(Some(Box::new(AssignExpression::new(lhs, rhs))))
+        let pos = self.next;
+        match self.parse_bitor_expression_fix()? {
+            Some(rhs) => Ok(Some(Box::new(OperatorExpression::new(
+                Tok::BitOr,
+                vec![xor, rhs],
+            )))),
+            _ => {
+                self.next = pos;
+                Ok(Some(xor))
+            }
+        }
     }
 
-    fn parse_bitor_expression(&mut self) -> ParseResult<Box<dyn Expression>> {
+    fn parse_xor_expression(&mut self) -> ParseResult<Box<dyn Expression>> {
         self.parse_term_expr()
     }
 
