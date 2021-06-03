@@ -1,6 +1,7 @@
 use crate::ast::*;
 use crate::parser::*;
-use lalrpop_util::{lalrpop_mod, ParseError};
+use lalrpop_util::lalrpop_mod;
+
 lalrpop_mod!(st, "/parser/lalrpop_impl/st.rs");
 
 pub struct StDeclarationParser {
@@ -17,8 +18,8 @@ impl StDeclarationParser {
     pub fn parse<I: IntoIterator<Item = lexer::LexerResult>>(
         &self,
         lexer: I,
-    ) -> Result<Box<dyn Declaration>, ParseError<usize, token::Tok, LexicalError>> {
-        self.inner.parse(lexer)
+    ) -> Result<Box<dyn Declaration>, ParseError> {
+        self.inner.parse(lexer).map_err(Into::into)
     }
 }
 
@@ -36,7 +37,7 @@ impl StFunctionParser {
     pub fn parse<I: IntoIterator<Item = lexer::LexerResult>>(
         &self,
         lexer: I,
-    ) -> Result<Box<dyn Statement>, ParseError<usize, token::Tok, LexicalError>> {
-        self.inner.parse(lexer)
+    ) -> Result<Box<dyn Statement>, ParseError> {
+        self.inner.parse(lexer).map_err(Into::into)
     }
 }

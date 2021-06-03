@@ -136,7 +136,7 @@ impl AstNode for LiteralValue {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub enum LexicalError {
     UnexpectedCharacter(usize, char),
     UnexpectedEnd,

@@ -1,3 +1,4 @@
+use crate::ast::*;
 use crate::parser::*;
 use crate::utils::AstHasher;
 
