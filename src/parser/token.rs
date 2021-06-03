@@ -169,6 +169,13 @@ impl Tok {
             _ => false,
         }
     }
+
+    pub fn is_literal(&self) -> bool {
+        match self {
+            Tok::Literal(_) => true,
+            _ => false,
+        }
+    }
 }
 
 impl Into<String> for &Tok {

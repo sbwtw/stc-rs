@@ -10,6 +10,7 @@ mod test;
 #[derive(Clone, Debug)]
 pub enum ParseError {
     LexerError(LexicalError),
+    UnexpectedEnd,
     InvalidToken(usize),
     UnexpectedToken(usize, Vec<String>),
 }

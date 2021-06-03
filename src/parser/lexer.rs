@@ -8,6 +8,7 @@ use std::rc::Rc;
 use std::str::CharIndices;
 
 pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
+pub type LexerItem = (usize, Tok, usize);
 pub type LexerResult = Spanned<Tok, usize, LexicalError>;
 
 #[derive(Debug, Clone)]
