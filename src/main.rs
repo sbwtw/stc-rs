@@ -63,7 +63,7 @@ fn main() {
     //     }
     // }
 
-    let lexer = StLexer::new("a := b;");
+    let lexer = StLexer::new("a := b OR c;");
 
     // parse
     let mut r = StFunctionParser::new().parse(lexer).unwrap();

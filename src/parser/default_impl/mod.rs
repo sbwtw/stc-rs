@@ -116,10 +116,14 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         Ok(Some(Box::new(ExprStatement::new(expr))))
     }
 
-    /// expr: expr ":=" BitOrExpr
+    fn parse_op_expression(&mut self) -> ParseResult<Box<dyn Expression>> {
+        todo!()
+    }
+
+    /// Expr: Expr ":=" BitOrExpr
     ///     | BitOrExpr  
     ///
-    /// expr: BitOrExpr expr'
+    /// Expr: BitOrExpr expr'
     /// expr': ":=" BitOrExpr expr' | ε
     fn parse_expression(&mut self) -> ParseResult<Box<dyn Expression>> {
         if let Some(bitor) = self.parse_bitor_expression()? {
@@ -157,15 +161,11 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         }
     }
 
-    fn parse_op_expression(&mut self) -> ParseResult<Box<dyn Expression>> {
-        todo!()
-    }
-
-    /// bitor: bitor "|" xor
-    ///      | xor
+    /// BitOrExpr: BitOrExpr "|" XorExpr
+    ///      | XorExpr
     ///
-    /// bitor: xor bitor'
-    /// bitor': "|" xor bitor' | ε
+    /// BitOrExpr: XorExpr bitor'
+    /// bitor': "|" XorExpr bitor' | ε
     fn parse_bitor_expression(&mut self) -> ParseResult<Box<dyn Expression>> {
         if let Some(xor) = self.parse_xor_expression()? {
             return match self.parse_bitor_expression_fix()? {
@@ -208,7 +208,54 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         }
     }
 
+    /// XorExpr: XorExpr "XOR" BitAndExpr
+    ///        | BitAndExpr
+    ///
+    /// XorExpr: BitAndExpr xorexpr'
+    /// xorexpr': "XOR" BitAndExpr xorexpr' | ε
     fn parse_xor_expression(&mut self) -> ParseResult<Box<dyn Expression>> {
+        if let Some(bitand) = self.parse_bitand_expression()? {
+            return match self.parse_xor_expression_fix()? {
+                Some(fix) => Ok(Some(Box::new(OperatorExpression::new(
+                    Tok::Xor,
+                    vec![bitand, fix],
+                )))),
+                None => Ok(Some(bitand)),
+            };
+        }
+
+        Ok(None)
+    }
+
+    fn parse_xor_expression_fix(&mut self) -> ParseResult<Box<dyn Expression>> {
+        let pos = self.next;
+        if !matches!(self.next()?.as_deref(), Some((_, Tok::Xor, _))) {
+            self.next = pos;
+            return Ok(None);
+        }
+
+        let bitand = match self.parse_bitand_expression()? {
+            Some(bitand) => bitand,
+            _ => {
+                self.next = pos;
+                return Ok(None);
+            }
+        };
+
+        let pos = self.next;
+        match self.parse_xor_expression_fix()? {
+            Some(rhs) => Ok(Some(Box::new(OperatorExpression::new(
+                Tok::Xor,
+                vec![bitand, rhs],
+            )))),
+            _ => {
+                self.next = pos;
+                Ok(Some(bitand))
+            }
+        }
+    }
+
+    fn parse_bitand_expression(&mut self) -> ParseResult<Box<dyn Expression>> {
         self.parse_term_expr()
     }
 
