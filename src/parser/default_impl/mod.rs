@@ -10,7 +10,7 @@ use std::rc::Rc;
 ///
 
 macro_rules! match_all {
-    ($self: ident, $($fun:ident),*) => {
+    ($self: ident, $($fun:ident),+) => {
         {
             let mut temp_vec = Vec::new();
             let mut brk = false;
@@ -18,6 +18,7 @@ macro_rules! match_all {
                 if !brk {
                     let pos = $self.next;
                     match $self.$fun()? {
+                        // (statement start pos, statement result)
                         Some(val) => temp_vec.push(($self.next, Some(val))),
                         _ => {
                             $self.next = pos;
@@ -25,7 +26,7 @@ macro_rules! match_all {
                         },
                     }
                 }
-            )*
+            )+
 
             temp_vec
         }
@@ -33,8 +34,11 @@ macro_rules! match_all {
 }
 
 macro_rules! match_binary_op {
-    ($self: ident, $tok: expr, $($fun: ident), *) => {
-        let mut v = match_all!($self, $($fun),*);
+    ($self: ident, $tok: expr, $($fun: ident), +) => {
+        // try to match with functions
+        let mut v = match_all!($self, $($fun),+);
+
+        // binary operator
         if v.len() == 2 {
             let v0 = v[0].1.take().unwrap();
             let v1 = v[1].1.take().unwrap();
@@ -44,6 +48,7 @@ macro_rules! match_binary_op {
             ))));
         }
 
+        // single expression
         if v.len() == 1 {
             $self.next = v[0].0;
             let v = v[0].1.take().unwrap();
@@ -54,8 +59,10 @@ macro_rules! match_binary_op {
     }
 }
 
+/// Parser functions result
 type ParseResult<T> = Result<Option<T>, ParseError>;
 
+/// declaration parser wrapper
 pub struct StDeclarationParser {}
 
 impl StDeclarationParser {
@@ -71,6 +78,7 @@ impl StDeclarationParser {
     }
 }
 
+/// function parser wrapper
 pub struct StFunctionParser {}
 
 impl StFunctionParser {
@@ -86,9 +94,12 @@ impl StFunctionParser {
     }
 }
 
+/// LL(*) parser implementation
 struct DefaultParserImpl<I: Iterator<Item = LexerResult>> {
     lexer: I,
+    /// next token index
     next: usize,
+    /// save all tokens, because we need to backtracking
     tokens: Vec<Rc<LexerItem>>,
 }
 
@@ -101,6 +112,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         }
     }
 
+    /// get next token from self.tokens[self.next], if self.next is not exist, get token from lexer.
     fn next(&mut self) -> Result<Option<Rc<LexerItem>>, ParseError> {
         while self.next >= self.tokens.len() {
             match self.lexer.next() {
@@ -116,6 +128,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         r
     }
 
+    /// parse a function
     fn parse_function(&mut self) -> Result<Box<dyn Statement>, ParseError> {
         let mut statements: Vec<_> = vec![];
 
@@ -135,10 +148,12 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         Ok(Box::new(StatementList::new(statements)))
     }
 
+    /// parse a declaration
     fn parse_declaration(&mut self) -> Result<Box<dyn Declaration>, ParseError> {
         todo!()
     }
 
+    /// parse single statement
     fn parse_statement(&mut self) -> ParseResult<Box<dyn Statement>> {
         self.parse_expr_statement()
     }
@@ -250,23 +265,12 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     /// XorExpr: BitAndExpr xorexpr'
     /// xorexpr': "XOR" BitAndExpr xorexpr' | ε
     fn parse_xor_expression(&mut self) -> ParseResult<Box<dyn Expression>> {
-        let mut v = match_all!(self, parse_bitand_expression, parse_xor_expression_fix);
-        if v.len() == 2 {
-            let v0 = v[0].1.take().unwrap();
-            let v1 = v[1].1.take().unwrap();
-            return Ok(Some(Box::new(OperatorExpression::new(
-                Tok::Xor,
-                vec![v0, v1],
-            ))));
-        }
-
-        if v.len() == 1 {
-            self.next = v[0].0;
-            let v = v[0].1.take().unwrap();
-            return Ok(Some(v));
-        }
-
-        Ok(None)
+        match_binary_op!(
+            self,
+            Tok::Xor,
+            parse_bitand_expression,
+            parse_xor_expression_fix
+        );
     }
 
     fn parse_xor_expression_fix(&mut self) -> ParseResult<Box<dyn Expression>> {
@@ -279,8 +283,51 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         self.parse_xor_expression()
     }
 
+    /// BitAndExpr: BitAndExpr "&" EquExpr
+    ///        | EquExpr
+    ///
+    /// BitAndExpr: EquExpr bitandexpr'
+    /// bitandexpr': "&" EquExpr bitandexpr' | ε
     fn parse_bitand_expression(&mut self) -> ParseResult<Box<dyn Expression>> {
+        match_binary_op!(
+            self,
+            Tok::BitAnd,
+            parse_equ_expr,
+            parse_bitand_expression_fix
+        );
+    }
+
+    fn parse_bitand_expression_fix(&mut self) -> ParseResult<Box<dyn Expression>> {
+        let pos = self.next;
+        if !matches!(self.next()?.as_deref(), Some((_, Tok::BitAnd, _))) {
+            self.next = pos;
+            return Ok(None);
+        }
+
+        self.parse_bitand_expression()
+    }
+
+    /// EquExpr: EquExpr EquOp CmpExpr
+    ///     | CmpExpr
+    ///
+    /// EquExpr: CmpExpr equexpr'
+    /// equexpr': EquOp CmpExpr equexpr' | ε
+    fn parse_equ_expr(&mut self) -> ParseResult<Box<dyn Expression>> {
         self.parse_term_expr()
+    }
+
+    fn parse_equ_op(&mut self) -> ParseResult<Tok> {
+        let pos = self.next;
+
+        match self.next()?.as_deref() {
+            Some((_, tok @ Tok::Equal, _)) | Some((_, tok @ Tok::NotEqual, _)) => {
+                Ok(Some(tok.clone()))
+            }
+            _ => {
+                self.next = pos;
+                Ok(None)
+            }
+        }
     }
 
     fn parse_term_expr(&mut self) -> ParseResult<Box<dyn Expression>> {
