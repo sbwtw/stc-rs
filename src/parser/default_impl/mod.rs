@@ -316,11 +316,11 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let pos = self.next;
 
         match self.parse_cmp_expr()? {
-            Some(cmp) => match self.parse_equ_expr_fix()? {
+            Some(equ) => match self.parse_equ_expr_fix()? {
                 Some((tok, fix)) => {
-                    Ok(Some(Box::new(OperatorExpression::new(tok, vec![cmp, fix]))))
+                    Ok(Some(Box::new(OperatorExpression::new(tok, vec![equ, fix]))))
                 }
-                None => Ok(Some(cmp)),
+                None => Ok(Some(equ)),
             },
             None => {
                 self.next = pos;
@@ -375,7 +375,76 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         }
     }
 
+    /// CmpExpr: CmpExpr CmpOp OpExpr
+    ///     | OpExpr
+    ///
+    /// CmpExpr: OpExpr cmpexpr'
+    /// cmpexpr': CmpOp OpExpr cmpexpr' | ε
     fn parse_cmp_expr(&mut self) -> ParseResult<Box<dyn Expression>> {
+        let pos = self.next;
+
+        match self.parse_op_expr()? {
+            Some(cmp) => match self.parse_cmp_expr_fix()? {
+                Some((tok, fix)) => {
+                    Ok(Some(Box::new(OperatorExpression::new(tok, vec![cmp, fix]))))
+                }
+                None => Ok(Some(cmp)),
+            },
+            None => {
+                self.next = pos;
+                Ok(None)
+            }
+        }
+    }
+
+    fn parse_cmp_expr_fix(&mut self) -> ParseResult<(Tok, Box<dyn Expression>)> {
+        let pos = self.next;
+
+        let current_tok = match self.parse_cmp_op()? {
+            Some(tok) => tok,
+            _ => {
+                self.next = pos;
+                return Ok(None);
+            }
+        };
+
+        let op_expr = match self.parse_op_expr()? {
+            Some(cmp) => cmp,
+            _ => {
+                self.next = pos;
+                return Ok(None);
+            }
+        };
+
+        let pos = self.next;
+        match self.parse_cmp_expr_fix()? {
+            Some((tok, fix)) => {
+                let tail = Box::new(OperatorExpression::new(tok, vec![op_expr, fix]));
+                Ok(Some((current_tok, tail)))
+            }
+            _ => {
+                self.next = pos;
+                Ok(Some((current_tok, op_expr)))
+            }
+        }
+    }
+
+    fn parse_cmp_op(&mut self) -> ParseResult<Tok> {
+        let pos = self.next;
+
+        match self.next()?.as_deref() {
+            Some((_, tok @ Tok::Greater, _))
+            | Some((_, tok @ Tok::GreaterEqual, _))
+            | Some((_, tok @ Tok::Less, _))
+            | Some((_, tok @ Tok::LessEqual, _)) => Ok(Some(tok.clone())),
+            _ => {
+                self.next = pos;
+                Ok(None)
+            }
+        }
+    }
+
+    fn parse_op_expr(&mut self) -> ParseResult<Box<dyn Expression>> {
         self.parse_term_expr()
     }
 

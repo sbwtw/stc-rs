@@ -63,7 +63,7 @@ fn main() {
     //     }
     // }
 
-    let lexer = StLexer::new("a := b<>a;");
+    let lexer = StLexer::new("a := 中文a = a_哈哈 < a;");
 
     // parse
     let mut r = StFunctionParser::new().parse(lexer).unwrap();
