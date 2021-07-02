@@ -4,6 +4,7 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::fmt::{self, Display, Formatter};
 use std::hash::{Hash, Hasher};
+use std::hint::unreachable_unchecked;
 use std::rc::Rc;
 use std::str::CharIndices;
 
@@ -174,9 +175,22 @@ impl<'input> LexerBuffer<'input> {
     }
 }
 
+pub struct StLexerOptions {
+    allow_unicode_identifier: bool,
+}
+
+impl Default for StLexerOptions {
+    fn default() -> Self {
+        Self {
+            allow_unicode_identifier: true,
+        }
+    }
+}
+
 pub struct StLexer<'input> {
     buffer: LexerBuffer<'input>,
     keywords: HashMap<StString, Tok>,
+    options: StLexerOptions,
 }
 
 macro_rules! keywords {
@@ -223,6 +237,7 @@ impl<'input> StLexer<'input> {
         Self {
             buffer: LexerBuffer::new(input),
             keywords,
+            options: Default::default(),
         }
     }
 
@@ -317,9 +332,7 @@ impl<'input> StLexer<'input> {
 
         loop {
             match self.buffer.next() {
-                (_, Some(c))
-                    if c.is_ascii_alphabetic() || c.is_ascii_alphanumeric() || c == '_' =>
-                {
+                (_, Some(c)) if self.is_valid_identifier_character(c) => {
                     str.push(c);
                 }
                 (n, x) => {
@@ -370,6 +383,22 @@ impl<'input> StLexer<'input> {
 
         return Tok::Identifier(st_str);
     }
+
+    fn is_valid_identifier_character(&self, ch: char) -> bool {
+        if self.options.allow_unicode_identifier {
+            ch.is_alphabetic() || ch.is_ascii_alphanumeric() || matches!(ch, '_')
+        } else {
+            ch.is_ascii_alphabetic() || ch.is_ascii_alphanumeric() || matches!(ch, '_')
+        }
+    }
+
+    fn is_valid_identifier_first_character(&self, ch: char) -> bool {
+        if self.options.allow_unicode_identifier {
+            ch.is_alphabetic() || matches!(ch, '_')
+        } else {
+            ch.is_ascii_alphabetic() || matches!(ch, '_')
+        }
+    }
 }
 
 impl<'input> Iterator for StLexer<'input> {
@@ -395,7 +424,7 @@ impl<'input> Iterator for StLexer<'input> {
             | (i, Some(c @ '='))
             | (i, Some(c @ '*')) => self.parse_second_char(i, c),
             (start, Some(c)) if c.is_ascii_digit() => self.parse_number(start, c),
-            (start, Some(c)) if c.is_ascii_alphabetic() || c == '_' => {
+            (start, Some(c)) if self.is_valid_identifier_first_character(c) => {
                 self.parse_identifier(start, c)
             }
             (i, Some(c)) => Some(Err(LexicalError::UnexpectedCharacter(i, c))),
@@ -456,5 +485,20 @@ mod test {
             Some(Ok((4, Tok::Literal(LiteralValue::Bit(BitValue::Zero)), 5)))
         ));
         assert!(matches!(lexer.next(), Some(Ok((5, Tok::Semicolon, 6)))));
+    }
+
+    #[test]
+    fn test_unicode_identifier() {
+        let s = "中文 + 中文_1;";
+        let mut lexer = StLexer::new(s);
+
+        assert!(matches!(lexer.next(), Some(Ok((0, Tok::Identifier(_), 6)))));
+        assert!(matches!(lexer.next(), Some(Ok((7, Tok::Plus, 8)))));
+        assert!(matches!(
+            lexer.next(),
+            Some(Ok((9, Tok::Identifier(_), 17)))
+        ));
+        assert!(matches!(lexer.next(), Some(Ok((17, Tok::Semicolon, 18)))));
+        assert!(matches!(lexer.next(), None));
     }
 }
