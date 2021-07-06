@@ -1,5 +1,6 @@
 use crate::ast::*;
 use crate::parser::*;
+use crc::crc16::make_table;
 use std::rc::Rc;
 
 ///
@@ -78,6 +79,13 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         r
     }
 
+    fn next_token(&mut self) -> Result<Rc<LexerItem>, ParseError> {
+        match self.next()? {
+            Some(x) => Ok(x),
+            None => Err(ParseError::UnexpectedEnd),
+        }
+    }
+
     /// parse a function
     fn parse_function(&mut self) -> Result<Box<dyn Statement>, ParseError> {
         let mut statements: Vec<_> = vec![];
@@ -100,7 +108,104 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
     /// parse a declaration
     fn parse_declaration(&mut self) -> Result<Box<dyn Declaration>, ParseError> {
+        match self.except_one_of(&[Tok::Type, Tok::Function, Tok::Program])? {
+            Tok::Type => {
+                let type_decl = self.parse_type_declaration()?;
+                if type_decl.is_none() {
+                    todo!()
+                }
+
+                let _ = self.except_one_of(&[Tok::EndType])?;
+                Ok(type_decl.unwrap())
+            }
+            tok @ Tok::Function | tok @ Tok::Program => {
+                let name = self.except_identifier()?;
+                let _ = self.except_one_of(&[Tok::Colon]);
+
+                if matches!(tok, &Tok::Function) {
+                    let _ = self.except_one_of(&[Tok::EndFunction]);
+                    // Ok(Box::new(FunctionDeclaration::new(name, DeclareClass::Function, )))
+                } else {
+                    let _ = self.except_one_of(&[Tok::EndProgram]);
+                }
+
+                todo!()
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    fn except_identifier(&mut self) -> Result<StString, ParseError> {
+        match &*self.next_token()? {
+            (_, Tok::Identifier(ident), _) => Ok(ident.clone()),
+            (pos, _, _) => Err(ParseError::InvalidToken(*pos)),
+        }
+    }
+
+    fn except_one_of<'a>(&mut self, tokens: &'a [Tok]) -> Result<&'a Tok, ParseError> {
+        let (pos, token, _) = &*self.next_token()?;
+        for tok in tokens {
+            if matches!(token, tok) {
+                return Ok(tok);
+            }
+        }
+
+        Err(ParseError::expect_tokens(*pos, tokens))
+    }
+
+    fn parse_type(&mut self) -> ParseResult<Rc<Box<dyn Type>>> {
+        let pos = self.next;
+
+        match &*self.next_token()? {
+            (_, Tok::Int, _) => Ok(Some(Rc::new(Box::new(IntType::new())))),
+            (_, Tok::Bool, _) => Ok(Some(Rc::new(Box::new(BoolType::new())))),
+            (_, Tok::Identifier(name), _) => {
+                Ok(Some(Rc::new(Box::new(UserType::from_name(name.clone())))))
+            }
+            _ => {
+                self.next = pos;
+                Ok(None)
+            }
+        }
+    }
+
+    fn parse_type_declaration(&mut self) -> ParseResult<Box<dyn Declaration>> {
         todo!()
+    }
+
+    fn parse_variable_declare_factor(&mut self) -> ParseResult<Vec<Rc<Variable>>> {
+        let mut v = vec![];
+        while let Some(mut x) = self.parse_variable_group()? {
+            v.append(&mut x);
+        }
+
+        Ok(Some(v))
+    }
+
+    fn parse_variable_group(&mut self) -> ParseResult<Vec<Rc<Variable>>> {
+        todo!()
+    }
+
+    fn except_variable_group_start(&mut self) -> Result<&Tok, ParseError> {
+        self.except_one_of(&[
+            Tok::Var,
+            Tok::VarGlobal,
+            Tok::VarInput,
+            Tok::VarInOut,
+            Tok::VarOutput,
+            Tok::VarTemp,
+            Tok::VarStat,
+        ])
+    }
+
+    fn except_variable_declare_group_annotation(
+        &mut self,
+    ) -> Result<VariableAnnotationFlags, ParseError> {
+        Ok(match self.except_one_of(&[Tok::Retain, Tok::Persistent])? {
+            Tok::Retain => VariableAnnotationFlags::RETAIN,
+            Tok::Persistent => VariableAnnotationFlags::PERSISTENT,
+            _ => unreachable!(),
+        })
     }
 
     /// parse single statement
