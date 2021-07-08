@@ -79,6 +79,7 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
             LiteralValue::LInt(x) => self.write(format_args!("{:?}", x)),
             LiteralValue::ULInt(x) => self.write(format_args!("{:?}", x)),
             LiteralValue::Real(x) => self.write(format_args!("{:?}", x)),
+            LiteralValue::LReal(x) => self.write(format_args!("{:?}", x)),
             LiteralValue::String(x) => self.write(format_args!("{:?}", x)),
         }
     }

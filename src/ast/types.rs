@@ -31,6 +31,7 @@ builtin_type_impl!(struct UDIntType, TypeClass::UDInt);
 builtin_type_impl!(struct LIntType, TypeClass::LInt);
 builtin_type_impl!(struct ULIntType, TypeClass::ULInt);
 builtin_type_impl!(struct RealType, TypeClass::Real);
+builtin_type_impl!(struct LRealType, TypeClass::LReal);
 builtin_type_impl!(struct StringType, TypeClass::String);
 
 #[derive(Debug, Clone)]

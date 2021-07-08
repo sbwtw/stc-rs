@@ -63,11 +63,11 @@ fn main() {
     //     }
     // }
 
-    let lexer = StLexer::new("a := 中文a = a_哈哈 < a;");
+    let lexer = StLexer::new("function x: INT VAR a: INT; END_VAR end_function");
 
     // parse
-    let mut r = StFunctionParser::new().parse(lexer).unwrap();
+    let mut r = StDeclarationParser::new().parse(lexer).unwrap();
 
     println!("{:?}", r);
-    println!("{}", r.as_ast_node());
+    // println!("{}", r.as_ast_node());
 }

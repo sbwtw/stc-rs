@@ -1,7 +1,7 @@
 use crate::parser::*;
 use std::fmt::{self, Display, Formatter};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Tok {
     /// '.'
     Access,

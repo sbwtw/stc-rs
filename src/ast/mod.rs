@@ -26,8 +26,7 @@ mod operator_expression;
 pub use operator_expression::OperatorExpression;
 
 mod variable;
-pub use variable::Variable;
-pub(crate) use variable::VariableDeclareGroup;
+pub use variable::{Variable, VariableDeclareGroup};
 
 mod assign_expression;
 pub use assign_expression::AssignExpression;

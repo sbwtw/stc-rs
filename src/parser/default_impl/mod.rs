@@ -1,6 +1,5 @@
 use crate::ast::*;
 use crate::parser::*;
-use crc::crc16::make_table;
 use std::rc::Rc;
 
 ///
@@ -119,17 +118,31 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
                 Ok(type_decl.unwrap())
             }
             tok @ Tok::Function | tok @ Tok::Program => {
+                // name ':'
                 let name = self.except_identifier()?;
-                let _ = self.except_one_of(&[Tok::Colon]);
+                let _ = self.except_one_of(&[Tok::Colon])?;
 
-                if matches!(tok, &Tok::Function) {
-                    let _ = self.except_one_of(&[Tok::EndFunction]);
-                    // Ok(Box::new(FunctionDeclaration::new(name, DeclareClass::Function, )))
+                // match possible return type
+                let ret_type = self.parse_type()?;
+
+                // match possible var decl factor
+                let vars = self.parse_variable_declare_factor()?;
+
+                // type class
+                let class = if matches!(tok, &Tok::Function) {
+                    let _ = self.except_one_of(&[Tok::EndFunction])?;
+                    DeclareClass::Function
                 } else {
-                    let _ = self.except_one_of(&[Tok::EndProgram]);
-                }
+                    let _ = self.except_one_of(&[Tok::EndProgram])?;
+                    DeclareClass::Program
+                };
 
-                todo!()
+                Ok(Box::new(FunctionDeclaration::new(
+                    name,
+                    class,
+                    ret_type,
+                    vars.unwrap_or(vec![]),
+                )))
             }
             _ => unreachable!(),
         }
@@ -145,7 +158,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     fn except_one_of<'a>(&mut self, tokens: &'a [Tok]) -> Result<&'a Tok, ParseError> {
         let (pos, token, _) = &*self.next_token()?;
         for tok in tokens {
-            if matches!(token, tok) {
+            if tok == token {
                 return Ok(tok);
             }
         }
@@ -170,7 +183,31 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     fn parse_type_declaration(&mut self) -> ParseResult<Box<dyn Declaration>> {
-        todo!()
+        let name = self.except_identifier()?;
+        let _ = self.except_one_of(&[Tok::Colon])?;
+
+        let pos = self.next;
+        if let Some(alias) = self.parse_type()? {
+            // ';'
+            let _ = self.except_one_of(&[Tok::Semicolon])?;
+
+            return Ok(Some(Box::new(AliasDeclare::new(name, alias))));
+        } else {
+            self.next = pos;
+        }
+
+        // enum decl
+        let tok = self.next_token()?;
+        if matches!(&*tok, (_, Tok::LeftParentheses, _)) {
+            return todo!();
+        }
+
+        // struct decl
+        if matches!(&*tok, (_, Tok::Struct, _)) {
+            return todo!();
+        }
+
+        Err(ParseError::UnexpectedToken(tok.as_ref().0, vec![]))
     }
 
     fn parse_variable_declare_factor(&mut self) -> ParseResult<Vec<Rc<Variable>>> {
@@ -183,29 +220,103 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     fn parse_variable_group(&mut self) -> ParseResult<Vec<Rc<Variable>>> {
-        todo!()
+        let pos = self.next;
+        let group_type = match self.parse_variable_group_start()? {
+            Some(x) => x,
+            None => {
+                self.next = pos;
+                return Ok(None);
+            }
+        };
+        let annotation = self.parse_variable_declare_group_annotation()?;
+        let var_list = self.except_variable_declare_list()?;
+        let _ = self.except_one_of(&[Tok::EndVar])?;
+
+        Ok(Some(VariableDeclareGroup::new(
+            group_type, annotation, var_list,
+        )))
     }
 
-    fn except_variable_group_start(&mut self) -> Result<&Tok, ParseError> {
-        self.except_one_of(&[
-            Tok::Var,
-            Tok::VarGlobal,
-            Tok::VarInput,
-            Tok::VarInOut,
-            Tok::VarOutput,
-            Tok::VarTemp,
-            Tok::VarStat,
-        ])
+    fn parse_variable_group_start(&mut self) -> ParseResult<VariableScopeClass> {
+        let x = match &*self.next_token()? {
+            (_, Tok::Var, _) => VariableScopeClass::None,
+            (_, Tok::VarGlobal, _) => VariableScopeClass::Global,
+            (_, Tok::VarInput, _) => VariableScopeClass::Input,
+            (_, Tok::VarInOut, _) => VariableScopeClass::InOut,
+            (_, Tok::VarOutput, _) => VariableScopeClass::Output,
+            (_, Tok::VarTemp, _) => VariableScopeClass::Temp,
+            (_, Tok::VarStat, _) => VariableScopeClass::Static,
+            _ => return Ok(None),
+        };
+
+        Ok(Some(x))
     }
 
-    fn except_variable_declare_group_annotation(
-        &mut self,
-    ) -> Result<VariableAnnotationFlags, ParseError> {
-        Ok(match self.except_one_of(&[Tok::Retain, Tok::Persistent])? {
+    fn parse_variable_declare_group_annotation(&mut self) -> ParseResult<VariableAnnotationFlags> {
+        let pos = self.next;
+        let x = match (&*self.next_token()?).1 {
             Tok::Retain => VariableAnnotationFlags::RETAIN,
             Tok::Persistent => VariableAnnotationFlags::PERSISTENT,
-            _ => unreachable!(),
-        })
+            _ => {
+                self.next = pos;
+                return Ok(None);
+            }
+        };
+
+        let pos = self.next;
+        let y = match (x, &*self.next_token()?) {
+            (VariableAnnotationFlags::RETAIN, (_, Tok::Persistent, _))
+            | (VariableAnnotationFlags::PERSISTENT, (_, Tok::Retain, _)) => {
+                VariableAnnotationFlags::RETAINPERSISTENT
+            }
+            _ => {
+                self.next = pos;
+                x
+            }
+        };
+
+        Ok(Some(y))
+    }
+
+    fn except_variable_declare_list(&mut self) -> Result<Vec<Rc<Variable>>, ParseError> {
+        let mut variables = vec![];
+
+        while let Some(mut v) = self.expect_single_line_variable_declare()? {
+            variables.append(&mut v);
+        }
+
+        Ok(variables)
+    }
+
+    fn expect_single_line_variable_declare(&mut self) -> ParseResult<Vec<Rc<Variable>>> {
+        let pos = self.next;
+        let mut name_list = match &*self.next_token()? {
+            (_, Tok::Identifier(s), _) => vec![s.to_owned()],
+            _ => {
+                self.next = pos;
+                return Ok(None);
+            }
+        };
+
+        loop {
+            let pos = self.next;
+            if !matches!(&*self.next_token()?, (_, Tok::Comma, _)) {
+                self.next = pos;
+                break;
+            }
+
+            name_list.push(self.except_identifier()?);
+        }
+
+        let _ = self.except_one_of(&[Tok::Colon])?;
+        let ty = match self.parse_type()? {
+            Some(ty) => ty,
+            // TODO: expect type
+            _ => return Err(ParseError::UnexpectedEnd),
+        };
+        let _ = self.except_one_of(&[Tok::Semicolon])?;
+
+        Ok(Some(Variable::multiple_variable_with_type(name_list, ty)))
     }
 
     /// parse single statement

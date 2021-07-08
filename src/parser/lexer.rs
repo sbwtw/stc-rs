@@ -4,7 +4,6 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::fmt::{self, Display, Formatter};
 use std::hash::{Hash, Hasher};
-use std::hint::unreachable_unchecked;
 use std::rc::Rc;
 use std::str::CharIndices;
 
@@ -63,13 +62,13 @@ impl Hash for StString {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum BitValue {
     Zero,
     One,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum LiteralValue {
     Bit(BitValue),
     Bool(bool),
@@ -81,7 +80,8 @@ pub enum LiteralValue {
     UDInt(u32),
     LInt(i64),
     ULInt(u64),
-    Real(f32),
+    Real(String),
+    LReal(String),
     String(String),
 }
 
@@ -99,6 +99,7 @@ impl LiteralValue {
             LiteralValue::LInt(_) => Box::new(LIntType::new()),
             LiteralValue::ULInt(_) => Box::new(ULIntType::new()),
             LiteralValue::Real(_) => Box::new(RealType::new()),
+            LiteralValue::LReal(_) => Box::new(LRealType::new()),
             LiteralValue::String(_) => Box::new(StringType::new()),
         }
     }
@@ -119,6 +120,7 @@ impl Display for LiteralValue {
             LiteralValue::LInt(x) => write!(f, "{}#{}", Tok::LInt, x),
             LiteralValue::ULInt(x) => write!(f, "{}#{}", Tok::ULInt, x),
             LiteralValue::Real(x) => write!(f, "{}#{}", Tok::Real, x),
+            LiteralValue::LReal(x) => write!(f, "{}#{}", Tok::LReal, x),
             LiteralValue::String(s) => write!(f, "{}#{}", Tok::String, s),
         }
     }
