@@ -40,34 +40,33 @@ fn main() {
     //     );
     //     analyzer.analyze(f.as_ast_node_mut(), scope);
     //
-    //     // graphviz
-    //     // dump dot file
-    //     {
-    //         let mut out = OpenOptions::new()
-    //             .write(true)
-    //             .create(true)
-    //             .truncate(true)
-    //             .open("test.dot")
-    //             .unwrap();
-    //
-    //         let mut graphviz = utils::GraphvizExporter::new(&mut out);
-    //         graphviz.plot(f.as_ast_node());
-    //     }
-    //
-    //     // convert to svg
-    //     {
-    //         Command::new("dot")
-    //             .args(&["-Tsvg", "test.dot", "-o", "test.svg"])
-    //             .status()
-    //             .expect("failed.");
-    //     }
-    // }
 
-    let lexer = StLexer::new("function x: INT VAR a: INT; END_VAR end_function");
+    let lexer = StLexer::new("2-3.0/3; -1+2**3;");
 
     // parse
-    let mut r = StDeclarationParser::new().parse(lexer).unwrap();
+    let mut r = StFunctionParser::new().parse(lexer).unwrap();
 
     println!("{:?}", r);
-    // println!("{}", r.as_ast_node());
+
+    // graphviz
+    // dump dot file
+    {
+        let mut out = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open("test.dot")
+            .unwrap();
+
+        let mut graphviz = utils::GraphvizExporter::new(&mut out);
+        graphviz.plot(r.as_ast_node());
+    }
+
+    // convert to svg
+    {
+        Command::new("dot")
+            .args(&["-Tsvg", "test.dot", "-o", "test.svg"])
+            .status()
+            .expect("failed.");
+    }
 }

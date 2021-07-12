@@ -371,13 +371,11 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         if let Some(bitor) = self.parse_bitor_expression()? {
             return match self.parse_expression_fix()? {
                 Some(fix) => Ok(Some(Box::new(AssignExpression::new(bitor, fix)))),
-                None => {
-                    self.next = pos;
-                    Ok(Some(bitor))
-                }
+                None => Ok(Some(bitor)),
             };
         }
 
+        self.next = pos;
         Ok(None)
     }
 
@@ -801,7 +799,22 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             return Ok(None);
         }
 
-        self.parse_power_expr()
+        let unary = match self.parse_unary_factor()? {
+            Some(unary) => unary,
+            _ => {
+                self.next = pos;
+                return Ok(None);
+            }
+        };
+
+        let pos = self.next;
+        if let Some(fix) = self.parse_power_expr_fix()? {
+            let tail = Box::new(OperatorExpression::new(Tok::Power, vec![unary, fix]));
+            Ok(Some(tail))
+        } else {
+            self.next = pos;
+            Ok(Some(unary))
+        }
     }
 
     /// UnaryFactor: UnaryOp CompoFactor
@@ -809,7 +822,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     fn parse_unary_factor(&mut self) -> ParseResult<Box<dyn Expression>> {
         let pos = self.next;
         let unary_op = self.parse_unary_op()?;
-        let compo_factor = self.parse_factor()?;
+        let compo_factor = self.parse_compo_factor()?;
 
         match (unary_op, compo_factor) {
             (Some(op), Some(factor)) => {
@@ -867,7 +880,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             return Ok(None);
         }
 
-        self.parse_power_expr()
+        self.parse_compo_factor()
     }
 
     fn parse_term_expr(&mut self) -> ParseResult<Box<dyn Expression>> {
