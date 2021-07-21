@@ -182,11 +182,13 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         }
     }
 
+    /// TypeDeclaration: Enum/Alias/Struct
     fn parse_type_declaration(&mut self) -> ParseResult<Box<dyn Declaration>> {
         let name = self.except_identifier()?;
         let _ = self.except_one_of(&[Tok::Colon])?;
 
         let pos = self.next;
+        // alias decl
         if let Some(alias) = self.parse_type()? {
             // ';'
             let _ = self.except_one_of(&[Tok::Semicolon])?;
@@ -199,7 +201,36 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         // enum decl
         let tok = self.next_token()?;
         if matches!(&*tok, (_, Tok::LeftParentheses, _)) {
-            return todo!();
+            let mut fields = vec![];
+
+            // first field
+            if let Some(field) = self.parse_enum_field_decl()? {
+                fields.push(field);
+
+                // possible ',' and next field
+                loop {
+                    let pos = self.next;
+                    if !matches!(&*self.next_token()?, (_, Tok::Comma, _)) {
+                        self.next = pos;
+                        break;
+                    }
+
+                    match self.parse_enum_field_decl()? {
+                        Some(field) => fields.push(field),
+                        // TODO: error handle
+                        _ => return Err(ParseError::UnexpectedEnd),
+                    }
+                }
+            }
+
+            // ')'
+            let _ = self.except_one_of(&[Tok::RightParentheses])?;
+            // possible enum type
+            let enum_ty = self.parse_type()?;
+            // ';'
+            let _ = self.except_one_of(&[Tok::Semicolon])?;
+
+            return Ok(Some(Box::new(EnumDeclare::new(name, enum_ty, fields))));
         }
 
         // struct decl
@@ -208,6 +239,23 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         }
 
         Err(ParseError::UnexpectedToken(tok.as_ref().0, vec![]))
+    }
+
+    fn parse_enum_field_decl(&mut self) -> ParseResult<EnumField> {
+        let field_name = self.except_identifier()?;
+        let pos = self.next;
+
+        if matches!(&*self.next_token()?, (_, Tok::Assign, _)) {
+            match &*self.next_token()? {
+                (_, Tok::Literal(literal), _) => {
+                    return Ok(Some(EnumField::new(field_name, Some(literal.clone()))));
+                }
+                _ => {}
+            }
+        }
+
+        self.next = pos;
+        return Ok(Some(EnumField::new(field_name, None)));
     }
 
     fn parse_variable_declare_factor(&mut self) -> ParseResult<Vec<Rc<Variable>>> {

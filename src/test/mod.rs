@@ -7,12 +7,12 @@ fn test_decl_parse() {
 
     for entry in fs::read_dir("src/test/test_decl_parse").unwrap() {
         let f = entry.unwrap().path();
-        let code = fs::read_to_string(f).unwrap();
+        let code = fs::read_to_string(&f).unwrap();
 
         let lexer = StLexer::new(&code);
         match parser.parse(lexer) {
             Ok(_) => {}
-            Err(e) => panic!("{:?}", e),
+            Err(e) => panic!("{}: {:?}", f.display(), e),
         }
     }
 }
