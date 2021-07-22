@@ -87,22 +87,19 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
     /// parse a function
     fn parse_function(&mut self) -> Result<Box<dyn Statement>, ParseError> {
-        let mut statements: Vec<_> = vec![];
+        let stmts = match self.parse_statement_list()? {
+            Some(stmts) => stmts,
+            // TODO: error type
+            _ => return Err(ParseError::UnexpectedEnd),
+        };
 
-        loop {
-            match self.parse_statement() {
-                Ok(Some(stmt)) => statements.push(stmt),
-                Ok(None) => break,
-                Err(e) => return Err(e),
-            }
-        }
-
+        // ensure file end
         match self.next()? {
             None => {}
             _ => return Err(ParseError::InvalidToken(self.next)),
         }
 
-        Ok(Box::new(StatementList::new(statements)))
+        Ok(stmts)
     }
 
     /// parse a declaration
@@ -370,25 +367,107 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         Ok(Some(Variable::multiple_variable_with_type(name_list, ty)))
     }
 
-    /// parse single statement
-    fn parse_statement(&mut self) -> ParseResult<Box<dyn Statement>> {
-        self.parse_expr_statement()
-    }
+    fn parse_statement_list(&mut self) -> ParseResult<Box<dyn Statement>> {
+        let mut statements: Vec<_> = vec![];
 
-    fn match_val<T, F: FnOnce(Option<T>, T) -> T>(
-        &mut self,
-        val: Option<T>,
-        fallback_pos: usize,
-        fallback_value: Option<T>,
-        success_factor: F,
-    ) -> ParseResult<T> {
-        match val {
-            Some(v) => Ok(Some(success_factor(fallback_value, v))),
-            _ => {
-                self.next = fallback_pos;
-                Ok(fallback_value)
+        loop {
+            match self.parse_statement() {
+                Ok(Some(stmt)) => statements.push(stmt),
+                Ok(None) => break,
+                Err(e) => return Err(e),
             }
         }
+
+        Ok(Some(Box::new(StatementList::new(statements))))
+    }
+
+    /// parse single statement
+    fn parse_statement(&mut self) -> ParseResult<Box<dyn Statement>> {
+        let pos = self.next;
+        let tok = self.next()?;
+
+        // IF statement
+        if matches!(tok.as_deref(), Some((_, Tok::If, _))) {
+            let if_stmt = self.expect_if_statement()?;
+            return Ok(Some(if_stmt));
+        }
+        self.next = pos;
+
+        if let Some(expr) = self.parse_expr_statement()? {
+            return Ok(Some(expr));
+        }
+
+        let pos = self.next;
+        if let Ok(decl) = self.parse_declaration() {
+            return Ok(Some(Box::new(DeclarationStatement::new(decl))));
+        }
+
+        self.next = pos;
+        Ok(None)
+    }
+
+    // fn match_val<T, F: FnOnce(Option<T>, T) -> T>(
+    //     &mut self,
+    //     val: Option<T>,
+    //     fallback_pos: usize,
+    //     fallback_value: Option<T>,
+    //     success_factor: F,
+    // ) -> ParseResult<T> {
+    //     match val {
+    //         Some(v) => Ok(Some(success_factor(fallback_value, v))),
+    //         _ => {
+    //             self.next = fallback_pos;
+    //             Ok(fallback_value)
+    //         }
+    //     }
+    // }
+
+    // 'IF' token already taken
+    fn expect_if_statement(&mut self) -> Result<Box<dyn Statement>, ParseError> {
+        let cond = match self.parse_expression()? {
+            Some(expr) => expr,
+            // TODO: error type
+            _ => return Err(ParseError::UnexpectedEnd),
+        };
+
+        let _ = self.except_one_of(&[Tok::Then])?;
+
+        let then_ctrl = match self.parse_statement_list()? {
+            Some(stmts) => stmts,
+            // TODO: error type
+            _ => return Err(ParseError::UnexpectedEnd),
+        };
+
+        let pos = self.next;
+        match &*self.next_token()? {
+            // IF .. THEN .. END_IF
+            (_, Tok::EndIf, _) => {
+                return Ok(Box::new(IfStatement::from_then(cond, then_ctrl)));
+            }
+            // IF .. THEN .. ELSE .. END_IF
+            (_, Tok::Else, _) => {
+                let else_ctrl = match self.parse_statement_list()? {
+                    Some(stmts) => stmts,
+                    // TODO: error type
+                    _ => return Err(ParseError::UnexpectedEnd),
+                };
+                let _ = self.except_one_of(&[Tok::EndIf])?;
+
+                return Ok(Box::new(IfStatement::from_then_else(
+                    cond, then_ctrl, else_ctrl,
+                )));
+            }
+            _ => self.next = pos,
+        }
+
+        // with ELSEIF list
+        let else_if_list = self.parse_elseif_statement_list()?;
+
+        todo!()
+    }
+
+    fn parse_elseif_statement_list(&mut self) -> ParseResult<Vec<ElseIfStatement>> {
+        todo!()
     }
 
     fn parse_expr_statement(&mut self) -> ParseResult<Box<dyn Statement>> {
