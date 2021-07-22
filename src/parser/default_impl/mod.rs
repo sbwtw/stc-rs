@@ -235,7 +235,10 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         // struct decl
         if matches!(&*tok, (_, Tok::Struct, _)) {
-            return todo!();
+            let fields = self.except_variable_declare_list()?;
+            let _ = self.except_one_of(&[Tok::EndStruct])?;
+
+            return Ok(Some(Box::new(StructDeclare::new(name, fields))));
         }
 
         Err(ParseError::UnexpectedToken(tok.as_ref().0, vec![]))
@@ -940,6 +943,15 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             return Ok(Some(literal));
         }
 
+        let pos = self.next;
+        if matches!(self.next()?.as_deref(), Some((_, Tok::LeftParentheses, _))) {
+            if let Some(expr) = self.parse_expression()? {
+                let _ = self.except_one_of(&[Tok::RightParentheses])?;
+                return Ok(Some(expr));
+            }
+        }
+
+        self.next = pos;
         Ok(None)
     }
 

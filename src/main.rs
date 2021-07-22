@@ -41,7 +41,7 @@ fn main() {
     //     analyzer.analyze(f.as_ast_node_mut(), scope);
     //
 
-    let lexer = StLexer::new("2-3.0/3; -1+2**3;");
+    let lexer = StLexer::new("IF a - 1 THEN\n    a + 1;\nELSE\n    a - 1;\nEND_IF\n");
 
     // parse
     let mut r = StFunctionParser::new().parse(lexer).unwrap();
