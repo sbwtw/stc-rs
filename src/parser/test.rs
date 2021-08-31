@@ -51,6 +51,21 @@ fn hash_for_code<S: AsRef<str>>(s: S) -> Option<u64> {
     Some(hasher.hash())
 }
 
+fn stringify_code<S: AsRef<str>>(s: S) -> Option<String> {
+    let parser = StFunctionParser::new();
+    let lexer = StLexer::new(s.as_ref());
+    let fun = parser.parse(lexer).ok()?;
+
+    Some(fun.as_ast_node().to_string())
+}
+
+#[test]
+fn test_parse() {
+    let code1 = "a.b := (c);";
+    let code2 = "a.b := c;\n".to_owned();
+    assert_eq!(stringify_code(code1), Some(code2));
+}
+
 #[test]
 fn test_precedence() {
     let code1 = "a + b / c;";

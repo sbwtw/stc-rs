@@ -1,7 +1,7 @@
 use bitflags::bitflags;
 use std::fmt::{self, Debug, Display, Formatter};
 
-use crate::parser::{LiteralValue, StString, Tok};
+use crate::parser::{StString, Tok};
 use crate::utils::StringifyVisitor;
 
 mod types;

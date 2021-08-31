@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::parser::LiteralValue;
 
 // Immutable visitor
 pub trait AstVisitor {

@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::parser::LiteralValue;
 use std::rc::Rc;
 
 macro_rules! builtin_type_impl {
@@ -56,11 +57,12 @@ impl Type for UserType {
 #[derive(Debug, Clone)]
 pub struct EnumField {
     name: StString,
-    value: Option<LiteralValue>,
+    value: Option<LiteralExpression>,
 }
 
 impl EnumField {
     pub fn new(name: StString, value: Option<LiteralValue>) -> Self {
+        let value = value.map(|x| LiteralExpression::new(x));
         Self { name, value }
     }
 
@@ -68,7 +70,7 @@ impl EnumField {
         &self.name
     }
 
-    pub fn value(&self) -> Option<&LiteralValue> {
+    pub fn value(&self) -> Option<&LiteralExpression> {
         self.value.as_ref()
     }
 }

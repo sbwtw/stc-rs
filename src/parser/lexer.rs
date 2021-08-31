@@ -7,9 +7,8 @@ use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 use std::str::CharIndices;
 
-pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
-pub type LexerItem = (usize, Tok, usize);
-pub type LexerResult = Spanned<Tok, usize, LexicalError>;
+pub(crate) type LexerItem = (usize, Tok, usize);
+pub(crate) type LexerResult = Result<(usize, Tok, usize), LexicalError>;
 
 #[derive(Debug, Clone)]
 pub struct StString {
@@ -186,6 +185,12 @@ impl Default for StLexerOptions {
         Self {
             allow_unicode_identifier: true,
         }
+    }
+}
+
+impl StLexerOptions {
+    pub fn set_allow_unicode(&mut self, allow_unicode: bool) {
+        self.allow_unicode_identifier = allow_unicode
     }
 }
 

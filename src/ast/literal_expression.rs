@@ -1,6 +1,7 @@
 use crate::ast::*;
+use crate::parser::LiteralValue;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LiteralExpression(LiteralValue);
 
 impl LiteralExpression {

@@ -5,7 +5,14 @@ authors = ["石博文 <sbw@sbw.so>"]
 edition = "2018"
 build = "src/build.rs"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+name = "stc"
+path = "src/main.rs"
+
+[lib]
+crate-type = ["dylib"]
+name = "scanner"
+path = "src/scanner.rs"
 
 [dependencies]
 lalrpop-util = { version = "*", optional = true }
@@ -15,6 +22,7 @@ crc = "*"
 regex = "*"
 
 [build-dependencies]
+cbindgen = "*"
 lalrpop = { version = "*", optional = true }
 
 [features]

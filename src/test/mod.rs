@@ -16,13 +16,3 @@ fn test_decl_parse() {
         }
     }
 }
-
-#[test]
-#[ignore]
-fn test_decl_parse_text() {
-    let lexer = StLexer::new("TYPE TestEnum: (E1, E2 := 10, E3) DINT; END_TYPE");
-    let parser = parser::StDeclarationParser::new();
-
-    let r = parser.parse(lexer).unwrap();
-    println!("{}", r.as_ref());
-}
