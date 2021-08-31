@@ -63,6 +63,7 @@ fn stringify_code<S: AsRef<str>>(s: S) -> Option<String> {
 fn test_parse() {
     let code1 = "a.b := (c);";
     let code2 = "a.b := c;\n".to_owned();
+
     assert_eq!(stringify_code(code1), Some(code2));
 }
 

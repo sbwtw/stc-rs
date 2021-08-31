@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::parser::{LiteralValue, Tok};
+use crate::parser::{BitValue, LiteralValue, Tok};
 use std::fmt::Arguments;
 use std::io::Write;
 
@@ -66,7 +66,22 @@ impl<W: Write> StringifyVisitor<W> {
 
 impl<W: Write> AstVisitor for StringifyVisitor<W> {
     fn visit_literal(&mut self, literal: &LiteralValue) {
-        self.write(format_args!("{:?}", literal))
+        match literal {
+            LiteralValue::Bit(BitValue::Zero) => self.write(format_args!("{}", 0)),
+            LiteralValue::Bit(BitValue::One) => self.write(format_args!("{}", 1)),
+            LiteralValue::Bool(x) => self.write(format_args!("{:?}", x)),
+            LiteralValue::Int(x) => self.write(format_args!("{:?}", x)),
+            LiteralValue::UInt(x) => self.write(format_args!("{:?}", x)),
+            LiteralValue::Byte(x) => self.write(format_args!("{:?}", x)),
+            LiteralValue::SInt(x) => self.write(format_args!("{:?}", x)),
+            LiteralValue::DInt(x) => self.write(format_args!("{:?}", x)),
+            LiteralValue::UDInt(x) => self.write(format_args!("{:?}", x)),
+            LiteralValue::LInt(x) => self.write(format_args!("{:?}", x)),
+            LiteralValue::ULInt(x) => self.write(format_args!("{:?}", x)),
+            LiteralValue::Real(x) => self.write(format_args!("{}", x)),
+            LiteralValue::LReal(x) => self.write(format_args!("{}", x)),
+            LiteralValue::String(x) => self.write(format_args!("{:?}", x)),
+        }
     }
 
     fn visit_variable(&mut self, variable: &Variable) {
@@ -171,7 +186,7 @@ impl<W: Write> AstVisitor for StringifyVisitor<W> {
 
     fn visit_compo_access_expression(&mut self, compo: &CompoAccessExpression) {
         compo.left().accept(self);
-        self.write(format_args!("."));
+        self.write(format_args!("{}", Tok::Access));
         compo.right().accept(self);
     }
 }
