@@ -988,10 +988,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         match self.parse_term_expr()? {
             Some(term) => match self.parse_compo_factor_fix()? {
-                Some(fix) => Ok(Some(Box::new(OperatorExpression::new(
-                    Tok::Access,
-                    vec![term, fix],
-                )))),
+                Some(fix) => Ok(Some(Box::new(CompoAccessExpression::new(term, fix)))),
                 None => Ok(Some(term)),
             },
             None => {
