@@ -183,9 +183,9 @@ pub enum VariableScopeClass {
 
 bitflags! {
     pub struct VariableAnnotationFlags: usize {
-        const NONE              = 0b00000000_00000000;
-        const RETAIN            = 0b00000000_00000001;
-        const PERSISTENT        = 0b00000000_00000010;
+        const NONE              = 0b0000_0000_0000_0000;
+        const RETAIN            = 0b0000_0000_0000_0001;
+        const PERSISTENT        = 0b0000_0000_0000_0010;
         const RETAINPERSISTENT  = Self::RETAIN.bits | Self::PERSISTENT.bits;
     }
 }
