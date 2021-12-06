@@ -199,12 +199,16 @@ impl<'input> LexerBuffer<'input> {
 
 pub struct StLexerOptions {
     allow_unicode_identifier: bool,
+    allow_multiple_underline: bool,
+    allow_suffix_underline: bool,
 }
 
 impl Default for StLexerOptions {
     fn default() -> Self {
         Self {
             allow_unicode_identifier: true,
+            allow_multiple_underline: false,
+            allow_suffix_underline: false,
         }
     }
 }
@@ -212,6 +216,18 @@ impl Default for StLexerOptions {
 impl StLexerOptions {
     pub fn allow_unicode_identifier(mut self, unicode: bool) -> Self {
         self.allow_unicode_identifier = unicode;
+
+        self
+    }
+
+    pub fn allow_multiple_underline(mut self, multiple: bool) -> Self {
+        self.allow_multiple_underline = multiple;
+
+        self
+    }
+
+    pub fn allow_suffix_underline(mut self, suffix: bool) -> Self {
+        self.allow_suffix_underline = suffix;
 
         self
     }
@@ -383,9 +399,22 @@ impl<'input> StLexer<'input> {
 
     fn parse_identifier(&mut self, start: usize, ch: char) -> Option<LexerResult> {
         let mut str = String::from(ch);
+        let mut underline = ch == '_';
 
         loop {
-            match self.buffer.next() {
+            let next = self.buffer.next();
+            match next {
+                (i, Some('_')) => {
+                    if underline && !self.options.allow_multiple_underline {
+                        return Some(Err(LexicalError::UnexpectedCharacter(i, '_')));
+                    }
+
+                    underline = true;
+                }
+                _ => underline = false,
+            }
+
+            match next {
                 (_, Some(c)) if self.is_valid_identifier_character(c) => {
                     str.push(c);
                 }
@@ -554,5 +583,20 @@ mod test {
         ));
         assert!(matches!(lexer.next(), Some(Ok((17, Tok::Semicolon, 18)))));
         assert!(matches!(lexer.next(), None));
+    }
+
+    #[test]
+    fn test_multiple_underline() {
+        let s = "a__b";
+        let mut lexer = StLexer::new(s);
+
+        assert!(matches!(lexer.next(), Some(Err(_))));
+
+        let s = "a__b";
+        let mut lexer = StLexerOptions::default()
+            .allow_multiple_underline(true)
+            .build(s);
+
+        assert!(matches!(lexer.next(), Some(Ok(_))));
     }
 }

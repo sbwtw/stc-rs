@@ -7,6 +7,7 @@ use std::fmt::Arguments;
 use std::io::Write;
 use std::iter::FromIterator;
 use std::rc::Rc;
+use std::time::SystemTime;
 
 /// Graphviz Labels Group
 enum GraphvizLabelGroup {
@@ -121,6 +122,7 @@ impl<W: Write> GraphvizExporter<W> {
 
     fn prolog(&mut self) {
         self.writeln(format_args!("digraph ast {{"));
+        // self.writeln(format_args!("label=\"{}\"", SystemTime::now()));
         self.writeln(format_args!("node [shape=record style=rounded]"));
     }
 
