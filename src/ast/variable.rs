@@ -1,10 +1,15 @@
 use crate::ast::*;
+use crate::has_attribute;
 use crate::parser::StString;
+use std::borrow::Cow;
+use std::collections::HashMap;
 use std::default::Default;
+use std::ops::Deref;
 use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct Variable {
+    attributes: HashMap<StString, String>,
     name: StString,
     ty: Option<Rc<Box<dyn Type>>>,
     scope: VariableScopeClass,
@@ -90,6 +95,7 @@ impl Expression for Variable {}
 impl Default for Variable {
     fn default() -> Self {
         Self {
+            attributes: HashMap::new(),
             name: StString::new(""),
             ty: None,
             scope: VariableScopeClass::None,
@@ -97,6 +103,8 @@ impl Default for Variable {
         }
     }
 }
+
+has_attribute!(Variable, attributes);
 
 pub struct VariableDeclareGroup;
 

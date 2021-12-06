@@ -1,6 +1,7 @@
 use crate::ast::*;
 use crate::parser::Tok;
 use std::any::Any;
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt::{self, Display, Formatter};
 use std::hash::{Hash, Hasher};
@@ -11,21 +12,41 @@ pub(crate) type LexerItem = (usize, Tok, usize);
 pub(crate) type LexerResult = Result<(usize, Tok, usize), LexicalError>;
 
 #[derive(Debug, Clone)]
-pub struct StString {
-    origin_string: Rc<String>,
-    converted_string: Rc<String>,
+pub enum StString {
+    Origin(String),
+    Converted(String, String),
 }
 
 impl StString {
     pub fn new<S: AsRef<str>>(str: S) -> Self {
-        Self {
-            origin_string: Rc::new(str.as_ref().to_owned()),
-            converted_string: Rc::new(str.as_ref().to_ascii_uppercase().to_owned()),
+        let origin = str.as_ref().to_owned();
+
+        if str
+            .as_ref()
+            .as_bytes()
+            .iter()
+            .position(u8::is_ascii_lowercase)
+            .is_some()
+        {
+            let converted = origin.to_ascii_uppercase();
+            Self::Converted(origin, converted)
+        } else {
+            Self::Origin(origin)
         }
     }
 
     pub fn origin_string(&self) -> &String {
-        &self.origin_string
+        match &self {
+            Self::Origin(s) => s,
+            Self::Converted(origin, _) => origin,
+        }
+    }
+
+    pub fn string(&self) -> &String {
+        match &self {
+            Self::Origin(s) => s,
+            Self::Converted(_, converted) => converted,
+        }
     }
 }
 
@@ -43,7 +64,7 @@ impl From<String> for StString {
 
 impl PartialEq for StString {
     fn eq(&self, other: &Self) -> bool {
-        self.converted_string.eq(&other.converted_string)
+        self.string().eq(other.string())
     }
 }
 
@@ -51,13 +72,13 @@ impl Eq for StString {}
 
 impl PartialEq<str> for StString {
     fn eq(&self, other: &str) -> bool {
-        other.to_ascii_uppercase().eq(&*self.converted_string)
+        other.to_ascii_uppercase().eq(self.string())
     }
 }
 
 impl Hash for StString {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.converted_string.hash(state)
+        self.string().hash(state)
     }
 }
 
@@ -189,8 +210,14 @@ impl Default for StLexerOptions {
 }
 
 impl StLexerOptions {
-    pub fn set_allow_unicode(&mut self, allow_unicode: bool) {
-        self.allow_unicode_identifier = allow_unicode
+    pub fn allow_unicode_identifier(mut self, unicode: bool) -> Self {
+        self.allow_unicode_identifier = unicode;
+
+        self
+    }
+
+    pub fn build(mut self, input: &str) -> StLexer {
+        StLexer::from_options(self, input)
     }
 }
 
@@ -212,7 +239,31 @@ macro_rules! keywords {
 }
 
 impl<'input> StLexer<'input> {
+    fn from_options(options: StLexerOptions, input: &'input str) -> Self {
+        let mut s = Self {
+            buffer: LexerBuffer::new(input),
+            keywords: HashMap::new(),
+            options,
+        };
+
+        s.initialize();
+
+        s
+    }
+
     pub fn new(input: &'input str) -> Self {
+        let mut s = Self {
+            buffer: LexerBuffer::new(input),
+            keywords: HashMap::new(),
+            options: Default::default(),
+        };
+
+        s.initialize();
+
+        s
+    }
+
+    fn initialize(&mut self) {
         let keywords = keywords![
             Tok::BitAnd,
             Tok::BitOr,
@@ -241,11 +292,7 @@ impl<'input> StLexer<'input> {
             Tok::Bool
         ];
 
-        Self {
-            buffer: LexerBuffer::new(input),
-            keywords,
-            options: Default::default(),
-        }
+        self.keywords = keywords;
     }
 
     fn parse_number(&mut self, start: usize, ch: char) -> Option<LexerResult> {

@@ -48,6 +48,28 @@ macro_rules! ast_stringify {
     }};
 }
 
+pub trait HasSourcePosition {}
+
+pub trait HasAttributes {
+    fn set_attribute<K: AsRef<StString>, V: Into<String>>(&mut self, k: K, v: V);
+    fn get_attribute_value<S: AsRef<StString>>(&self, attr: &S) -> Option<&String>;
+}
+
+#[macro_export]
+macro_rules! has_attribute {
+    ($ty:ident, $storage:ident) => {
+        impl HasAttributes for $ty {
+            fn set_attribute<K: AsRef<StString>, V: Into<String>>(&mut self, k: K, v: V) {
+                self.$storage.insert(k.as_ref().clone(), v.into());
+            }
+
+            fn get_attribute_value<S: AsRef<StString>>(&self, attr: &S) -> Option<&String> {
+                self.$storage.get(&attr.as_ref())
+            }
+        }
+    };
+}
+
 pub trait TypeClone {
     fn clone_boxed(&self) -> Box<dyn Type>;
 }

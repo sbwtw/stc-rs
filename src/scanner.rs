@@ -66,13 +66,3 @@ pub extern "C" fn lexer_delete(lexer: *mut StLexer) {
 pub extern "C" fn lexer_options_create() -> *mut StLexerOptions {
     into_ptr!(StLexerOptions::default())
 }
-
-#[inline]
-#[no_mangle]
-pub extern "C" fn lexer_options_set_allow_unicode(
-    options: *mut StLexerOptions,
-    allow_unicode: bool,
-) {
-    let options = from_ptr_mut!(options);
-    options.set_allow_unicode(allow_unicode)
-}

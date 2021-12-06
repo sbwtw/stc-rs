@@ -11,6 +11,12 @@ pub struct OperatorExpression {
 
 impl OperatorExpression {
     pub fn new(op: Tok, operands: Vec<Box<dyn Expression>>) -> Self {
+        match operands.len() {
+            1 => debug_assert!(op.is_unary_operator(), "'{}' is not a unary operator", op),
+            2 => debug_assert!(op.is_binary_operator(), "'{}' is not a binary operator", op),
+            _ => debug_assert!(op.is_operator(), "'{}' is not a operator", op),
+        }
+
         Self {
             op,
             ty: None,

@@ -155,9 +155,20 @@ impl Tok {
         }
     }
 
-    pub fn is_operator(&self) -> bool {
+    pub fn is_unary_operator(&self) -> bool {
         match self {
-            Tok::Plus
+            Tok::Minus | Tok::Not => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_binary_operator(&self) -> bool {
+        match self {
+            Tok::LessEqual
+            | Tok::Less
+            | Tok::GreaterEqual
+            | Tok::Equal
+            | Tok::Plus
             | Tok::Minus
             | Tok::Division
             | Tok::Multiply
@@ -165,6 +176,26 @@ impl Tok {
             | Tok::BitAnd
             | Tok::Mod
             | Tok::Power
+            | Tok::Xor => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_operator(&self) -> bool {
+        match self {
+            Tok::LessEqual
+            | Tok::Less
+            | Tok::GreaterEqual
+            | Tok::Equal
+            | Tok::Plus
+            | Tok::Minus
+            | Tok::Division
+            | Tok::Multiply
+            | Tok::BitOr
+            | Tok::BitAnd
+            | Tok::Mod
+            | Tok::Power
+            | Tok::Not
             | Tok::Xor => true,
             _ => false,
         }

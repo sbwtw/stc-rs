@@ -1,5 +1,7 @@
 use crate::ast::*;
+use crate::has_attribute;
 use crate::parser::LiteralValue;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 macro_rules! builtin_type_impl {
@@ -36,23 +38,33 @@ builtin_type_impl!(struct LRealType, TypeClass::LReal);
 builtin_type_impl!(struct StringType, TypeClass::String);
 
 #[derive(Debug, Clone)]
-pub struct UserType(StString);
+pub struct UserType {
+    name: StString,
+    class: Option<UserTypeClass>,
+    attributes: HashMap<StString, String>,
+}
 
 impl UserType {
     pub fn from_name(name: StString) -> Self {
-        Self(name)
+        Self {
+            name,
+            class: None,
+            attributes: HashMap::new(),
+        }
     }
 
     pub fn name(&self) -> &StString {
-        &self.0
+        &self.name
     }
 }
 
 impl Type for UserType {
     fn type_class(&self) -> TypeClass {
-        TypeClass::UserType(self.0.clone(), None)
+        TypeClass::UserType(self.name.clone(), self.class.clone())
     }
 }
+
+has_attribute!(UserType, attributes);
 
 #[derive(Debug, Clone)]
 pub struct EnumField {
