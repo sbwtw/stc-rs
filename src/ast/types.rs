@@ -1,7 +1,7 @@
 use crate::ast::*;
 use crate::has_attribute;
 use crate::parser::LiteralValue;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::rc::Rc;
 
 macro_rules! builtin_type_impl {
@@ -41,7 +41,7 @@ builtin_type_impl!(struct StringType, TypeClass::String);
 pub struct UserType {
     name: StString,
     class: Option<UserTypeClass>,
-    attributes: HashMap<StString, String>,
+    attributes: BTreeMap<StString, String>,
 }
 
 impl UserType {
@@ -49,7 +49,7 @@ impl UserType {
         Self {
             name,
             class: None,
-            attributes: HashMap::new(),
+            attributes: BTreeMap::new(),
         }
     }
 

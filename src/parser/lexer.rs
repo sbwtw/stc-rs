@@ -2,6 +2,7 @@ use crate::ast::*;
 use crate::parser::Tok;
 use std::any::Any;
 use std::borrow::Cow;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::{self, Display, Formatter};
 use std::hash::{Hash, Hasher};
@@ -79,6 +80,18 @@ impl PartialEq<str> for StString {
 impl Hash for StString {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.string().hash(state)
+    }
+}
+
+impl PartialOrd for StString {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.string().partial_cmp(other.string())
+    }
+}
+
+impl Ord for StString {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
     }
 }
 

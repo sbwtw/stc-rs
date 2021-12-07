@@ -1,13 +1,14 @@
 use crate::ast::*;
 use crate::parser::LiteralValue;
 use crate::utils::StringifyVisitor;
+use chrono::{Local, Utc};
 use regex::Regex;
 use std::borrow::Cow;
 use std::fmt::Arguments;
 use std::io::Write;
 use std::iter::FromIterator;
 use std::rc::Rc;
-use std::time::SystemTime;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Graphviz Labels Group
 enum GraphvizLabelGroup {
@@ -122,7 +123,7 @@ impl<W: Write> GraphvizExporter<W> {
 
     fn prolog(&mut self) {
         self.writeln(format_args!("digraph ast {{"));
-        // self.writeln(format_args!("label=\"{}\"", SystemTime::now()));
+        self.writeln(format_args!("label=\"{}\"", Local::now().format("%F %T")));
         self.writeln(format_args!("node [shape=record style=rounded]"));
     }
 

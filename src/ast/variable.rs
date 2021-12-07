@@ -1,15 +1,13 @@
 use crate::ast::*;
 use crate::has_attribute;
 use crate::parser::StString;
-use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::default::Default;
-use std::ops::Deref;
 use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct Variable {
-    attributes: HashMap<StString, String>,
+    attributes: BTreeMap<StString, String>,
     name: StString,
     ty: Option<Rc<Box<dyn Type>>>,
     scope: VariableScopeClass,
@@ -95,7 +93,7 @@ impl Expression for Variable {}
 impl Default for Variable {
     fn default() -> Self {
         Self {
-            attributes: HashMap::new(),
+            attributes: BTreeMap::new(),
             name: StString::new(""),
             ty: None,
             scope: VariableScopeClass::None,
