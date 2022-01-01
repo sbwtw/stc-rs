@@ -13,6 +13,7 @@ use std::rc::Rc;
 type ParseResult<T> = Result<Option<T>, ParseError>;
 
 /// declaration parser wrapper
+#[allow(unused)]
 pub struct StDeclarationParser {}
 
 impl StDeclarationParser {
@@ -29,6 +30,7 @@ impl StDeclarationParser {
 }
 
 /// function parser wrapper
+#[allow(unused)]
 pub struct StFunctionParser {}
 
 impl StFunctionParser {
@@ -86,6 +88,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     /// parse a function
+    #[allow(unused)]
     fn parse_function(&mut self) -> Result<Box<dyn Statement>, ParseError> {
         let stmts = match self.parse_statement_list()? {
             Some(stmts) => stmts,
@@ -103,6 +106,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     /// parse a declaration
+    #[allow(unused)]
     fn parse_declaration(&mut self) -> Result<Box<dyn Declaration>, ParseError> {
         match self.except_one_of(&[Tok::Type, Tok::Function, Tok::Program])? {
             Tok::Type => {

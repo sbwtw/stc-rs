@@ -18,6 +18,7 @@ fn get_next_declaration_id() -> usize {
 }
 
 #[derive(Clone)]
+#[allow(unused)]
 struct DeclarationWrapper {
     id: usize,
     decl: Arc<RwLock<Box<dyn Declaration>>>,
@@ -33,6 +34,7 @@ impl DeclarationWrapper {
 }
 
 #[derive(Clone)]
+#[allow(unused)]
 struct FunctionWrapper {
     decl_id: usize,
     function: Arc<RwLock<Box<dyn Statement>>>,
@@ -52,6 +54,7 @@ impl PartialEq for ModuleContext {
 
 impl Eq for ModuleContext {}
 
+#[allow(unused)]
 pub struct ModuleContext {
     id: usize,
     scope: ModuleContextScope,
@@ -75,6 +78,7 @@ impl ModuleContext {
         self.id
     }
 
+    #[allow(dead_code)]
     pub fn scope(&self) -> &ModuleContextScope {
         &self.scope
     }

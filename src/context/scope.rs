@@ -5,6 +5,7 @@ use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 
 #[derive(Clone)]
+#[allow(unused)]
 pub struct Scope {
     units_manager: Option<Arc<RwLock<UnitsManager>>>,
     local_context: Option<Arc<RwLock<ModuleContext>>>,

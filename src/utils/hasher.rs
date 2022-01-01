@@ -1,7 +1,11 @@
 use crate::ast::*;
 use crate::parser::{LiteralValue, Tok};
-use crc::crc32;
+use crc::{Crc, Digest, CRC_32_ISO_HDLC};
+use std::cell::RefCell;
 use std::hash::{Hash, Hasher};
+
+#[allow(unused)]
+const CRC32: Crc<u32> = Crc::<u32>::new(&CRC_32_ISO_HDLC);
 
 /// ensure different statement has different hash code
 #[derive(Hash)]
@@ -61,30 +65,43 @@ impl MyHash for Tok {
     }
 }
 
-#[allow(dead_code)]
+#[allow(unused)]
 pub struct AstHasher<H: Hasher> {
     hasher: H,
 }
 
-#[allow(dead_code)]
+#[allow(unused)]
 impl<H: Hasher> AstHasher<H> {
     pub fn new(hasher: H) -> Self {
         Self { hasher }
     }
 
-    pub fn add(&mut self, ast: &dyn AstNode) {
-        ast.accept(self)
-    }
-
-    pub fn hash(&self) -> u64 {
+    pub fn calc(&mut self, ast: &dyn AstNode) -> u64 {
+        ast.accept(self);
         self.hasher.finish()
     }
 }
 
-impl AstHasher<crc32::Digest> {
-    #[allow(dead_code)]
-    pub fn crc32() -> Self {
-        Self::new(crc32::Digest::new(crc32::IEEE))
+#[allow(unused)]
+pub struct Crc32Hasher<'a> {
+    digest: RefCell<Option<Digest<'a, u32>>>,
+}
+
+impl Crc32Hasher<'_> {
+    pub fn new() -> Self {
+        Self {
+            digest: RefCell::new(Some(CRC32.digest())),
+        }
+    }
+}
+
+impl Hasher for Crc32Hasher<'_> {
+    fn finish(&self) -> u64 {
+        self.digest.take().unwrap().finalize() as u64
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        self.digest.get_mut().as_mut().unwrap().update(bytes)
     }
 }
 

@@ -1,14 +1,13 @@
 use crate::ast::*;
 use crate::parser::LiteralValue;
-use crate::utils::StringifyVisitor;
-use chrono::{Local, Utc};
+use crate::utils::{AstHasher, Crc32Hasher, StringifyVisitor};
+use chrono::Local;
 use regex::Regex;
 use std::borrow::Cow;
 use std::fmt::Arguments;
 use std::io::Write;
 use std::iter::FromIterator;
 use std::rc::Rc;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Graphviz Labels Group
 enum GraphvizLabelGroup {
@@ -99,7 +98,7 @@ impl GraphvizAttribute {
     // }
 }
 
-#[allow(dead_code)]
+#[allow(unused)]
 pub struct GraphvizExporter<W: Write> {
     writer: W,
     unique_name_id: usize,
@@ -107,6 +106,7 @@ pub struct GraphvizExporter<W: Write> {
 }
 
 impl<W: Write> GraphvizExporter<W> {
+    #[allow(unused)]
     pub fn new(writer: W) -> Self {
         Self {
             writer,
@@ -115,15 +115,23 @@ impl<W: Write> GraphvizExporter<W> {
         }
     }
 
+    #[allow(unused)]
     pub fn plot(&mut self, ast: &dyn AstNode) {
-        self.prolog();
+        self.prolog(ast);
         ast.accept(self);
         self.epilog();
     }
 
-    fn prolog(&mut self) {
+    fn prolog(&mut self, ast: &dyn AstNode) {
+        let mut hasher = AstHasher::new(Crc32Hasher::new());
+        let crc32 = hasher.calc(ast);
+
         self.writeln(format_args!("digraph ast {{"));
-        self.writeln(format_args!("label=\"{}\"", Local::now().format("%F %T")));
+        self.writeln(format_args!(
+            "label=\"time: {}, crc32: 0x{:X}\"",
+            Local::now().format("%F %T"),
+            crc32
+        ));
         self.writeln(format_args!("node [shape=record style=rounded]"));
     }
 

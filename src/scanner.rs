@@ -14,6 +14,7 @@ macro_rules! into_ptr {
     };
 }
 
+#[allow(unused_macros)]
 macro_rules! from_ptr {
     ($ptr: expr) => {
         unsafe { &*$ptr }

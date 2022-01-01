@@ -1,12 +1,10 @@
 use crate::ast::*;
 use crate::parser::Tok;
 use std::any::Any;
-use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::{self, Display, Formatter};
 use std::hash::{Hash, Hasher};
-use std::rc::Rc;
 use std::str::CharIndices;
 
 pub(crate) type LexerItem = (usize, Tok, usize);
@@ -210,6 +208,7 @@ impl<'input> LexerBuffer<'input> {
     }
 }
 
+#[allow(unused)]
 pub struct StLexerOptions {
     allow_unicode_identifier: bool,
     allow_multiple_underline: bool,
@@ -227,25 +226,29 @@ impl Default for StLexerOptions {
 }
 
 impl StLexerOptions {
+    #[allow(unused)]
     pub fn allow_unicode_identifier(mut self, unicode: bool) -> Self {
         self.allow_unicode_identifier = unicode;
 
         self
     }
 
+    #[allow(unused)]
     pub fn allow_multiple_underline(mut self, multiple: bool) -> Self {
         self.allow_multiple_underline = multiple;
 
         self
     }
 
+    #[allow(unused)]
     pub fn allow_suffix_underline(mut self, suffix: bool) -> Self {
         self.allow_suffix_underline = suffix;
 
         self
     }
 
-    pub fn build(mut self, input: &str) -> StLexer {
+    #[allow(unused)]
+    pub fn build(self, input: &str) -> StLexer {
         StLexer::from_options(self, input)
     }
 }

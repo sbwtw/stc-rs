@@ -1,7 +1,7 @@
 use crate::ast::*;
 use crate::has_attribute;
 use crate::parser::LiteralValue;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::rc::Rc;
 
 macro_rules! builtin_type_impl {
@@ -53,6 +53,7 @@ impl UserType {
         }
     }
 
+    #[allow(unused)]
     pub fn name(&self) -> &StString {
         &self.name
     }
@@ -133,6 +134,7 @@ impl Declaration for EnumDeclare {
 }
 
 #[derive(Debug, Clone)]
+#[allow(unused)]
 pub struct AliasDeclare {
     name: StString,
     alias: Rc<Box<dyn Type>>,
@@ -169,6 +171,7 @@ impl Declaration for AliasDeclare {
 }
 
 #[derive(Debug, Clone)]
+#[allow(unused)]
 pub struct StructDeclare {
     name: StString,
     variables: Vec<Rc<Variable>>,
