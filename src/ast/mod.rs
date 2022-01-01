@@ -4,6 +4,9 @@ use std::fmt::{self, Debug, Display, Formatter};
 use crate::parser::{StString, Tok};
 use crate::utils::StringifyVisitor;
 
+mod message;
+pub use message::*;
+
 mod types;
 pub use types::*;
 
@@ -50,16 +53,16 @@ macro_rules! ast_stringify {
 
 pub trait HasSourcePosition {}
 
-pub trait HasAttributes {
+pub trait HasAttribute {
     fn set_attribute<K: AsRef<StString>, V: Into<String>>(&mut self, k: K, v: V);
     fn get_attribute_value<S: AsRef<StString>>(&self, attr: &S) -> Option<&String>;
     fn remove_attribute<K: AsRef<StString>>(&mut self, k: K) -> Option<String>;
 }
 
 #[macro_export]
-macro_rules! has_attribute {
+macro_rules! impl_has_attribute {
     ($ty:ident, $storage:ident) => {
-        impl HasAttributes for $ty {
+        impl HasAttribute for $ty {
             fn set_attribute<K: AsRef<StString>, V: Into<String>>(&mut self, k: K, v: V) {
                 self.$storage.insert(k.as_ref().clone(), v.into());
             }

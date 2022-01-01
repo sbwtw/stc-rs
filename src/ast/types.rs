@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::has_attribute;
+use crate::impl_has_attribute;
 use crate::parser::LiteralValue;
 use std::collections::BTreeMap;
 use std::rc::Rc;
@@ -65,7 +65,7 @@ impl Type for UserType {
     }
 }
 
-has_attribute!(UserType, attributes);
+impl_has_attribute!(UserType, attributes);
 
 #[derive(Debug, Clone)]
 pub struct EnumField {

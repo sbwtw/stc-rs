@@ -9,11 +9,6 @@ build = "src/build.rs"
 name = "stc"
 path = "src/main.rs"
 
-[lib]
-crate-type = ["dylib"]
-name = "scanner"
-path = "src/scanner.rs"
-
 [dependencies]
 lalrpop-util = { version = "*", optional = true }
 bitflags = "*"

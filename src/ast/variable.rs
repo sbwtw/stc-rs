@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::has_attribute;
+use crate::impl_has_attribute;
 use crate::parser::StString;
 use std::collections::BTreeMap;
 use std::default::Default;
@@ -102,7 +102,7 @@ impl Default for Variable {
     }
 }
 
-has_attribute!(Variable, attributes);
+impl_has_attribute!(Variable, attributes);
 
 pub struct VariableDeclareGroup;
 
