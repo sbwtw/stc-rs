@@ -1,4 +1,5 @@
 mod ast;
+mod codegen;
 mod context;
 mod parser;
 mod transform;
@@ -56,14 +57,14 @@ fn main() {
 
     if let Some(f) = fun {
         let mut f = f.write().unwrap();
-        let mut analyzer = TypeAnalyzer::new();
+        let mut type_analyzer = TypeAnalyzer::new();
 
         let scope = Scope::new(
             Some(Arc::new(RwLock::new(mgr))),
             Some(ctx_id),
             Some(decl_id),
         );
-        analyzer.analyze(f.as_ast_node_mut(), scope);
+        type_analyzer.analyze(f.as_ast_node_mut(), scope);
 
         display_ast(f.as_ast_node());
     }

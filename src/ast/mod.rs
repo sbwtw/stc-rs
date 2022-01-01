@@ -53,6 +53,7 @@ pub trait HasSourcePosition {}
 pub trait HasAttributes {
     fn set_attribute<K: AsRef<StString>, V: Into<String>>(&mut self, k: K, v: V);
     fn get_attribute_value<S: AsRef<StString>>(&self, attr: &S) -> Option<&String>;
+    fn remove_attribute<K: AsRef<StString>>(&mut self, k: K) -> Option<String>;
 }
 
 #[macro_export]
@@ -65,6 +66,10 @@ macro_rules! has_attribute {
 
             fn get_attribute_value<S: AsRef<StString>>(&self, attr: &S) -> Option<&String> {
                 self.$storage.get(&attr.as_ref())
+            }
+
+            fn remove_attribute<K: AsRef<StString>>(&mut self, k: K) -> Option<String> {
+                self.$storage.remove(k.as_ref())
             }
         }
     };
