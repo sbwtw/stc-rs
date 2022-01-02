@@ -79,8 +79,8 @@ pub StFunction = StatementList;
 
 /// ST Statements
 StatementList: Statement = {
-//    Statement+ => StatementList::new(<>)
-    Statement+ => Statement::statement_list(Box::new(<>))
+    Statement,
+    <mut v: Statement+> <s: Statement> => Statement::statement_list(Box::new({ v.push(s); v })),
 }
 
 /// Single statement
