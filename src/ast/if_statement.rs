@@ -102,6 +102,7 @@ impl ElseIfStatement {
         }
     }
 
+    #[allow(dead_code)]
     pub fn from_then(condition: Expression, then_control: Statement) -> Self {
         Self {
             condition,

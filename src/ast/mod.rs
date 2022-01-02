@@ -2,7 +2,6 @@ use bitflags::bitflags;
 use std::fmt::{self, Debug, Display, Formatter};
 
 use crate::parser::{StString, Tok};
-// use crate::utils::StringifyVisitor;
 
 mod message;
 pub use message::*;
@@ -11,7 +10,10 @@ mod types;
 pub use types::*;
 
 mod visitor;
-pub use visitor::*;
+pub use visitor::{AstVisitor, AstVisitorMut};
+
+mod function_declaration;
+pub use function_declaration::FunctionDeclare;
 
 mod expr_statement;
 pub use expr_statement::ExprStatement;
@@ -37,15 +39,11 @@ pub use assign_expression::AssignExpression;
 mod compo_access_expression;
 pub use compo_access_expression::CompoAccessExpression;
 
-mod function_declaration;
-
 mod statement;
 pub use statement::{Statement, StmtKind};
 
 mod expression;
 pub use expression::{ExprKind, Expression};
-
-pub use function_declaration::FunctionDeclare;
 
 pub trait HasSourcePosition {}
 
@@ -104,6 +102,7 @@ impl Display for dyn Type {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[allow(dead_code)]
 pub enum VariableScopeClass {
     None,
     Global,
@@ -124,6 +123,7 @@ bitflags! {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum DeclareClass {
     Function,
     Program,
@@ -132,6 +132,7 @@ pub enum DeclareClass {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[allow(dead_code)]
 pub enum UserTypeClass {
     Alias,
     Enum,
@@ -140,6 +141,7 @@ pub enum UserTypeClass {
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
+#[allow(dead_code)]
 pub enum TypeClass {
     /// 'BIT', one bit type
     Bit,

@@ -57,6 +57,7 @@ impl Variable {
         self.ty.clone()
     }
 
+    #[allow(dead_code)]
     pub fn set_ty(&mut self, ty: Option<Rc<Box<dyn Type>>>) {
         self.ty = ty
     }

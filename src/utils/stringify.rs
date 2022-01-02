@@ -129,10 +129,6 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
         self.writeln(format_args!("END_IF"));
     }
 
-    fn visit_declaration_statement(&mut self, decl: &DeclarationStatement) {
-        self.visit_declaration_statement(decl)
-    }
-
     fn visit_function_declaration(&mut self, fun: &FunctionDeclare) {
         self.write(format_args!("{} : ", Tok::Function));
         if let Some(ret_type) = fun.return_type() {

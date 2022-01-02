@@ -1,5 +1,4 @@
 use crate::ast::*;
-use crate::parser::LiteralValue;
 use crate::utils::{AstHasher, Crc32Hasher, StringifyVisitor};
 use chrono::Local;
 use regex::Regex;

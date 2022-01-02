@@ -1,6 +1,5 @@
 use crate::ast::*;
 use crate::context::Scope;
-use crate::parser::LiteralValue;
 use std::rc::Rc;
 
 struct TypeAnalyzerAttribute {

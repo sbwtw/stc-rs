@@ -33,6 +33,7 @@ impl CompoAccessExpression {
         &mut self.right
     }
 
+    #[allow(dead_code)]
     pub fn ty(&self) -> Option<Rc<Box<dyn Type>>> {
         self.ty.clone()
     }

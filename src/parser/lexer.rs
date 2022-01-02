@@ -1,6 +1,5 @@
 use crate::ast::*;
 use crate::parser::Tok;
-use std::any::Any;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::{self, Display, Formatter};

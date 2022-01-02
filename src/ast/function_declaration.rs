@@ -1,4 +1,4 @@
-use crate::ast::*;
+use crate::ast::{DeclareClass, Type, Variable};
 use crate::parser::StString;
 use std::rc::Rc;
 
@@ -41,17 +41,3 @@ impl FunctionDeclare {
         &self.variables
     }
 }
-
-// impl Declaration for FunctionDeclaration {
-//     fn as_any(&self) -> &dyn Any {
-//         self
-//     }
-//
-//     fn accept(&self, visitor: &mut dyn DeclarationVisitor) {
-//         visitor.visit_function_declare(self)
-//     }
-//
-//     fn identifier(&self) -> &StString {
-//         self.name()
-//     }
-// }

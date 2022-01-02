@@ -21,7 +21,7 @@ impl StDeclarationParser {
         Self {}
     }
 
-    pub fn parse<I>(&self, lexer: I) -> Result<Box<dyn Declaration>, ParseError>
+    pub fn parse<I>(&self, lexer: I) -> Result<DeclarationStatement, ParseError>
     where
         I: IntoIterator<Item = LexerResult>,
     {
@@ -41,7 +41,7 @@ impl StFunctionParser {
     pub fn parse<I: IntoIterator<Item = lexer::LexerResult>>(
         &self,
         lexer: I,
-    ) -> Result<Box<dyn Statement>, ParseError> {
+    ) -> Result<Statement, ParseError> {
         DefaultParserImpl::new(lexer.into_iter()).parse_function()
     }
 }
@@ -89,7 +89,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
     /// parse a function
     #[allow(unused)]
-    fn parse_function(&mut self) -> Result<Box<dyn Statement>, ParseError> {
+    fn parse_function(&mut self) -> Result<Statement, ParseError> {
         let stmts = match self.parse_statement_list()? {
             Some(stmts) => stmts,
             // TODO: error type
@@ -107,7 +107,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
     /// parse a declaration
     #[allow(unused)]
-    fn parse_declaration(&mut self) -> Result<Box<dyn Declaration>, ParseError> {
+    fn parse_declaration(&mut self) -> Result<DeclarationStatement, ParseError> {
         match self.except_one_of(&[Tok::Type, Tok::Function, Tok::Program])? {
             Tok::Type => {
                 let type_decl = self.parse_type_declaration()?;
@@ -138,12 +138,12 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
                     DeclareClass::Program
                 };
 
-                Ok(Box::new(FunctionDeclare::new(
+                Ok(DeclarationStatement::fun(Box::new(FunctionDeclare::new(
                     name,
                     class,
                     ret_type,
                     vars.unwrap_or(vec![]),
-                )))
+                ))))
             }
             _ => unreachable!(),
         }
@@ -184,7 +184,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     /// TypeDeclaration: Enum/Alias/Struct
-    fn parse_type_declaration(&mut self) -> ParseResult<Box<dyn Declaration>> {
+    fn parse_type_declaration(&mut self) -> ParseResult<DeclarationStatement> {
         let name = self.except_identifier()?;
         let _ = self.except_one_of(&[Tok::Colon])?;
 
@@ -194,7 +194,9 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             // ';'
             let _ = self.except_one_of(&[Tok::Semicolon])?;
 
-            return Ok(Some(Box::new(AliasDeclare::new(name, alias))));
+            return Ok(Some(DeclarationStatement::alias(Box::new(
+                AliasDeclare::new(name, alias),
+            ))));
         } else {
             self.next = pos;
         }
@@ -231,7 +233,9 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             // ';'
             let _ = self.except_one_of(&[Tok::Semicolon])?;
 
-            return Ok(Some(Box::new(EnumDeclare::new(name, enum_ty, fields))));
+            return Ok(Some(DeclarationStatement::enum_(Box::new(
+                EnumDeclare::new(name, enum_ty, fields),
+            ))));
         }
 
         // struct decl
@@ -239,7 +243,9 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             let fields = self.except_variable_declare_list()?;
             let _ = self.except_one_of(&[Tok::EndStruct])?;
 
-            return Ok(Some(Box::new(StructDeclare::new(name, fields))));
+            return Ok(Some(DeclarationStatement::struct_(Box::new(
+                StructDeclare::new(name, fields),
+            ))));
         }
 
         Err(ParseError::UnexpectedToken(tok.as_ref().0, vec![]))
@@ -371,7 +377,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         Ok(Some(Variable::multiple_variable_with_type(name_list, ty)))
     }
 
-    fn parse_statement_list(&mut self) -> ParseResult<Box<dyn Statement>> {
+    fn parse_statement_list(&mut self) -> ParseResult<Statement> {
         let mut statements: Vec<_> = vec![];
 
         loop {
@@ -382,11 +388,15 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             }
         }
 
-        Ok(Some(Box::new(StatementList::new(statements))))
+        if statements.len() == 1 {
+            return Ok(Some(statements.remove(0)));
+        }
+
+        Ok(Some(Statement::statement_list(Box::new(statements))))
     }
 
     /// parse single statement
-    fn parse_statement(&mut self) -> ParseResult<Box<dyn Statement>> {
+    fn parse_statement(&mut self) -> ParseResult<Statement> {
         let pos = self.next;
         let tok = self.next()?;
 
@@ -403,7 +413,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         let pos = self.next;
         if let Ok(decl) = self.parse_declaration() {
-            return Ok(Some(Box::new(DeclarationStatement::new(decl))));
+            return Ok(Some(Statement::decl(Box::new(decl))));
         }
 
         self.next = pos;
@@ -427,7 +437,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     // }
 
     // 'IF' token already taken
-    fn expect_if_statement(&mut self) -> Result<Box<dyn Statement>, ParseError> {
+    fn expect_if_statement(&mut self) -> Result<Statement, ParseError> {
         let cond = match self.parse_expression()? {
             Some(expr) => expr,
             // TODO: error type
@@ -446,7 +456,9 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         match &*self.next_token()? {
             // IF .. THEN .. END_IF
             (_, Tok::EndIf, _) => {
-                return Ok(Box::new(IfStatement::from_then(cond, then_ctrl)));
+                return Ok(Statement::if_stmt(Box::new(IfStatement::from_then(
+                    cond, then_ctrl,
+                ))));
             }
             // IF .. THEN .. ELSE .. END_IF
             (_, Tok::Else, _) => {
@@ -457,9 +469,9 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
                 };
                 let _ = self.except_one_of(&[Tok::EndIf])?;
 
-                return Ok(Box::new(IfStatement::from_then_else(
+                return Ok(Statement::if_stmt(Box::new(IfStatement::from_then_else(
                     cond, then_ctrl, else_ctrl,
-                )));
+                ))));
             }
             _ => self.next = pos,
         }
@@ -474,7 +486,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         todo!()
     }
 
-    fn parse_expr_statement(&mut self) -> ParseResult<Box<dyn Statement>> {
+    fn parse_expr_statement(&mut self) -> ParseResult<Statement> {
         let pos = self.next;
         let expr = match self.parse_expression()? {
             Some(expr) => expr,
@@ -489,22 +501,24 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             return Ok(None);
         }
 
-        Ok(Some(Box::new(ExprStatement::new(expr))))
+        Ok(Some(Statement::expr(Box::new(ExprStatement::new(expr)))))
     }
 
-    fn parse_op_expression(&mut self) -> ParseResult<Box<dyn Expression>> {
+    fn parse_op_expression(&mut self) -> ParseResult<Box<Expression>> {
         todo!()
     }
 
     /// Expr: Expr ":=" BitOrExpr
-    ///     | BitOrExpr  
+    ///     | BitOrExpr
     ///
     /// Expr: BitOrExpr expr'
-    fn parse_expression(&mut self) -> ParseResult<Box<dyn Expression>> {
+    fn parse_expression(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
         if let Some(bitor) = self.parse_bitor_expression()? {
             return match self.parse_expression_fix()? {
-                Some(fix) => Ok(Some(Box::new(AssignExpression::new(bitor, fix)))),
+                Some(fix) => Ok(Some(Expression::assign(Box::new(AssignExpression::new(
+                    bitor, fix,
+                ))))),
                 None => Ok(Some(bitor)),
             };
         }
@@ -514,7 +528,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     /// expr': ":=" BitOrExpr expr' | ε
-    fn parse_expression_fix(&mut self) -> ParseResult<Box<dyn Expression>> {
+    fn parse_expression_fix(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
         if !matches!(self.next()?.as_deref(), Some((_, Tok::Assign, _))) {
             self.next = pos;
@@ -539,14 +553,13 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     ///
     /// BitOrExpr: XorExpr bitor'
     /// bitor': "|" XorExpr bitor' | ε
-    fn parse_bitor_expression(&mut self) -> ParseResult<Box<dyn Expression>> {
+    fn parse_bitor_expression(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
 
         if let Some(bitor) = self.parse_xor_expression()? {
             if let Some(fix) = self.parse_bitor_expression_fix()? {
-                Ok(Some(Box::new(OperatorExpression::new(
-                    Tok::BitOr,
-                    vec![bitor, fix],
+                Ok(Some(Expression::operator(Box::new(
+                    OperatorExpression::new(Tok::BitOr, vec![bitor, fix]),
                 ))))
             } else {
                 Ok(Some(bitor))
@@ -557,7 +570,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         }
     }
 
-    fn parse_bitor_expression_fix(&mut self) -> ParseResult<Box<dyn Expression>> {
+    fn parse_bitor_expression_fix(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
         if !matches!(self.next()?.as_deref(), Some((_, Tok::BitOr, _))) {
             self.next = pos;
@@ -572,14 +585,13 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     ///
     /// XorExpr: BitAndExpr xorexpr'
     /// xorexpr': "XOR" BitAndExpr xorexpr' | ε
-    fn parse_xor_expression(&mut self) -> ParseResult<Box<dyn Expression>> {
+    fn parse_xor_expression(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
 
         match self.parse_bitand_expression()? {
             Some(bitand) => match self.parse_xor_expression_fix()? {
-                Some(fix) => Ok(Some(Box::new(OperatorExpression::new(
-                    Tok::Xor,
-                    vec![bitand, fix],
+                Some(fix) => Ok(Some(Expression::operator(Box::new(
+                    OperatorExpression::new(Tok::Xor, vec![bitand, fix]),
                 )))),
                 None => Ok(Some(bitand)),
             },
@@ -590,7 +602,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         }
     }
 
-    fn parse_xor_expression_fix(&mut self) -> ParseResult<Box<dyn Expression>> {
+    fn parse_xor_expression_fix(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
         if !matches!(self.next()?.as_deref(), Some((_, Tok::Xor, _))) {
             self.next = pos;
@@ -605,14 +617,13 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     ///
     /// BitAndExpr: EquExpr bitandexpr'
     /// bitandexpr': "&" EquExpr bitandexpr' | ε
-    fn parse_bitand_expression(&mut self) -> ParseResult<Box<dyn Expression>> {
+    fn parse_bitand_expression(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
 
         match self.parse_equ_expr()? {
             Some(equ) => match self.parse_bitand_expression_fix()? {
-                Some(fix) => Ok(Some(Box::new(OperatorExpression::new(
-                    Tok::BitAnd,
-                    vec![equ, fix],
+                Some(fix) => Ok(Some(Expression::operator(Box::new(
+                    OperatorExpression::new(Tok::BitAnd, vec![equ, fix]),
                 )))),
                 None => Ok(Some(equ)),
             },
@@ -623,7 +634,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         }
     }
 
-    fn parse_bitand_expression_fix(&mut self) -> ParseResult<Box<dyn Expression>> {
+    fn parse_bitand_expression_fix(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
         if !matches!(self.next()?.as_deref(), Some((_, Tok::BitAnd, _))) {
             self.next = pos;
@@ -637,14 +648,14 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     ///     | CmpExpr
     ///
     /// EquExpr: CmpExpr equexpr'
-    fn parse_equ_expr(&mut self) -> ParseResult<Box<dyn Expression>> {
+    fn parse_equ_expr(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
 
         match self.parse_cmp_expr()? {
             Some(equ) => match self.parse_equ_expr_fix()? {
-                Some((tok, fix)) => {
-                    Ok(Some(Box::new(OperatorExpression::new(tok, vec![equ, fix]))))
-                }
+                Some((tok, fix)) => Ok(Some(Expression::operator(Box::new(
+                    OperatorExpression::new(tok, vec![equ, fix]),
+                )))),
                 None => Ok(Some(equ)),
             },
             None => {
@@ -655,7 +666,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     /// equexpr': EquOp CmpExpr equexpr' | ε
-    fn parse_equ_expr_fix(&mut self) -> ParseResult<(Tok, Box<dyn Expression>)> {
+    fn parse_equ_expr_fix(&mut self) -> ParseResult<(Tok, Expression)> {
         let pos = self.next;
 
         let current_tok = match self.parse_equ_op()? {
@@ -677,7 +688,10 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let pos = self.next;
         match self.parse_equ_expr_fix()? {
             Some((tok, fix)) => {
-                let tail = Box::new(OperatorExpression::new(tok, vec![cmp_expr, fix]));
+                let tail = Expression::operator(Box::new(OperatorExpression::new(
+                    tok,
+                    vec![cmp_expr, fix],
+                )));
                 Ok(Some((current_tok, tail)))
             }
             _ => {
@@ -705,14 +719,14 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     ///     | OpExpr
     ///
     /// CmpExpr: OpExpr cmpexpr'
-    fn parse_cmp_expr(&mut self) -> ParseResult<Box<dyn Expression>> {
+    fn parse_cmp_expr(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
 
         match self.parse_op_expr()? {
             Some(cmp) => match self.parse_cmp_expr_fix()? {
-                Some((tok, fix)) => {
-                    Ok(Some(Box::new(OperatorExpression::new(tok, vec![cmp, fix]))))
-                }
+                Some((tok, fix)) => Ok(Some(Expression::operator(Box::new(
+                    OperatorExpression::new(tok, vec![cmp, fix]),
+                )))),
                 None => Ok(Some(cmp)),
             },
             None => {
@@ -723,7 +737,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     /// cmpexpr': CmpOp OpExpr cmpexpr' | ε
-    fn parse_cmp_expr_fix(&mut self) -> ParseResult<(Tok, Box<dyn Expression>)> {
+    fn parse_cmp_expr_fix(&mut self) -> ParseResult<(Tok, Expression)> {
         let pos = self.next;
 
         let current_tok = match self.parse_cmp_op()? {
@@ -745,7 +759,10 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let pos = self.next;
         match self.parse_cmp_expr_fix()? {
             Some((tok, fix)) => {
-                let tail = Box::new(OperatorExpression::new(tok, vec![op_expr, fix]));
+                let tail = Expression::operator(Box::new(OperatorExpression::new(
+                    tok,
+                    vec![op_expr, fix],
+                )));
                 Ok(Some((current_tok, tail)))
             }
             _ => {
@@ -774,14 +791,13 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     ///     | Factor
     ///
     /// OpExpr: Factor opexpr'
-    fn parse_op_expr(&mut self) -> ParseResult<Box<dyn Expression>> {
+    fn parse_op_expr(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
 
         if let Some(factor) = self.parse_factor()? {
             if let Some((tok, fix)) = self.parse_op_expr_fix()? {
-                Ok(Some(Box::new(OperatorExpression::new(
-                    tok,
-                    vec![factor, fix],
+                Ok(Some(Expression::operator(Box::new(
+                    OperatorExpression::new(tok, vec![factor, fix]),
                 ))))
             } else {
                 Ok(Some(factor))
@@ -793,7 +809,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     /// opexpr': ExprOp Factor opexpr' | ε
-    fn parse_op_expr_fix(&mut self) -> ParseResult<(Tok, Box<dyn Expression>)> {
+    fn parse_op_expr_fix(&mut self) -> ParseResult<(Tok, Expression)> {
         let pos = self.next;
 
         let current_tok = match self.parse_expr_op()? {
@@ -814,7 +830,8 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         let pos = self.next;
         if let Some((tok, fix)) = self.parse_op_expr_fix()? {
-            let tail = Box::new(OperatorExpression::new(tok, vec![factor, fix]));
+            let tail =
+                Expression::operator(Box::new(OperatorExpression::new(tok, vec![factor, fix])));
             Ok(Some((current_tok, tail)))
         } else {
             self.next = pos;
@@ -839,14 +856,13 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     ///     | PowerExpr
     ///
     /// Factor: PowerExpr factor'
-    fn parse_factor(&mut self) -> ParseResult<Box<dyn Expression>> {
+    fn parse_factor(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
 
         if let Some(power) = self.parse_power_expr()? {
             if let Some((tok, fix)) = self.parse_factor_fix()? {
-                Ok(Some(Box::new(OperatorExpression::new(
-                    tok,
-                    vec![power, fix],
+                Ok(Some(Expression::operator(Box::new(
+                    OperatorExpression::new(tok, vec![power, fix]),
                 ))))
             } else {
                 Ok(Some(power))
@@ -858,7 +874,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     /// factor': FactorOp PowerExpr factor' | ε
-    fn parse_factor_fix(&mut self) -> ParseResult<(Tok, Box<dyn Expression>)> {
+    fn parse_factor_fix(&mut self) -> ParseResult<(Tok, Expression)> {
         let pos = self.next;
 
         let current_tok = match self.parse_factor_op()? {
@@ -879,7 +895,8 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         let pos = self.next;
         if let Some((tok, fix)) = self.parse_factor_fix()? {
-            let tail = Box::new(OperatorExpression::new(tok, vec![power, fix]));
+            let tail =
+                Expression::operator(Box::new(OperatorExpression::new(tok, vec![power, fix])));
             Ok(Some((current_tok, tail)))
         } else {
             self.next = pos;
@@ -906,14 +923,13 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     ///     | UnaryFactor
     ///
     /// PowerExpr: UnaryFactor powerexpr'
-    fn parse_power_expr(&mut self) -> ParseResult<Box<dyn Expression>> {
+    fn parse_power_expr(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
 
         match self.parse_unary_factor()? {
             Some(unary) => match self.parse_power_expr_fix()? {
-                Some(fix) => Ok(Some(Box::new(OperatorExpression::new(
-                    Tok::Power,
-                    vec![unary, fix],
+                Some(fix) => Ok(Some(Expression::operator(Box::new(
+                    OperatorExpression::new(Tok::Power, vec![unary, fix]),
                 )))),
                 None => Ok(Some(unary)),
             },
@@ -925,7 +941,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     // powerexpr': "**" UnaryFactor powerexpr' | ε
-    fn parse_power_expr_fix(&mut self) -> ParseResult<Box<dyn Expression>> {
+    fn parse_power_expr_fix(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
 
         if !matches!(self.next()?.as_deref(), Some((_, Tok::Power, _))) {
@@ -943,7 +959,10 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         let pos = self.next;
         if let Some(fix) = self.parse_power_expr_fix()? {
-            let tail = Box::new(OperatorExpression::new(Tok::Power, vec![unary, fix]));
+            let tail = Expression::operator(Box::new(OperatorExpression::new(
+                Tok::Power,
+                vec![unary, fix],
+            )));
             Ok(Some(tail))
         } else {
             self.next = pos;
@@ -953,15 +972,15 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
     /// UnaryFactor: UnaryOp CompoFactor
     ///     | CompoFactor
-    fn parse_unary_factor(&mut self) -> ParseResult<Box<dyn Expression>> {
+    fn parse_unary_factor(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
         let unary_op = self.parse_unary_op()?;
         let compo_factor = self.parse_compo_factor()?;
 
         match (unary_op, compo_factor) {
-            (Some(op), Some(factor)) => {
-                Ok(Some(Box::new(OperatorExpression::new(op, vec![factor]))))
-            }
+            (Some(op), Some(factor)) => Ok(Some(Expression::operator(Box::new(
+                OperatorExpression::new(op, vec![factor]),
+            )))),
             (None, Some(factor)) => Ok(Some(factor)),
             _ => {
                 self.next = pos;
@@ -987,12 +1006,14 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     ///     | Term
     ///
     /// CompoFactor: Term compofactor'
-    fn parse_compo_factor(&mut self) -> ParseResult<Box<dyn Expression>> {
+    fn parse_compo_factor(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
 
         match self.parse_term_expr()? {
             Some(term) => match self.parse_compo_factor_fix()? {
-                Some(fix) => Ok(Some(Box::new(CompoAccessExpression::new(term, fix)))),
+                Some(fix) => Ok(Some(Expression::compo(Box::new(
+                    CompoAccessExpression::new(term, fix),
+                )))),
                 None => Ok(Some(term)),
             },
             None => {
@@ -1003,7 +1024,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     /// compofactor': "." Term compofactor' | ε
-    fn parse_compo_factor_fix(&mut self) -> ParseResult<Box<dyn Expression>> {
+    fn parse_compo_factor_fix(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
 
         if !matches!(self.next()?.as_deref(), Some((_, Tok::Access, _))) {
@@ -1014,7 +1035,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         self.parse_compo_factor()
     }
 
-    fn parse_term_expr(&mut self) -> ParseResult<Box<dyn Expression>> {
+    fn parse_term_expr(&mut self) -> ParseResult<Expression> {
         if let Some(val) = self.parse_variable_expr()? {
             return Ok(Some(val));
         }
@@ -1035,12 +1056,14 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         Ok(None)
     }
 
-    fn parse_literal_expr(&mut self) -> ParseResult<Box<dyn Expression>> {
+    fn parse_literal_expr(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
 
         match self.next()?.as_deref() {
             Some((_, Tok::Literal(val), _)) => {
-                return Ok(Some(Box::new(LiteralExpression::new(val.clone()))))
+                return Ok(Some(Expression::literal(Box::new(LiteralExpression::new(
+                    val.clone(),
+                )))))
             }
             _ => {}
         }
@@ -1049,17 +1072,19 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         Ok(None)
     }
 
-    fn parse_variable_expr(&mut self) -> ParseResult<Box<dyn Expression>> {
+    fn parse_variable_expr(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
 
-        let var = match self.next()?.as_deref() {
-            Some((_, Tok::Identifier(ident), _)) => Variable::new(ident.clone()),
+        let ident = match self.next()?.as_deref() {
+            Some((_, Tok::Identifier(ident), _)) => ident.clone(),
             _ => {
                 self.next = pos;
                 return Ok(None);
             }
         };
 
-        Ok(Some(Box::new(var)))
+        Ok(Some(Expression::variable(Box::new(
+            VariableExpression::new(ident),
+        ))))
     }
 }
