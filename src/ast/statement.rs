@@ -1,4 +1,6 @@
-use crate::ast::{DeclarationStatement, ExprStatement, IfStatement};
+use crate::ast::{AstVisitor, DeclarationStatement, ExprStatement, IfStatement};
+use crate::utils::StringifyVisitor;
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug)]
 pub enum StmtKind {
@@ -11,6 +13,16 @@ pub enum StmtKind {
 #[derive(Debug)]
 pub struct Statement {
     pub kind: StmtKind,
+}
+
+impl Display for Statement {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut buf = vec![];
+        let mut stringify = StringifyVisitor::new(&mut buf);
+        stringify.visit_statement(self);
+
+        write!(f, "{}", String::from_utf8_lossy(&buf))
+    }
 }
 
 impl Statement {

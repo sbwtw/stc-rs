@@ -9,6 +9,7 @@ const CRC32: Crc<u32> = Crc::<u32>::new(&CRC_32_ISO_HDLC);
 
 /// ensure different statement has different hash code
 #[derive(Hash)]
+#[allow(dead_code)]
 enum VisitType {
     Literal,
     Variable,
@@ -65,12 +66,12 @@ impl MyHash for Tok {
     }
 }
 
-#[allow(unused)]
+#[allow(dead_code)]
 pub struct AstHasher<H: Hasher> {
     hasher: H,
 }
 
-#[allow(unused)]
+#[allow(dead_code)]
 impl<H: Hasher> AstHasher<H> {
     pub fn new(hasher: H) -> Self {
         Self { hasher }
@@ -87,7 +88,7 @@ impl<H: Hasher> AstHasher<H> {
     }
 }
 
-#[allow(unused)]
+#[allow(dead_code)]
 pub struct Crc32Hasher<'a> {
     digest: RefCell<Option<Digest<'a, u32>>>,
 }

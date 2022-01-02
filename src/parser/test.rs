@@ -1,44 +1,48 @@
 use crate::ast::*;
 use crate::parser::*;
-use crate::utils::AstHasher;
+use crate::utils::{AstHasher, Crc32Hasher};
 
 #[test]
 fn test_parse_function() {
     let lexer = StLexer::new("function test_fun : VAR_GLOBAL a,b ,c: INT; END_VAR END_FUNCTION");
 
     let fun = StDeclarationParser::new().parse(lexer).unwrap();
-    let fun = fun.as_any().downcast_ref::<FunctionDeclare>().unwrap();
 
-    assert_eq!(fun.name(), "test_fun");
-    assert!(matches!(fun.class(), &DeclareClass::Function));
+    assert_eq!(fun.identifier(), "test_fun");
+    assert!(matches!(fun.kind, DeclKind::Fun(_)));
 
-    let variables = fun.variables();
-    assert_eq!(variables.len(), 3);
-    assert_eq!(variables[0].name(), "a");
-    assert_eq!(variables[1].origin_name(), "b");
-    assert!(matches!(
-        variables[2].scope_class(),
-        VariableScopeClass::Global,
-    ));
+    if let DeclKind::Fun(f) = fun.kind {
+        let variables = f.variables();
+        assert_eq!(variables.len(), 3);
+        assert_eq!(variables[0].name(), "a");
+        assert_eq!(variables[1].origin_name(), "b");
+        assert!(matches!(
+            variables[2].scope_class(),
+            VariableScopeClass::Global,
+        ));
+    }
 
     let lexer = StLexer::new(
         "function test_fun : VAR_GLOBAL a,b ,c: INT; END_VAR VAR Bx1: INT; END_VAR END_FUNCTION",
     );
 
     let fun = StDeclarationParser::new().parse(lexer).unwrap();
-    let fun = fun.as_any().downcast_ref::<FunctionDeclare>().unwrap();
+    assert_eq!(fun.identifier(), "test_fun");
+    assert!(matches!(fun.kind, DeclKind::Fun(_)));
 
-    let variables = fun.variables();
-    assert_eq!(variables.len(), 4);
-    assert_eq!(variables[3].origin_name(), "Bx1");
-    assert!(matches!(
-        variables[3].scope_class(),
-        VariableScopeClass::None,
-    ));
-    assert!(matches!(
-        variables[3].ty().unwrap().type_class(),
-        TypeClass::Int
-    ));
+    if let DeclKind::Fun(f) = fun.kind {
+        let variables = f.variables();
+        assert_eq!(variables.len(), 4);
+        assert_eq!(variables[3].origin_name(), "Bx1");
+        assert!(matches!(
+            variables[3].scope_class(),
+            VariableScopeClass::None,
+        ));
+        assert!(matches!(
+            variables[3].ty().unwrap().type_class(),
+            TypeClass::Int
+        ));
+    }
 }
 
 fn hash_for_code<S: AsRef<str>>(s: S) -> Option<u64> {
@@ -46,9 +50,8 @@ fn hash_for_code<S: AsRef<str>>(s: S) -> Option<u64> {
     let lexer = StLexer::new(s.as_ref());
     let fun = parser.parse(lexer).ok()?;
 
-    let mut hasher = AstHasher::crc32();
-    hasher.add(fun.as_ast_node());
-    Some(hasher.hash())
+    let mut hasher = AstHasher::new(Crc32Hasher::new());
+    Some(hasher.calc_statement(&fun))
 }
 
 fn stringify_code<S: AsRef<str>>(s: S) -> Option<String> {
@@ -56,7 +59,7 @@ fn stringify_code<S: AsRef<str>>(s: S) -> Option<String> {
     let lexer = StLexer::new(s.as_ref());
     let fun = parser.parse(lexer).ok()?;
 
-    Some(fun.as_ast_node().to_string())
+    Some(format!("{}", fun))
 }
 
 #[test]

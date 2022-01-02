@@ -20,7 +20,7 @@ mod if_statement;
 pub use if_statement::{ElseIfStatement, IfStatement};
 
 mod declaration_statement;
-pub use declaration_statement::DeclarationStatement;
+pub use declaration_statement::{DeclKind, DeclarationStatement};
 
 mod literal_expression;
 pub use literal_expression::{LiteralExpression, VariableExpression};
@@ -46,17 +46,6 @@ mod expression;
 pub use expression::{ExprKind, Expression};
 
 pub use function_declaration::FunctionDeclare;
-use std::any::Any;
-
-// macro_rules! ast_stringify {
-//     ($host:expr, $fmt:expr) => {{
-//         let mut buf = vec![];
-//         let mut stringify = StringifyVisitor::new(&mut buf);
-//         $host.accept(&mut stringify);
-//
-//         write!($fmt, "{}", String::from_utf8_lossy(&buf))
-//     }};
-// }
 
 pub trait HasSourcePosition {}
 
@@ -113,99 +102,6 @@ impl Display for dyn Type {
         write!(f, "{}", self.type_class())
     }
 }
-
-// pub trait AsAstNode {
-//     fn as_ast_node(&self) -> &dyn AstNode;
-//     fn as_ast_node_mut(&mut self) -> &mut dyn AstNode;
-// }
-//
-// impl<T: AstNode> AsAstNode for T {
-//     fn as_ast_node(&self) -> &dyn AstNode {
-//         self
-//     }
-//
-//     fn as_ast_node_mut(&mut self) -> &mut dyn AstNode {
-//         self
-//     }
-// }
-
-// pub trait AstNode: Debug + AsAstNode {
-//     fn as_any(&self) -> &dyn Any;
-//     fn accept<'a, V: AstVisitor<'a>>(&self, visitor: &mut V);
-//     fn accept_mut<'a, V: AstVisitor<'a>>(&mut self, visitor: &mut V);
-// }
-
-// impl Display for &dyn AstNode {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-//         ast_stringify!(self, f)
-//     }
-// }
-//
-// impl<T> AstNode for Box<T>
-// where
-//     T: AstNode,
-// {
-//     fn as_any(&self) -> &dyn Any {
-//         self.as_ref().as_any()
-//     }
-//
-//     fn accept(&self, visitor: &mut dyn AstVisitor) {
-//         self.as_ref().accept(visitor);
-//     }
-//
-//     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
-//         self.as_mut().accept_mut(visitor);
-//     }
-// }
-//
-// pub trait Statement: AstNode {}
-//
-// pub trait Expression: AstNode {}
-
-// #[derive(Debug)]
-// pub struct StatementList(Vec<Box<Statement>>);
-//
-// impl StatementList {
-//     pub fn new(v: Vec<Box<Statement>>) -> Self {
-//         Self(v)
-//     }
-//
-//     pub fn statements(&self) -> &[Box<Statement>] {
-//         self.0.as_ref()
-//     }
-//
-//     pub fn statements_mut(&mut self) -> &mut [Box<Statement>] {
-//         self.0.as_mut()
-//     }
-// }
-
-// impl AstNode for StatementList {
-//     fn as_any(&self) -> &dyn Any {
-//         self
-//     }
-//
-//     fn accept(&self, visitor: &mut dyn AstVisitor) {
-//         visitor.visit_statement_list(self)
-//     }
-//
-//     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
-//         visitor.visit_statement_list_mut(self)
-//     }
-// }
-
-// impl Statement for StatementList {}
-
-// pub trait Declaration: Debug {
-//     fn as_any(&self) -> &dyn Any;
-//     fn accept(&self, visitor: &mut dyn DeclarationVisitor);
-//     fn identifier(&self) -> &StString;
-// }
-//
-// impl Display for &dyn Declaration {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-//         ast_stringify!(self, f)
-//     }
-// }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum VariableScopeClass {

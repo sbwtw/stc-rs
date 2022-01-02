@@ -67,5 +67,7 @@ fn main() {
         type_analyzer.analyze_statement(&mut f, scope);
 
         display_ast(&f);
+
+        println!("{}", &f);
     }
 }

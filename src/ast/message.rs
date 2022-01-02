@@ -1,5 +1,4 @@
-use crate::ast::*;
-
+#[allow(dead_code)]
 pub enum MessageCategory {
     TypeAnalysis(MessageID),
 }

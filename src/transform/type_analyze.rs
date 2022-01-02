@@ -57,7 +57,7 @@ impl TypeAnalyzer {
     }
 }
 
-impl AstVisitorMut<'_> for TypeAnalyzer {
+impl AstVisitorMut for TypeAnalyzer {
     fn visit_literal_mut(&mut self, literal: &mut LiteralExpression) {
         self.top_mut().derived_type = Some(Rc::new(literal.literal().ty()))
     }

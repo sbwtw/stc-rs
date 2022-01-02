@@ -9,6 +9,7 @@ pub struct IfStatement {
 }
 
 impl IfStatement {
+    #[allow(dead_code)]
     pub fn new(condition: Expression) -> Self {
         Self {
             condition,
@@ -58,16 +59,32 @@ impl IfStatement {
         &self.condition
     }
 
+    pub fn condition_mut(&mut self) -> &mut Expression {
+        &mut self.condition
+    }
+
     pub fn then_controlled(&self) -> Option<&Statement> {
         self.then_controlled.as_ref()
+    }
+
+    pub fn then_controlled_mut(&mut self) -> Option<&mut Statement> {
+        self.then_controlled.as_mut()
     }
 
     pub fn else_controlled(&self) -> Option<&Statement> {
         self.else_controlled.as_ref()
     }
 
+    pub fn else_controlled_mut(&mut self) -> Option<&mut Statement> {
+        self.else_controlled.as_mut()
+    }
+
     pub fn else_if_list(&self) -> &Vec<ElseIfStatement> {
         &self.else_if_list
+    }
+
+    pub fn else_if_list_mut(&mut self) -> &mut Vec<ElseIfStatement> {
+        &mut self.else_if_list
     }
 }
 
@@ -96,23 +113,15 @@ impl ElseIfStatement {
         &self.condition
     }
 
+    pub fn condition_mut(&mut self) -> &mut Expression {
+        &mut self.condition
+    }
+
     pub fn then_controlled(&self) -> Option<&Statement> {
         self.then_controlled.as_ref()
     }
-}
 
-// impl AstNode for IfStatement {
-//     fn as_any(&self) -> &dyn Any {
-//         self
-//     }
-//
-//     fn accept(&self, visitor: &mut dyn AstVisitor) {
-//         visitor.visit_if_statement(self);
-//     }
-//
-//     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
-//         visitor.visit_if_statement_mut(self);
-//     }
-// }
-//
-// impl Statement for IfStatement {}
+    pub fn then_controlled_mut(&mut self) -> Option<&mut Statement> {
+        self.then_controlled.as_mut()
+    }
+}

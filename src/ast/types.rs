@@ -185,6 +185,14 @@ impl StructDeclare {
     pub fn name(&self) -> &StString {
         &self.name
     }
+
+    pub fn variables(&self) -> &Vec<Rc<Variable>> {
+        &self.variables
+    }
+
+    pub fn variables_mut(&mut self) -> &mut Vec<Rc<Variable>> {
+        &mut self.variables
+    }
 }
 
 impl Type for StructDeclare {
