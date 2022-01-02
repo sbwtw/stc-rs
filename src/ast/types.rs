@@ -119,19 +119,19 @@ impl Type for EnumDeclare {
     }
 }
 
-impl Declaration for EnumDeclare {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn accept(&self, visitor: &mut dyn DeclarationVisitor) {
-        visitor.visit_enum_declare(self)
-    }
-
-    fn identifier(&self) -> &StString {
-        self.name()
-    }
-}
+// impl Declaration for EnumDeclare {
+//     fn as_any(&self) -> &dyn Any {
+//         self
+//     }
+//
+//     fn accept(&self, visitor: &mut dyn DeclarationVisitor) {
+//         visitor.visit_enum_declare(self)
+//     }
+//
+//     fn identifier(&self) -> &StString {
+//         self.name()
+//     }
+// }
 
 #[derive(Debug, Clone)]
 #[allow(unused)]
@@ -156,19 +156,19 @@ impl Type for AliasDeclare {
     }
 }
 
-impl Declaration for AliasDeclare {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn accept(&self, visitor: &mut dyn DeclarationVisitor) {
-        visitor.visit_alias_declare(self)
-    }
-
-    fn identifier(&self) -> &StString {
-        self.name()
-    }
-}
+// impl Declaration for AliasDeclare {
+//     fn as_any(&self) -> &dyn Any {
+//         self
+//     }
+//
+//     fn accept(&self, visitor: &mut dyn DeclarationVisitor) {
+//         visitor.visit_alias_declare(self)
+//     }
+//
+//     fn identifier(&self) -> &StString {
+//         self.name()
+//     }
+// }
 
 #[derive(Debug, Clone)]
 #[allow(unused)]
@@ -193,16 +193,16 @@ impl Type for StructDeclare {
     }
 }
 
-impl Declaration for StructDeclare {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn accept(&self, visitor: &mut dyn DeclarationVisitor) {
-        visitor.visit_struct_declare(self)
-    }
-
-    fn identifier(&self) -> &StString {
-        self.name()
-    }
-}
+// impl Declaration for StructDeclare {
+//     fn as_any(&self) -> &dyn Any {
+//         self
+//     }
+//
+//     fn accept(&self, visitor: &mut dyn DeclarationVisitor) {
+//         visitor.visit_struct_declare(self)
+//     }
+//
+//     fn identifier(&self) -> &StString {
+//         self.name()
+//     }
+// }

@@ -157,19 +157,19 @@ impl Display for LiteralValue {
     }
 }
 
-impl AstNode for LiteralValue {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn accept(&self, visitor: &mut dyn AstVisitor) {
-        visitor.visit_literal(self)
-    }
-
-    fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
-        visitor.visit_literal_mut(self)
-    }
-}
+// impl AstNode for LiteralValue {
+//     fn as_any(&self) -> &dyn Any {
+//         self
+//     }
+//
+//     fn accept(&self, visitor: &mut dyn AstVisitor) {
+//         visitor.visit_literal(self)
+//     }
+//
+//     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
+//         visitor.visit_literal_mut(self)
+//     }
+// }
 
 #[derive(Debug, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub enum LexicalError {

@@ -9,7 +9,7 @@ use std::sync::{Arc, RwLock};
 pub struct Scope {
     units_manager: Option<Arc<RwLock<UnitsManager>>>,
     local_context: Option<Arc<RwLock<ModuleContext>>>,
-    local_declaration: Option<Arc<RwLock<Box<dyn Declaration>>>>,
+    local_declaration: Option<Arc<RwLock<DeclarationStatement>>>,
 }
 
 impl Scope {
@@ -37,18 +37,19 @@ impl Scope {
     }
 
     pub fn find_variable(&self, ident: &StString) -> Option<Rc<Variable>> {
-        self.local_declaration.as_ref().and_then(|decl| {
-            decl.read()
-                .unwrap()
-                .as_any()
-                .downcast_ref::<FunctionDeclaration>()
-                .and_then(|fun| {
-                    fun.variables()
-                        .iter()
-                        .find(|x| x.name() == ident)
-                        .map(|x| x.clone())
-                })
-        })
+        None
+        // self.local_declaration.as_ref().and_then(|decl| {
+        //     decl.read()
+        //         .unwrap()
+        //         .as_any()
+        //         .downcast_ref::<FunctionDeclaration>()
+        //         .and_then(|fun| {
+        //             fun.variables()
+        //                 .iter()
+        //                 .find(|x| x.name() == ident)
+        //                 .map(|x| x.clone())
+        //         })
+        // })
     }
 }
 

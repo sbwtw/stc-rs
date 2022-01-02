@@ -3,14 +3,14 @@ use crate::parser::StString;
 use std::rc::Rc;
 
 #[derive(Debug)]
-pub struct FunctionDeclaration {
+pub struct FunctionDeclare {
     name: StString,
     decl_class: DeclareClass,
     return_type: Option<Rc<Box<dyn Type>>>,
     variables: Vec<Rc<Variable>>,
 }
 
-impl FunctionDeclaration {
+impl FunctionDeclare {
     pub fn new(
         name: StString,
         class: DeclareClass,
@@ -42,16 +42,16 @@ impl FunctionDeclaration {
     }
 }
 
-impl Declaration for FunctionDeclaration {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn accept(&self, visitor: &mut dyn DeclarationVisitor) {
-        visitor.visit_function_declare(self)
-    }
-
-    fn identifier(&self) -> &StString {
-        self.name()
-    }
-}
+// impl Declaration for FunctionDeclaration {
+//     fn as_any(&self) -> &dyn Any {
+//         self
+//     }
+//
+//     fn accept(&self, visitor: &mut dyn DeclarationVisitor) {
+//         visitor.visit_function_declare(self)
+//     }
+//
+//     fn identifier(&self) -> &StString {
+//         self.name()
+//     }
+// }

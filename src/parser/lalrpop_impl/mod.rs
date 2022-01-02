@@ -18,7 +18,7 @@ impl StDeclarationParser {
     pub fn parse<I: IntoIterator<Item = LexerResult>>(
         &self,
         lexer: I,
-    ) -> Result<Box<dyn Declaration>, ParseError> {
+    ) -> Result<DeclarationStatement, ParseError> {
         self.inner.parse(lexer).map_err(Into::into)
     }
 }
@@ -37,7 +37,7 @@ impl StFunctionParser {
     pub fn parse<I: IntoIterator<Item = LexerResult>>(
         &self,
         lexer: I,
-    ) -> Result<Box<dyn Statement>, ParseError> {
+    ) -> Result<Statement, ParseError> {
         self.inner.parse(lexer).map_err(Into::into)
     }
 }

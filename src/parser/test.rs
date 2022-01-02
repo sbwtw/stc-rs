@@ -7,7 +7,7 @@ fn test_parse_function() {
     let lexer = StLexer::new("function test_fun : VAR_GLOBAL a,b ,c: INT; END_VAR END_FUNCTION");
 
     let fun = StDeclarationParser::new().parse(lexer).unwrap();
-    let fun = fun.as_any().downcast_ref::<FunctionDeclaration>().unwrap();
+    let fun = fun.as_any().downcast_ref::<FunctionDeclare>().unwrap();
 
     assert_eq!(fun.name(), "test_fun");
     assert!(matches!(fun.class(), &DeclareClass::Function));
@@ -26,7 +26,7 @@ fn test_parse_function() {
     );
 
     let fun = StDeclarationParser::new().parse(lexer).unwrap();
-    let fun = fun.as_any().downcast_ref::<FunctionDeclaration>().unwrap();
+    let fun = fun.as_any().downcast_ref::<FunctionDeclare>().unwrap();
 
     let variables = fun.variables();
     assert_eq!(variables.len(), 4);

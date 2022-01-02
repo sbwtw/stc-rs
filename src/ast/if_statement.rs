@@ -2,14 +2,14 @@ use crate::ast::*;
 
 #[derive(Debug)]
 pub struct IfStatement {
-    condition: Box<dyn Expression>,
-    then_controlled: Option<Box<dyn Statement>>,
-    else_controlled: Option<Box<dyn Statement>>,
+    condition: Expression,
+    then_controlled: Option<Statement>,
+    else_controlled: Option<Statement>,
     else_if_list: Vec<ElseIfStatement>,
 }
 
 impl IfStatement {
-    pub fn new(condition: Box<dyn Expression>) -> Self {
+    pub fn new(condition: Expression) -> Self {
         Self {
             condition,
             then_controlled: None,
@@ -18,7 +18,7 @@ impl IfStatement {
         }
     }
 
-    pub fn from_then(condition: Box<dyn Expression>, then_control: Box<dyn Statement>) -> Self {
+    pub fn from_then(condition: Expression, then_control: Statement) -> Self {
         Self {
             condition,
             then_controlled: Some(then_control),
@@ -28,9 +28,9 @@ impl IfStatement {
     }
 
     pub fn from_then_else(
-        condition: Box<dyn Expression>,
-        then_control: Box<dyn Statement>,
-        else_control: Box<dyn Statement>,
+        condition: Expression,
+        then_control: Statement,
+        else_control: Statement,
     ) -> Self {
         Self {
             condition,
@@ -41,10 +41,10 @@ impl IfStatement {
     }
 
     pub fn from_then_elseif_else(
-        condition: Box<dyn Expression>,
-        then_control: Box<dyn Statement>,
+        condition: Expression,
+        then_control: Statement,
         else_if_list: Vec<ElseIfStatement>,
-        else_control: Box<dyn Statement>,
+        else_control: Statement,
     ) -> Self {
         Self {
             condition,
@@ -54,15 +54,15 @@ impl IfStatement {
         }
     }
 
-    pub fn condition(&self) -> &dyn Expression {
-        self.condition.as_ref()
+    pub fn condition(&self) -> &Expression {
+        &self.condition
     }
 
-    pub fn then_controlled(&self) -> Option<&Box<dyn Statement>> {
+    pub fn then_controlled(&self) -> Option<&Statement> {
         self.then_controlled.as_ref()
     }
 
-    pub fn else_controlled(&self) -> Option<&Box<dyn Statement>> {
+    pub fn else_controlled(&self) -> Option<&Statement> {
         self.else_controlled.as_ref()
     }
 
@@ -73,46 +73,46 @@ impl IfStatement {
 
 #[derive(Debug)]
 pub struct ElseIfStatement {
-    condition: Box<dyn Expression>,
-    then_controlled: Option<Box<dyn Statement>>,
+    condition: Expression,
+    then_controlled: Option<Statement>,
 }
 
 impl ElseIfStatement {
-    pub fn new(condition: Box<dyn Expression>) -> Self {
+    pub fn new(condition: Expression) -> Self {
         Self {
             condition,
             then_controlled: None,
         }
     }
 
-    pub fn from_then(condition: Box<dyn Expression>, then_control: Box<dyn Statement>) -> Self {
+    pub fn from_then(condition: Expression, then_control: Statement) -> Self {
         Self {
             condition,
             then_controlled: Some(then_control),
         }
     }
 
-    pub fn condition(&self) -> &dyn Expression {
-        self.condition.as_ref()
+    pub fn condition(&self) -> &Expression {
+        &self.condition
     }
 
-    pub fn then_controlled(&self) -> Option<&Box<dyn Statement>> {
+    pub fn then_controlled(&self) -> Option<&Statement> {
         self.then_controlled.as_ref()
     }
 }
 
-impl AstNode for IfStatement {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn accept(&self, visitor: &mut dyn AstVisitor) {
-        visitor.visit_if_statement(self);
-    }
-
-    fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
-        visitor.visit_if_statement_mut(self);
-    }
-}
-
-impl Statement for IfStatement {}
+// impl AstNode for IfStatement {
+//     fn as_any(&self) -> &dyn Any {
+//         self
+//     }
+//
+//     fn accept(&self, visitor: &mut dyn AstVisitor) {
+//         visitor.visit_if_statement(self);
+//     }
+//
+//     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
+//         visitor.visit_if_statement_mut(self);
+//     }
+// }
+//
+// impl Statement for IfStatement {}

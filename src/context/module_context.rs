@@ -21,11 +21,11 @@ fn get_next_declaration_id() -> usize {
 #[allow(unused)]
 struct DeclarationWrapper {
     id: usize,
-    decl: Arc<RwLock<Box<dyn Declaration>>>,
+    decl: Arc<RwLock<DeclarationStatement>>,
 }
 
 impl DeclarationWrapper {
-    fn new(decl: Box<dyn Declaration>) -> Self {
+    fn new(decl: DeclarationStatement) -> Self {
         Self {
             id: get_next_declaration_id(),
             decl: Arc::new(RwLock::new(decl)),
@@ -37,11 +37,11 @@ impl DeclarationWrapper {
 #[allow(unused)]
 struct FunctionWrapper {
     decl_id: usize,
-    function: Arc<RwLock<Box<dyn Statement>>>,
+    function: Arc<RwLock<Statement>>,
 }
 
 impl FunctionWrapper {
-    fn new(decl_id: usize, function: Arc<RwLock<Box<dyn Statement>>>) -> Self {
+    fn new(decl_id: usize, function: Arc<RwLock<Statement>>) -> Self {
         Self { decl_id, function }
     }
 }
@@ -83,7 +83,7 @@ impl ModuleContext {
         &self.scope
     }
 
-    pub fn add_declaration(&mut self, decl: Box<dyn Declaration>) -> usize {
+    pub fn add_declaration(&mut self, decl: DeclarationStatement) -> usize {
         let name = decl.identifier().clone();
         let wrapper = DeclarationWrapper::new(decl);
 
@@ -96,8 +96,8 @@ impl ModuleContext {
     pub fn add_function(
         &mut self,
         decl_id: usize,
-        fun: Box<dyn Statement>,
-    ) -> Option<Arc<RwLock<Box<dyn Statement>>>> {
+        fun: Statement,
+    ) -> Option<Arc<RwLock<Statement>>> {
         self.function_id_map
             .insert(
                 decl_id,
@@ -106,7 +106,7 @@ impl ModuleContext {
             .map(|x| x.function.clone())
     }
 
-    pub fn get_function(&self, decl_id: usize) -> Option<Arc<RwLock<Box<dyn Statement>>>> {
+    pub fn get_function(&self, decl_id: usize) -> Option<Arc<RwLock<Statement>>> {
         self.function_id_map
             .get(&decl_id)
             .map(|x| x.function.clone())
@@ -115,7 +115,7 @@ impl ModuleContext {
     pub fn get_declaration_by_id(
         &self,
         decl_id: usize,
-    ) -> Option<Arc<RwLock<Box<dyn Declaration>>>> {
+    ) -> Option<Arc<RwLock<DeclarationStatement>>> {
         self.declaration_id_map
             .get(&decl_id)
             .map(|x| x.decl.clone())

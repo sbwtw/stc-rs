@@ -138,7 +138,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
                     DeclareClass::Program
                 };
 
-                Ok(Box::new(FunctionDeclaration::new(
+                Ok(Box::new(FunctionDeclare::new(
                     name,
                     class,
                     ret_type,

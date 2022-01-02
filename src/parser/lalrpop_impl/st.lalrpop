@@ -78,17 +78,22 @@ Comma<T>: Vec<T> = {
 pub StFunction = StatementList;
 
 /// ST Statements
-StatementList: Box<dyn Statement> = {
-    Statement+ => Box::new(StatementList::new(<>))
+StatementList: Statement = {
+//    Statement+ => StatementList::new(<>)
+    Statement+ => Statement::statement_list(Box::new(<>))
 }
 
 /// Single statement
-Statement: Box<dyn Statement> = {
+Statement: Statement = {
     DeclarationStatement,
-    <e:Expr> ";" => Box::new(ExprStatement::new(e)),
-    "IF" <cond: Expr> "THEN" <then_ctrl: StatementList> "END_IF" => Box::new(IfStatement::from_then(<>)),
-    "IF" <cond: Expr> "THEN" <then_ctrl: StatementList> "ELSE" <else_ctrl: StatementList> "END_IF" => Box::new(IfStatement::from_then_else(<>)),
-    "IF" <cond: Expr> "THEN" <then_ctrl: StatementList> <else_if_list: ElseIfStatementList> "ELSE" <else_ctrl: StatementList> "END_IF" => Box::new(IfStatement::from_then_elseif_else(<>)),
+    <e:Expr> ";" => Statement::expr(Box::new(ExprStatement::new(<>))),
+    IfStatement => Statement::if_stmt(Box::new(<>)),
+}
+
+IfStatement: IfStatement = {
+    "IF" <cond: Expr> "THEN" <then_ctrl: StatementList> "END_IF" => IfStatement::from_then(<>),
+    "IF" <cond: Expr> "THEN" <then_ctrl: StatementList> "ELSE" <else_ctrl: StatementList> "END_IF" => IfStatement::from_then_else(<>),
+    "IF" <cond: Expr> "THEN" <then_ctrl: StatementList> <else_if_list: ElseIfStatementList> "ELSE" <else_ctrl: StatementList> "END_IF" => IfStatement::from_then_elseif_else(<>),
 }
 
 /// ElseIf list wrap in if statement
@@ -102,23 +107,27 @@ ElseIfStatement: ElseIfStatement = {
 }
 
 /// Expression
-Expr: Box<dyn Expression> = {
-    <lhs: Expr> ":=" <rhs: BitOrExpr> => Box::new(AssignExpression::new(<>)),
+Expr: Expression = {
     BitOrExpr,
+    AssignExpr => Expression::assign(Box::new(<>)),
 };
 
-BitOrExpr: Box<dyn Expression> = {
-    <lhs: BitOrExpr> <op: "|"> <rhs: XorExpr> => Box::new(OperatorExpression::new(op, vec![lhs, rhs])),
+AssignExpr: AssignExpression = {
+    <lhs: Expr> ":=" <rhs: BitOrExpr> => AssignExpression::new(<>),
+}
+
+BitOrExpr: Expression = {
+    <lhs: BitOrExpr> <op: "|"> <rhs: XorExpr> => Expression::operator(Box::new(OperatorExpression::new(op, vec![lhs, rhs]))),
     XorExpr,
 }
 
-XorExpr: Box<dyn Expression> = {
-    <lhs: XorExpr> <op: "XOR"> <rhs: BitAndExpr> => Box::new(OperatorExpression::new(op, vec![lhs, rhs])),
+XorExpr: Expression = {
+    <lhs: XorExpr> <op: "XOR"> <rhs: BitAndExpr> => Expression::operator(Box::new(OperatorExpression::new(op, vec![lhs, rhs]))),
     BitAndExpr,
 }
 
-BitAndExpr: Box<dyn Expression> = {
-    <lhs: BitAndExpr> <op: "&"> <rhs: EquExpr> => Box::new(OperatorExpression::new(op, vec![lhs, rhs])),
+BitAndExpr: Expression = {
+    <lhs: BitAndExpr> <op: "&"> <rhs: EquExpr> => Expression::operator(Box::new(OperatorExpression::new(op, vec![lhs, rhs]))),
     EquExpr,
 }
 
@@ -127,8 +136,8 @@ EquOp: Tok = {
     "<>" => Tok::NotEqual,
 }
 
-EquExpr: Box<dyn Expression> = {
-    <lhs: EquExpr> <op: EquOp> <rhs: CmpExpr> => Box::new(OperatorExpression::new(op, vec![lhs, rhs])),
+EquExpr: Expression = {
+    <lhs: EquExpr> <op: EquOp> <rhs: CmpExpr> => Expression::operator(Box::new(OperatorExpression::new(op, vec![lhs, rhs]))),
     CmpExpr,
 }
 
@@ -139,8 +148,8 @@ CmpOp: Tok = {
     "<=" => Tok::LessEqual,
 }
 
-CmpExpr: Box<dyn Expression> = {
-    <lhs: CmpExpr> <op: CmpOp> <rhs: OpExpr> => Box::new(OperatorExpression::new(op, vec![lhs, rhs])),
+CmpExpr: Expression = {
+    <lhs: CmpExpr> <op: CmpOp> <rhs: OpExpr> => Expression::operator(Box::new(OperatorExpression::new(op, vec![lhs, rhs]))),
     OpExpr,
 }
 
@@ -151,8 +160,8 @@ ExprOp: Tok = {
 };
 
 /// Low-priority op expression
-OpExpr: Box<dyn Expression> = {
-    <e1: OpExpr> <op: ExprOp> <e2: Factor> => Box::new(OperatorExpression::new(op, vec![e1, e2])),
+OpExpr: Expression = {
+    <e1: OpExpr> <op: ExprOp> <e2: Factor> => Expression::operator(Box::new(OperatorExpression::new(op, vec![e1, e2]))),
     Factor,
 }
 
@@ -164,13 +173,13 @@ FactorOp: Tok = {
 };
 
 /// High-priority factor
-Factor: Box<dyn Expression> = {
-    <e1: Factor> <op: FactorOp> <e2: PowerExpr> => Box::new(OperatorExpression::new(op, vec![e1, e2])),
+Factor: Expression = {
+    <e1: Factor> <op: FactorOp> <e2: PowerExpr> => Expression::operator(Box::new(OperatorExpression::new(op, vec![e1, e2]))),
     PowerExpr,
 };
 
-PowerExpr: Box<dyn Expression> = {
-    <e1: PowerExpr> <op: "**"> <e2: UnaryFactor> => Box::new(OperatorExpression::new(op, vec![e1, e2])),
+PowerExpr: Expression = {
+    <e1: PowerExpr> <op: "**"> <e2: UnaryFactor> => Expression::operator(Box::new(OperatorExpression::new(op, vec![e1, e2]))),
     UnaryFactor,
 }
 
@@ -181,40 +190,44 @@ UnaryOp: Tok = {
 };
 
 /// Top priority unary factor
-UnaryFactor: Box<dyn Expression> = {
-    <op: UnaryOp> <e: CompoFactor> => Box::new(OperatorExpression::new(op, vec![e])),
+UnaryFactor: Expression = {
+    <op: UnaryOp> <e: CompoFactor> => Expression::operator(Box::new(OperatorExpression::new(op, vec![e]))),
     CompoFactor,
 }
 
 /// Variable compo access factor
-CompoFactor: Box<dyn Expression> = {
-    <left: CompoFactor> "." <right: Term> => Box::new(CompoAccessExpression::new(<>)),
+CompoFactor: Expression = {
+    <left: CompoFactor> "." <right: Term> => Expression::compo(Box::new(CompoAccessExpression::new(<>))),
     Term,
 }
 
 /// terminals in expression
-Term: Box<dyn Expression> = {
-    "LITERAL" => Box::new(LiteralExpression::new(<>)),
-    "IDENTIFIER" => Box::new(Variable::new(<>)),
+Term: Expression = {
+    "LITERAL" => Expression::literal(Box::new(LiteralExpression::new(<>))),
+    "IDENTIFIER" => Expression::variable(Box::new(VariableExpression::new(<>))),
     "(" <Expr> ")",
 };
 
 /// Declaration statement
-DeclarationStatement: Box<dyn Statement> = {
-    Declaration => Box::new(DeclarationStatement::new(<>)),
+DeclarationStatement: Statement = {
+    Declaration => Statement::decl(Box::new(<>)),
 }
 
 /// Declarations
-pub Declaration: Box<dyn Declaration> = {
+pub Declaration: DeclarationStatement = {
     "TYPE" <ty: TypeDeclaration> "END_TYPE" => ty,
-    "FUNCTION" <name: "IDENTIFIER"> ":" <ty: Type?> <v: VariableDeclareFactor?> "END_FUNCTION" => Box::new(FunctionDeclaration::new(name, DeclareClass::Function, ty, v.unwrap_or(vec![]))),
-    "PROGRAM" <name: "IDENTIFIER"> ":" <ty: Type?> <v: VariableDeclareFactor?> "END_PROGRAM" => Box::new(FunctionDeclaration::new(name, DeclareClass::Program, ty, v.unwrap_or(vec![]))),
+    FuncDecl => DeclarationStatement::fun(Box::new(<>)),
 }
 
-TypeDeclaration: Box<dyn Declaration> = {
-    <name: "IDENTIFIER"> ":" "(" <fields: Comma<EnumFieldDecl>> ")" <ty: Type?> ";" => Box::new(EnumDeclare::new(name, ty, fields)),
-    <name: "IDENTIFIER"> ":" <alias: Type> ";" => Box::new(AliasDeclare::new(<>)),
-    <name: "IDENTIFIER"> ":" "STRUCT" <vars: VariableDeclareList> "END_STRUCT" => Box::new(StructDeclare::new(<>)),
+FuncDecl: FunctionDeclare = {
+    "FUNCTION" <name: "IDENTIFIER"> ":" <ty: Type?> <v: VariableDeclareFactor?> "END_FUNCTION" => FunctionDeclare::new(name, DeclareClass::Function, ty, v.unwrap_or(vec![])),
+    "PROGRAM" <name: "IDENTIFIER"> ":" <ty: Type?> <v: VariableDeclareFactor?> "END_PROGRAM" => FunctionDeclare::new(name, DeclareClass::Program, ty, v.unwrap_or(vec![])),
+}
+
+TypeDeclaration: DeclarationStatement = {
+    <name: "IDENTIFIER"> ":" "(" <fields: Comma<EnumFieldDecl>> ")" <ty: Type?> ";" => DeclarationStatement::enum_(Box::new(EnumDeclare::new(name, ty, fields))),
+    <name: "IDENTIFIER"> ":" <alias: Type> ";" => DeclarationStatement::alias(Box::new(AliasDeclare::new(<>))),
+    <name: "IDENTIFIER"> ":" "STRUCT" <vars: VariableDeclareList> "END_STRUCT" => DeclarationStatement::struct_(Box::new(StructDeclare::new(<>))),
 }
 
 EnumFieldDecl: EnumField = {

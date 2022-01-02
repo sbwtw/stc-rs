@@ -8,7 +8,7 @@ mod utils;
 #[cfg(test)]
 mod test;
 
-use crate::ast::AstNode;
+use crate::ast::Statement;
 use crate::context::{ModuleContext, ModuleContextScope, Scope, UnitsManager};
 use crate::transform::TypeAnalyzer;
 use parser::*;
@@ -16,7 +16,7 @@ use std::fs::OpenOptions;
 use std::process::Command;
 use std::sync::{Arc, RwLock};
 
-fn display_ast(ast: &dyn AstNode) {
+fn display_ast(statement: &Statement) {
     // graphviz
     // dump dot file
     {
@@ -28,7 +28,7 @@ fn display_ast(ast: &dyn AstNode) {
             .unwrap();
 
         let mut graphviz = utils::GraphvizExporter::new(&mut out);
-        graphviz.plot(ast);
+        graphviz.plot_statement(statement);
     }
 
     // convert to svg
@@ -64,8 +64,8 @@ fn main() {
             Some(ctx_id),
             Some(decl_id),
         );
-        type_analyzer.analyze(f.as_ast_node_mut(), scope);
+        type_analyzer.analyze_statement(&mut f, scope);
 
-        display_ast(f.as_ast_node());
+        display_ast(&f);
     }
 }

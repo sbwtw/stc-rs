@@ -115,16 +115,22 @@ impl<W: Write> GraphvizExporter<W> {
         }
     }
 
-    #[allow(unused)]
-    pub fn plot(&mut self, ast: &dyn AstNode) {
-        self.prolog(ast);
-        ast.accept(self);
+    // #[allow(unused)]
+    // pub fn plot(&mut self, ast: &dyn AstNode) {
+    //     self.prolog(ast);
+    //     ast.accept(self);
+    //     self.epilog();
+    // }
+
+    pub fn plot_statement(&mut self, stmt: &Statement) {
+        self.prolog_statement(stmt);
+        self.visit_statement(stmt);
         self.epilog();
     }
 
-    fn prolog(&mut self, ast: &dyn AstNode) {
+    fn prolog_statement(&mut self, stmt: &Statement) {
         let mut hasher = AstHasher::new(Crc32Hasher::new());
-        let crc32 = hasher.calc(ast);
+        let crc32 = hasher.calc_statement(stmt);
 
         self.writeln(format_args!("digraph ast {{"));
         self.writeln(format_args!(
@@ -212,12 +218,12 @@ fn display_type(ty: Option<Rc<Box<dyn Type>>>) -> String {
     ty.map(|x| format!("{}", x)).unwrap_or(String::new())
 }
 
-impl<W: Write> AstVisitor for GraphvizExporter<W> {
-    fn visit_literal(&mut self, literal: &LiteralValue) {
+impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
+    fn visit_literal(&mut self, literal: &LiteralExpression) {
         let name = self.unique_name("literal");
         let labels = [
-            format!("Literal: {}", literal),
-            format!("Type: {}", literal.ty().type_class()),
+            format!("Literal: {}", literal.literal()),
+            format!("Type: {}", literal.literal().ty().type_class()),
         ];
         self.write_node(&name, GraphvizLabelGroup::from_iter(&labels));
 
@@ -226,11 +232,11 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
         }
     }
 
-    fn visit_variable(&mut self, variable: &Variable) {
+    fn visit_variable_expression(&mut self, variable: &'_ VariableExpression) {
         let name = self.unique_name("variable");
 
         let labels = [
-            format!("Variable: {}", variable.origin_name()),
+            format!("Variable: {}", variable.name().origin_string()),
             format!("Type: {}", display_type(variable.ty())),
         ];
         self.write_node(&name, GraphvizLabelGroup::from_iter(&labels));
@@ -240,15 +246,15 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
         }
     }
 
-    fn visit_statement_list(&mut self, stmt: &StatementList) {
+    fn visit_statement_list(&mut self, stmts: &Vec<Statement>) {
         let name = self.unique_name("statement_list");
         let mut labels = vec![];
-        for (i, s) in stmt.statements().iter().enumerate() {
+        for (i, s) in stmts.iter().enumerate() {
             let pos = self.unique_name("pos");
             labels.push(format!("<{}> {}", &pos, i));
 
             self.push_empty();
-            s.accept(self);
+            self.visit_statement(s);
             let attr = self.pop();
 
             self.connect(format!("{}:{}", &name, pos), attr.node_name);
@@ -267,10 +273,10 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
         let name = self.unique_name("expr_statement");
 
         self.push_empty();
-        stmt.expr().accept(self);
+        self.visit_expression(stmt.expr());
         let attr = self.pop();
 
-        let s = format!("{}", stmt.expr().as_ast_node());
+        let s = format!("{}", stmt.expr());
         self.write_node(
             &name,
             GraphvizLabelGroup::from_name("ExprStatement")
@@ -288,7 +294,7 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
         let mut labels = vec![];
 
         self.push_empty();
-        stmt.condition().accept(self);
+        self.visit_expression(stmt.condition());
         let attr = self.pop();
 
         let (pos, label) = self.unique_name_with_pos("Cond");
@@ -297,7 +303,7 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
 
         if let Some(then) = stmt.then_controlled() {
             self.push_empty();
-            then.accept(self);
+            self.visit_statement(then);
             let attr = self.pop();
 
             let (pos, label) = self.unique_name_with_pos("Then");
@@ -315,7 +321,7 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
             labels.push(label);
 
             self.push_empty();
-            else_if.condition().accept(self);
+            self.visit_expression(else_if.condition());
             let attr = self.pop();
 
             let (pos, label) = self.unique_name_with_pos("ElseIfCond");
@@ -324,7 +330,7 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
 
             if let Some(controlled) = else_if.then_controlled() {
                 self.push_empty();
-                controlled.accept(self);
+                self.visit_statement(controlled);
                 let attr = self.pop();
 
                 let (pos, label) = self.unique_name_with_pos("ElseIfThen");
@@ -339,7 +345,7 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
 
         if let Some(else_ctrl) = stmt.else_controlled() {
             self.push_empty();
-            else_ctrl.accept(self);
+            self.visit_statement(else_ctrl);
             let attr = self.pop();
 
             let (pos, label) = self.unique_name_with_pos("Else");
@@ -361,7 +367,7 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
 
         let mut buf = vec![];
         let mut stringify = StringifyVisitor::new(&mut buf);
-        decl.accept(&mut stringify);
+        stringify.visit_declaration_statement(decl);
 
         let s = String::from_utf8_lossy(&buf);
         let labels = GraphvizLabelGroup::from_name("Declaration")
@@ -377,14 +383,14 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
             format!("Operator '{}'", graphviz_escape(&op_str)),
             format!("Type: {}", display_type(expr.ty())),
         ];
-        let s = format!("{}", expr.as_ast_node());
+        let s = format!("{}", expr);
         let labels = GraphvizLabelGroup::from_iter(&labels)
             .append_group(GraphvizLabelGroup::from_name(graphviz_escape(&s)));
         self.write_node(&name, labels);
 
         for operand in expr.operands() {
             self.push_empty();
-            operand.accept(self);
+            self.visit_expression(operand);
             let attr = self.pop();
 
             self.connect(&name, attr.node_name);
@@ -401,7 +407,7 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
         let mut labels = vec![];
 
         self.push_empty();
-        assign.left().accept(self);
+        self.visit_expression(assign.left());
         let attr = self.pop();
 
         let (pos, label) = self.unique_name_with_pos("Left");
@@ -409,7 +415,7 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
         labels.push(label);
 
         self.push_empty();
-        assign.right().accept(self);
+        self.visit_expression(assign.right());
         let attr = self.pop();
 
         let (pos, label) = self.unique_name_with_pos("Right");
@@ -435,7 +441,7 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
         let mut labels = vec![];
 
         self.push_empty();
-        compo.left().accept(self);
+        self.visit_expression(compo.left());
         let attr = self.pop();
 
         let (pos, label) = self.unique_name_with_pos("Left");
@@ -443,7 +449,7 @@ impl<W: Write> AstVisitor for GraphvizExporter<W> {
         labels.push(label);
 
         self.push_empty();
-        compo.right().accept(self);
+        self.visit_expression(compo.right());
         let attr = self.pop();
 
         let (pos, label) = self.unique_name_with_pos("Right");

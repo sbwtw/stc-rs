@@ -74,21 +74,21 @@ impl Variable {
     }
 }
 
-impl AstNode for Variable {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn accept(&self, visitor: &mut dyn AstVisitor) {
-        visitor.visit_variable(self)
-    }
-
-    fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
-        visitor.visit_variable_mut(self)
-    }
-}
-
-impl Expression for Variable {}
+// impl AstNode for Variable {
+//     fn as_any(&self) -> &dyn Any {
+//         self
+//     }
+//
+//     fn accept(&self, visitor: &mut dyn AstVisitor) {
+//         visitor.visit_variable(self)
+//     }
+//
+//     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
+//         visitor.visit_variable_mut(self)
+//     }
+// }
+//
+// impl Expression for Variable {}
 
 impl Default for Variable {
     fn default() -> Self {

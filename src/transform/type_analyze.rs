@@ -32,11 +32,11 @@ impl TypeAnalyzer {
         }
     }
 
-    pub fn analyze(&mut self, ast: &mut dyn AstNode, scope: Scope) {
+    pub fn analyze_statement(&mut self, stmt: &mut Statement, scope: Scope) {
         self.scope = scope;
 
         self.push(TypeAnalyzerAttribute::new());
-        ast.accept_mut(self);
+        self.visit_statement_mut(stmt);
         self.pop();
 
         debug_assert_eq!(self.attribute_stack.len(), 0)
@@ -57,12 +57,12 @@ impl TypeAnalyzer {
     }
 }
 
-impl AstVisitorMut for TypeAnalyzer {
-    fn visit_literal_mut(&mut self, literal: &mut LiteralValue) {
-        self.top_mut().derived_type = Some(Rc::new(literal.ty()))
+impl AstVisitorMut<'_> for TypeAnalyzer {
+    fn visit_literal_mut(&mut self, literal: &mut LiteralExpression) {
+        self.top_mut().derived_type = Some(Rc::new(literal.literal().ty()))
     }
 
-    fn visit_variable_mut(&mut self, variable: &mut Variable) {
+    fn visit_variable_expression_mut(&mut self, variable: &mut VariableExpression) {
         if variable.ty().is_none() {
             if let Some(v) = self.scope.find_variable(variable.name()) {
                 variable.set_ty(v.ty().map(|x| x.clone()))
@@ -72,30 +72,12 @@ impl AstVisitorMut for TypeAnalyzer {
         self.top_mut().derived_type = variable.ty()
     }
 
-    fn visit_statement_list_mut(&mut self, stmt: &mut StatementList) {
-        for s in stmt.statements_mut() {
-            s.accept_mut(self)
-        }
-    }
-
-    fn visit_expr_statement_mut(&mut self, stmt: &mut ExprStatement) {
-        stmt.expr_mut().accept_mut(self)
-    }
-
-    fn visit_if_statement_mut(&mut self, _stmt: &mut IfStatement) {
-        todo!()
-    }
-
-    fn visit_declaration_statement_mut(&mut self, _decl: &mut DeclarationStatement) {
-        todo!()
-    }
-
     fn visit_operator_expression_mut(&mut self, expr: &mut OperatorExpression) {
         // collect all operands type
         let mut operands_attr = vec![];
         for operand in expr.operands_mut() {
             self.push(TypeAnalyzerAttribute::new());
-            operand.accept_mut(self);
+            self.visit_expression_mut(operand);
             operands_attr.push(self.pop());
         }
 
@@ -121,11 +103,11 @@ impl AstVisitorMut for TypeAnalyzer {
 
     fn visit_assign_expression_mut(&mut self, assign: &mut AssignExpression) {
         self.push(TypeAnalyzerAttribute::new());
-        assign.right_mut().accept_mut(self);
+        self.visit_expression_mut(assign.right_mut());
         self.pop();
 
         self.push(TypeAnalyzerAttribute::new());
-        assign.left_mut().accept_mut(self);
+        self.visit_expression_mut(assign.left_mut());
         let attr = self.pop();
 
         assign.set_ty(attr.derived_type)
@@ -133,11 +115,11 @@ impl AstVisitorMut for TypeAnalyzer {
 
     fn visit_compo_access_expression_mut(&mut self, compo: &mut CompoAccessExpression) {
         self.push(TypeAnalyzerAttribute::new());
-        compo.left_mut().accept_mut(self);
+        self.visit_expression_mut(compo.left_mut());
         self.pop();
 
         self.push(TypeAnalyzerAttribute::new());
-        compo.right_mut().accept_mut(self);
+        self.visit_expression_mut(compo.right_mut());
         let attr = self.pop();
 
         compo.set_ty(attr.derived_type.clone());

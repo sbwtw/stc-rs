@@ -3,13 +3,13 @@ use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct CompoAccessExpression {
-    left: Box<dyn Expression>,
-    right: Box<dyn Expression>,
+    left: Expression,
+    right: Expression,
     ty: Option<Rc<Box<dyn Type>>>,
 }
 
 impl CompoAccessExpression {
-    pub fn new(left: Box<dyn Expression>, right: Box<dyn Expression>) -> Self {
+    pub fn new(left: Expression, right: Expression) -> Self {
         Self {
             left,
             right,
@@ -17,20 +17,20 @@ impl CompoAccessExpression {
         }
     }
 
-    pub fn left(&self) -> &dyn Expression {
-        self.left.as_ref()
+    pub fn left(&self) -> &Expression {
+        &self.left
     }
 
-    pub fn left_mut(&mut self) -> &mut dyn Expression {
-        self.left.as_mut()
+    pub fn left_mut(&mut self) -> &mut Expression {
+        &mut self.left
     }
 
-    pub fn right(&self) -> &dyn Expression {
-        self.right.as_ref()
+    pub fn right(&self) -> &Expression {
+        &self.right
     }
 
-    pub fn right_mut(&mut self) -> &mut dyn Expression {
-        self.right.as_mut()
+    pub fn right_mut(&mut self) -> &mut Expression {
+        &mut self.right
     }
 
     pub fn ty(&self) -> Option<Rc<Box<dyn Type>>> {
@@ -42,18 +42,18 @@ impl CompoAccessExpression {
     }
 }
 
-impl AstNode for CompoAccessExpression {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn accept(&self, visitor: &mut dyn AstVisitor) {
-        visitor.visit_compo_access_expression(self)
-    }
-
-    fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
-        visitor.visit_compo_access_expression_mut(self)
-    }
-}
-
-impl Expression for CompoAccessExpression {}
+// impl AstNode for CompoAccessExpression {
+//     fn as_any(&self) -> &dyn Any {
+//         self
+//     }
+//
+//     fn accept(&self, visitor: &mut dyn AstVisitor) {
+//         visitor.visit_compo_access_expression(self)
+//     }
+//
+//     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
+//         visitor.visit_compo_access_expression_mut(self)
+//     }
+// }
+//
+// impl Expression for CompoAccessExpression {}
