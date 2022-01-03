@@ -1,6 +1,11 @@
 #![allow(dead_code)]
 
-use crate::ast::*;
+use crate::ast::{
+    AliasDeclare, AssignExpression, CompoAccessExpression, DeclKind, DeclarationStatement,
+    EnumDeclare, ExprKind, ExprStatement, Expression, FunctionDeclare, IfStatement,
+    LiteralExpression, OperatorExpression, Statement, StmtKind, StructDeclare, Variable,
+    VariableExpression,
+};
 
 // Mutable visitor
 pub trait AstVisitorMut: Sized {

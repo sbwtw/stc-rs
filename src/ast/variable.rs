@@ -11,7 +11,9 @@ pub struct Variable {
     name: StString,
     ty: Option<Rc<Box<dyn Type>>>,
     scope: VariableScopeClass,
-    retain_flags: VariableAnnotationFlags,
+    retain_flags: RetainAnnotationFlags,
+    flags: VariableFlags,
+    initial: Option<Box<Expression>>,
 }
 
 impl Variable {
@@ -26,6 +28,14 @@ impl Variable {
         Self {
             name,
             ty: Some(ty),
+            ..Default::default()
+        }
+    }
+
+    pub fn with_initial(name: StString, initial: Option<Box<Expression>>) -> Self {
+        Self {
+            name,
+            initial,
             ..Default::default()
         }
     }
@@ -62,34 +72,22 @@ impl Variable {
         self.ty = ty
     }
 
+    pub fn initial(&self) -> &Option<Box<Expression>> {
+        &self.initial
+    }
+
     pub fn scope_class(&self) -> &VariableScopeClass {
         &self.scope
     }
 
-    pub fn annotation(&self) -> VariableAnnotationFlags {
+    pub fn annotation(&self) -> RetainAnnotationFlags {
         self.retain_flags
     }
 
-    pub fn set_annotation(&mut self, flags: VariableAnnotationFlags) {
+    pub fn set_annotation(&mut self, flags: RetainAnnotationFlags) {
         self.retain_flags = flags
     }
 }
-
-// impl AstNode for Variable {
-//     fn as_any(&self) -> &dyn Any {
-//         self
-//     }
-//
-//     fn accept(&self, visitor: &mut dyn AstVisitor) {
-//         visitor.visit_variable(self)
-//     }
-//
-//     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
-//         visitor.visit_variable_mut(self)
-//     }
-// }
-//
-// impl Expression for Variable {}
 
 impl Default for Variable {
     fn default() -> Self {
@@ -98,7 +96,9 @@ impl Default for Variable {
             name: StString::new(""),
             ty: None,
             scope: VariableScopeClass::None,
-            retain_flags: VariableAnnotationFlags::NONE,
+            retain_flags: RetainAnnotationFlags::NONE,
+            flags: VariableFlags::NONE,
+            initial: None,
         }
     }
 }
@@ -110,14 +110,14 @@ pub struct VariableDeclareGroup;
 impl VariableDeclareGroup {
     pub fn new(
         scope: VariableScopeClass,
-        flags: Option<VariableAnnotationFlags>,
+        flags: Option<RetainAnnotationFlags>,
         mut vars: Vec<Rc<Variable>>,
     ) -> Vec<Rc<Variable>> {
         for v in vars.iter_mut() {
             Rc::get_mut(v).unwrap().set_scope(scope);
             Rc::get_mut(v)
                 .unwrap()
-                .set_annotation(flags.unwrap_or(VariableAnnotationFlags::NONE));
+                .set_annotation(flags.unwrap_or(RetainAnnotationFlags::NONE));
         }
 
         vars

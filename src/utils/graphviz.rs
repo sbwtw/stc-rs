@@ -425,9 +425,11 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
             "AssignExpr",
             &format!("Type: {}", display_type(assign.ty())),
         ];
-        let labels = GraphvizLabelGroup::from_iter(&titles)
+
+        let lines = GraphvizLabelGroup::from_iter(&titles)
+            .append_group(GraphvizLabelGroup::from(format!("{}", assign)))
             .append_group(GraphvizLabelGroup::from_iter(&labels));
-        self.write_node(&name, labels);
+        self.write_node(&name, lines);
 
         if let Some(top) = self.top_mut() {
             top.node_name = name;

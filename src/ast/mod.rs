@@ -1,7 +1,7 @@
 use bitflags::bitflags;
 use std::fmt::{self, Debug, Display, Formatter};
 
-use crate::parser::{StString, Tok};
+use crate::parser::{LiteralValue, StString, Tok};
 
 mod message;
 pub use message::*;
@@ -25,7 +25,7 @@ mod declaration_statement;
 pub use declaration_statement::{DeclKind, DeclarationStatement};
 
 mod literal_expression;
-pub use literal_expression::{LiteralExpression, VariableExpression};
+pub use literal_expression::LiteralExpression;
 
 mod operator_expression;
 pub use operator_expression::OperatorExpression;
@@ -44,6 +44,9 @@ pub use statement::{Statement, StmtKind};
 
 mod expression;
 pub use expression::{ExprKind, Expression};
+
+mod variable_expression;
+pub use variable_expression::VariableExpression;
 
 pub trait HasSourcePosition {}
 
@@ -71,6 +74,57 @@ macro_rules! impl_has_attribute {
         }
     };
 }
+
+#[macro_export]
+macro_rules! impl_ast_display {
+    ($ty:ident, $fun:ident) => {
+        impl std::fmt::Display for $ty {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                let mut buf = vec![];
+                let mut stringify = crate::utils::StringifyVisitor::new(&mut buf);
+                stringify.$fun(self);
+
+                write!(f, "{}", String::from_utf8_lossy(&buf))
+            }
+        }
+    };
+}
+
+pub trait IntoStatement {
+    fn into_statement(self) -> Statement;
+}
+
+#[macro_export]
+macro_rules! impl_into_statement {
+    ($ty:ident, $closure:expr) => {
+        impl IntoStatement for $ty {
+            fn into_statement(self) -> Statement {
+                let f: &dyn Fn(Self) -> Statement = &$closure;
+                f(self)
+            }
+        }
+    };
+}
+
+pub trait IntoExpression {
+    fn into_expression(self) -> Expression;
+}
+
+#[macro_export]
+macro_rules! impl_into_expression {
+    ($ty:ident, $closure:expr) => {
+        impl IntoExpression for $ty {
+            fn into_expression(self) -> Expression {
+                let f: &dyn Fn(Self) -> Expression = &$closure;
+                f(self)
+            }
+        }
+    };
+}
+
+impl_into_expression!(LiteralValue, |x| Expression::literal(Box::new(
+    LiteralExpression::new(x)
+)));
 
 pub trait TypeClone {
     fn clone_boxed(&self) -> Box<dyn Type>;
@@ -114,11 +168,28 @@ pub enum VariableScopeClass {
 }
 
 bitflags! {
-    pub struct VariableAnnotationFlags: usize {
+    pub struct RetainAnnotationFlags: u32 {
         const NONE              = 0b0000_0000_0000_0000;
         const RETAIN            = 0b0000_0000_0000_0001;
         const PERSISTENT        = 0b0000_0000_0000_0010;
         const RETAINPERSISTENT  = Self::RETAIN.bits | Self::PERSISTENT.bits;
+    }
+}
+
+bitflags! {
+    pub struct VariableFlags: u32 {
+        const NONE              = 0b0000_0000_0000_0000;
+        const CONST             = 0b0000_0000_0000_0001;
+        const GLOBAL            = 0b0000_0000_0000_0010;
+        // All enum field is const value
+        const ENUM_FIELD        = 0b0000_0000_0001_0000 | Self::CONST.bits;
+        const UNION_FIELD       = 0b0000_0000_0010_0000;
+    }
+}
+
+bitflags! {
+    pub struct VariableInternalFlags: u32 {
+        const NONE              = 0b0000_0000_0000_0000;
     }
 }
 

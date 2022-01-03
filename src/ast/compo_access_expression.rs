@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::impl_ast_display;
 use std::rc::Rc;
 
 #[derive(Debug)]
@@ -7,6 +8,8 @@ pub struct CompoAccessExpression {
     right: Expression,
     ty: Option<Rc<Box<dyn Type>>>,
 }
+
+impl_ast_display!(CompoAccessExpression, visit_compo_access_expression);
 
 impl CompoAccessExpression {
     pub fn new(left: Expression, right: Expression) -> Self {

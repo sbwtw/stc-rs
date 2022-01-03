@@ -1,6 +1,6 @@
 use crate::ast::*;
 use crate::parser::Tok;
-use crate::utils::StringifyVisitor;
+use crate::{impl_ast_display, impl_into_expression};
 use std::rc::Rc;
 
 #[derive(Debug)]
@@ -10,15 +10,8 @@ pub struct OperatorExpression {
     operands: Vec<Expression>,
 }
 
-impl Display for OperatorExpression {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut buf = vec![];
-        let mut stringify = StringifyVisitor::new(&mut buf);
-        stringify.visit_operator_expression(self);
-
-        write!(f, "{}", String::from_utf8_lossy(&buf))
-    }
-}
+impl_ast_display!(OperatorExpression, visit_operator_expression);
+impl_into_expression!(OperatorExpression, |x| Expression::operator(Box::new(x)));
 
 impl OperatorExpression {
     pub fn new(op: Tok, operands: Vec<Expression>) -> Self {

@@ -49,7 +49,11 @@ fn main() {
     let decl = parser::StDeclarationParser::new().parse(decl).unwrap();
     let decl_id = app.add_declaration(decl);
 
-    let body = StLexer::new("a.b := 2 < b OR c = d + NOT b;");
+    // let global = StLexer::new("VAR_GLOBAL END_VAR");
+    // let global = parser::StDeclarationParser::new().parse(global).unwrap();
+    // let global_id = app.add_declaration(global);
+
+    let body = StLexer::new("if a < b then a := 1; else b := 2; end_if");
     let body = parser::StFunctionParser::new().parse(body).unwrap();
     app.add_function(decl_id, body);
     let fun = app.get_function(decl_id);

@@ -37,19 +37,21 @@ impl Scope {
     }
 
     pub fn find_variable(&self, ident: &StString) -> Option<Rc<Variable>> {
-        None
-        // self.local_declaration.as_ref().and_then(|decl| {
-        //     decl.read()
-        //         .unwrap()
-        //         .as_any()
-        //         .downcast_ref::<FunctionDeclaration>()
-        //         .and_then(|fun| {
-        //             fun.variables()
-        //                 .iter()
-        //                 .find(|x| x.name() == ident)
-        //                 .map(|x| x.clone())
-        //         })
-        // })
+        self.local_declaration.as_ref().and_then(|decl| {
+            let decl = decl.read().unwrap();
+            let defaults = vec![];
+            let variables = match &decl.kind {
+                DeclKind::Fun(f) => f.parameters(),
+                DeclKind::Struct(s) => s.variables(),
+                DeclKind::Enum(e) => e.fields(),
+                _ => &defaults,
+            };
+
+            variables
+                .iter()
+                .find(|x| x.name() == ident)
+                .map(|x| x.clone())
+        })
     }
 }
 

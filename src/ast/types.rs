@@ -1,6 +1,5 @@
 use crate::ast::*;
 use crate::impl_has_attribute;
-use crate::parser::LiteralValue;
 use std::collections::BTreeMap;
 use std::rc::Rc;
 
@@ -68,35 +67,14 @@ impl Type for UserType {
 impl_has_attribute!(UserType, attributes);
 
 #[derive(Debug, Clone)]
-pub struct EnumField {
-    name: StString,
-    value: Option<LiteralExpression>,
-}
-
-impl EnumField {
-    pub fn new(name: StString, value: Option<LiteralValue>) -> Self {
-        let value = value.map(|x| LiteralExpression::new(x));
-        Self { name, value }
-    }
-
-    pub fn name(&self) -> &StString {
-        &self.name
-    }
-
-    pub fn value(&self) -> Option<&LiteralExpression> {
-        self.value.as_ref()
-    }
-}
-
-#[derive(Debug, Clone)]
 pub struct EnumDeclare {
     name: StString,
     ty: Option<Rc<Box<dyn Type>>>,
-    fields: Vec<EnumField>,
+    fields: Vec<Rc<Variable>>,
 }
 
 impl EnumDeclare {
-    pub fn new(name: StString, ty: Option<Rc<Box<dyn Type>>>, fields: Vec<EnumField>) -> Self {
+    pub fn new(name: StString, ty: Option<Rc<Box<dyn Type>>>, fields: Vec<Rc<Variable>>) -> Self {
         Self { name, ty, fields }
     }
 
@@ -108,7 +86,7 @@ impl EnumDeclare {
         self.ty.clone()
     }
 
-    pub fn fields(&self) -> &Vec<EnumField> {
+    pub fn fields(&self) -> &Vec<Rc<Variable>> {
         &self.fields
     }
 }
@@ -118,20 +96,6 @@ impl Type for EnumDeclare {
         TypeClass::UserType(self.name.clone(), Some(UserTypeClass::Enum))
     }
 }
-
-// impl Declaration for EnumDeclare {
-//     fn as_any(&self) -> &dyn Any {
-//         self
-//     }
-//
-//     fn accept(&self, visitor: &mut dyn DeclarationVisitor) {
-//         visitor.visit_enum_declare(self)
-//     }
-//
-//     fn identifier(&self) -> &StString {
-//         self.name()
-//     }
-// }
 
 #[derive(Debug, Clone)]
 #[allow(unused)]
@@ -155,20 +119,6 @@ impl Type for AliasDeclare {
         TypeClass::UserType(self.name.clone(), Some(UserTypeClass::Alias))
     }
 }
-
-// impl Declaration for AliasDeclare {
-//     fn as_any(&self) -> &dyn Any {
-//         self
-//     }
-//
-//     fn accept(&self, visitor: &mut dyn DeclarationVisitor) {
-//         visitor.visit_alias_declare(self)
-//     }
-//
-//     fn identifier(&self) -> &StString {
-//         self.name()
-//     }
-// }
 
 #[derive(Debug, Clone)]
 #[allow(unused)]
@@ -200,17 +150,3 @@ impl Type for StructDeclare {
         TypeClass::UserType(self.name.clone(), Some(UserTypeClass::Struct))
     }
 }
-
-// impl Declaration for StructDeclare {
-//     fn as_any(&self) -> &dyn Any {
-//         self
-//     }
-//
-//     fn accept(&self, visitor: &mut dyn DeclarationVisitor) {
-//         visitor.visit_struct_declare(self)
-//     }
-//
-//     fn identifier(&self) -> &StString {
-//         self.name()
-//     }
-// }

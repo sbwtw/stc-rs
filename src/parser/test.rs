@@ -12,7 +12,7 @@ fn test_parse_function() {
     assert!(matches!(fun.kind, DeclKind::Fun(_)));
 
     if let DeclKind::Fun(f) = fun.kind {
-        let variables = f.variables();
+        let variables = f.parameters();
         assert_eq!(variables.len(), 3);
         assert_eq!(variables[0].name(), "a");
         assert_eq!(variables[1].origin_name(), "b");
@@ -31,7 +31,7 @@ fn test_parse_function() {
     assert!(matches!(fun.kind, DeclKind::Fun(_)));
 
     if let DeclKind::Fun(f) = fun.kind {
-        let variables = f.variables();
+        let variables = f.parameters();
         assert_eq!(variables.len(), 4);
         assert_eq!(variables[3].origin_name(), "Bx1");
         assert!(matches!(

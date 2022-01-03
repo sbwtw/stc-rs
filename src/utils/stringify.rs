@@ -137,7 +137,7 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
         self.writeln(format_args!(""));
 
         // variable declarations
-        let variables = fun.variables();
+        let variables = fun.parameters();
         if variables.len() > 0 {
             let mut current_scope = None;
             for v in variables {
@@ -190,9 +190,9 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
         for (index, field) in decl.fields().iter().enumerate() {
             self.write_indent();
             self.write(format_args!("{}", field.name().origin_string()));
-            if let Some(val) = field.value() {
+            if let Some(val) = field.initial() {
                 self.write(format_args!(" {} ", Tok::Assign));
-                self.visit_literal(val);
+                self.visit_expression(val);
             }
 
             if field_count == index + 1 {

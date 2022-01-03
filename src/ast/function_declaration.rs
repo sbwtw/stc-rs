@@ -1,4 +1,5 @@
-use crate::ast::{DeclareClass, Type, Variable};
+use crate::ast::{AstVisitor, DeclareClass, Type, Variable};
+use crate::impl_ast_display;
 use crate::parser::StString;
 use std::rc::Rc;
 
@@ -7,8 +8,10 @@ pub struct FunctionDeclare {
     name: StString,
     decl_class: DeclareClass,
     return_type: Option<Rc<Box<dyn Type>>>,
-    variables: Vec<Rc<Variable>>,
+    parameters: Vec<Rc<Variable>>,
 }
+
+impl_ast_display!(FunctionDeclare, visit_function_declaration);
 
 impl FunctionDeclare {
     pub fn new(
@@ -21,7 +24,7 @@ impl FunctionDeclare {
             name,
             decl_class: class,
             return_type: ty,
-            variables,
+            parameters: variables,
         }
     }
 
@@ -37,7 +40,7 @@ impl FunctionDeclare {
         self.return_type.clone()
     }
 
-    pub fn variables(&self) -> &Vec<Rc<Variable>> {
-        &self.variables
+    pub fn parameters(&self) -> &Vec<Rc<Variable>> {
+        &self.parameters
     }
 }

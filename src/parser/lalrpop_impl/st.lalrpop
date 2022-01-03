@@ -109,7 +109,7 @@ ElseIfStatement: ElseIfStatement = {
 /// Expression
 Expr: Expression = {
     BitOrExpr,
-    AssignExpr => Expression::assign(Box::new(<>)),
+    AssignExpr => <>.into_expression(),
 };
 
 AssignExpr: AssignExpression = {
@@ -127,7 +127,7 @@ XorExpr: Expression = {
 }
 
 BitAndExpr: Expression = {
-    <lhs: BitAndExpr> <op: "&"> <rhs: EquExpr> => Expression::operator(Box::new(OperatorExpression::new(op, vec![lhs, rhs]))),
+    <lhs: BitAndExpr> <op: "&"> <rhs: EquExpr> => OperatorExpression::new(op, vec![lhs, rhs]).into_expression(),
     EquExpr,
 }
 
@@ -203,7 +203,7 @@ CompoFactor: Expression = {
 
 /// terminals in expression
 Term: Expression = {
-    "LITERAL" => Expression::literal(Box::new(LiteralExpression::new(<>))),
+    "LITERAL" => <>.into_expression(),
     "IDENTIFIER" => Expression::variable(Box::new(VariableExpression::new(<>))),
     "(" <Expr> ")",
 };
@@ -230,9 +230,9 @@ TypeDeclaration: DeclarationStatement = {
     <name: "IDENTIFIER"> ":" "STRUCT" <vars: VariableDeclareList> "END_STRUCT" => DeclarationStatement::struct_(Box::new(StructDeclare::new(<>))),
 }
 
-EnumFieldDecl: EnumField = {
-    <name: "IDENTIFIER"> => EnumField::new(name, None),
-    <name: "IDENTIFIER"> ":=" <value: "LITERAL"> => EnumField::new(name, Some(value)),
+EnumFieldDecl: Rc<Variable> = {
+    <name: "IDENTIFIER"> => Rc::new(Variable::with_initial(name, None)),
+    <name: "IDENTIFIER"> ":=" <value: "LITERAL"> => Rc::new(Variable::with_initial(name, Some(Box::new(value.into_expression())))),
 }
 
 /// Type
@@ -264,11 +264,11 @@ VariableDeclareGroupStart: VariableScopeClass = {
     "VAR_STAT" => VariableScopeClass::Static,
 }
 
-VariableDeclareGroupAnnotation: VariableAnnotationFlags = {
-    "RETAIN" => VariableAnnotationFlags::RETAIN,
-    "PERSISTENT" => VariableAnnotationFlags::PERSISTENT,
-    "RETAIN" "PERSISTENT" => VariableAnnotationFlags::RETAINPERSISTENT,
-    "PERSISTENT" "RETAIN" => VariableAnnotationFlags::RETAINPERSISTENT,
+VariableDeclareGroupAnnotation: RetainAnnotationFlags = {
+    "RETAIN" => RetainAnnotationFlags::RETAIN,
+    "PERSISTENT" => RetainAnnotationFlags::PERSISTENT,
+    "RETAIN" "PERSISTENT" => RetainAnnotationFlags::RETAINPERSISTENT,
+    "PERSISTENT" "RETAIN" => RetainAnnotationFlags::RETAINPERSISTENT,
 }
 
 /// A list of same scope varaible

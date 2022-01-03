@@ -251,21 +251,26 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         Err(ParseError::UnexpectedToken(tok.as_ref().0, vec![]))
     }
 
-    fn parse_enum_field_decl(&mut self) -> ParseResult<EnumField> {
+    fn parse_enum_field_decl(&mut self) -> ParseResult<Rc<Variable>> {
         let field_name = self.except_identifier()?;
         let pos = self.next;
 
         if matches!(&*self.next_token()?, (_, Tok::Assign, _)) {
             match &*self.next_token()? {
                 (_, Tok::Literal(literal), _) => {
-                    return Ok(Some(EnumField::new(field_name, Some(literal.clone()))));
+                    return Ok(Some(Rc::new(Variable::with_initial(
+                        field_name,
+                        Some(Box::new(Expression::literal(Box::new(
+                            LiteralExpression::new(literal.clone()),
+                        )))),
+                    ))));
                 }
                 _ => {}
             }
         }
 
         self.next = pos;
-        return Ok(Some(EnumField::new(field_name, None)));
+        return Ok(Some(Rc::new(Variable::with_initial(field_name, None))));
     }
 
     fn parse_variable_declare_factor(&mut self) -> ParseResult<Vec<Rc<Variable>>> {
@@ -310,11 +315,11 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         Ok(Some(x))
     }
 
-    fn parse_variable_declare_group_annotation(&mut self) -> ParseResult<VariableAnnotationFlags> {
+    fn parse_variable_declare_group_annotation(&mut self) -> ParseResult<RetainAnnotationFlags> {
         let pos = self.next;
         let x = match (&*self.next_token()?).1 {
-            Tok::Retain => VariableAnnotationFlags::RETAIN,
-            Tok::Persistent => VariableAnnotationFlags::PERSISTENT,
+            Tok::Retain => RetainAnnotationFlags::RETAIN,
+            Tok::Persistent => RetainAnnotationFlags::PERSISTENT,
             _ => {
                 self.next = pos;
                 return Ok(None);
@@ -323,9 +328,9 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         let pos = self.next;
         let y = match (x, &*self.next_token()?) {
-            (VariableAnnotationFlags::RETAIN, (_, Tok::Persistent, _))
-            | (VariableAnnotationFlags::PERSISTENT, (_, Tok::Retain, _)) => {
-                VariableAnnotationFlags::RETAINPERSISTENT
+            (RetainAnnotationFlags::RETAIN, (_, Tok::Persistent, _))
+            | (RetainAnnotationFlags::PERSISTENT, (_, Tok::Retain, _)) => {
+                RetainAnnotationFlags::RETAINPERSISTENT
             }
             _ => {
                 self.next = pos;

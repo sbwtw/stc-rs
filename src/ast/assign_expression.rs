@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::{impl_ast_display, impl_into_expression};
 use std::rc::Rc;
 
 #[derive(Debug)]
@@ -7,6 +8,9 @@ pub struct AssignExpression {
     right: Expression,
     ty: Option<Rc<Box<dyn Type>>>,
 }
+
+impl_ast_display!(AssignExpression, visit_assign_expression);
+impl_into_expression!(AssignExpression, |x| Expression::assign(Box::new(x)));
 
 impl AssignExpression {
     pub fn new(lhs: Expression, rhs: Expression) -> Self {
@@ -41,19 +45,3 @@ impl AssignExpression {
         self.ty = ty
     }
 }
-
-// impl AstNode for AssignExpression {
-//     fn as_any(&self) -> &dyn Any {
-//         self
-//     }
-//
-//     fn accept(&self, visitor: &mut dyn AstVisitor) {
-//         visitor.visit_assign_expression(self)
-//     }
-//
-//     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
-//         visitor.visit_assign_expression_mut(self)
-//     }
-// }
-//
-// impl Expression for AssignExpression {}

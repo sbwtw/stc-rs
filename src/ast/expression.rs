@@ -1,9 +1,8 @@
 use crate::ast::{
-    AssignExpression, AstVisitor, CompoAccessExpression, LiteralExpression, OperatorExpression,
-    VariableExpression,
+    AssignExpression, AstVisitor, CompoAccessExpression, ExprStatement, IntoStatement,
+    LiteralExpression, OperatorExpression, VariableExpression,
 };
-use crate::utils::StringifyVisitor;
-use std::fmt::Formatter;
+use crate::{impl_ast_display, impl_into_statement, Statement};
 
 #[derive(Debug)]
 pub enum ExprKind {
@@ -19,15 +18,10 @@ pub struct Expression {
     pub kind: ExprKind,
 }
 
-impl std::fmt::Display for Expression {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let mut buf = vec![];
-        let mut stringify = StringifyVisitor::new(&mut buf);
-        stringify.visit_expression(self);
-
-        write!(f, "{}", String::from_utf8_lossy(&buf))
-    }
-}
+impl_ast_display!(Expression, visit_expression);
+impl_into_statement!(Expression, |x| Statement::expr(Box::new(
+    ExprStatement::new(x)
+)));
 
 impl Expression {
     pub fn assign(assign: Box<AssignExpression>) -> Self {
