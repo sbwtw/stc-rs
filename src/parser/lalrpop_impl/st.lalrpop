@@ -57,6 +57,7 @@ extern {
         "END_TYPE" => Tok::EndType,
         "INT" => Tok::Int,
         "BOOL" => Tok::Bool,
+        "REAL" => Tok::Real,
         "LITERAL" => Tok::Literal(<LiteralValue>),
         "IDENTIFIER" => Tok::Identifier(<StString>),
     }
@@ -85,7 +86,6 @@ StatementList: Statement = {
 
 /// Single statement
 Statement: Statement = {
-    DeclarationStatement,
     <e:Expr> ";" => Statement::expr(Box::new(ExprStatement::new(<>))),
     IfStatement => Statement::if_stmt(Box::new(<>)),
 }
@@ -212,15 +212,10 @@ Term: Expression = {
 /// Declarations
 pub Declaration = SingleDeclaration;
 
-/// Declaration statement
-DeclarationStatement: Statement = {
-    SingleDeclaration => Statement::decl(Box::new(<>)),
-}
-
-SingleDeclaration: DeclarationStatement = {
+SingleDeclaration: Declaration = {
     "TYPE" <ty: TypeDeclaration> "END_TYPE" => ty,
-    GlobalVarDeclGroup => DeclarationStatement::global_var(Box::new(GlobalVariableDeclare::new(None, <>))),
-    FuncDecl => DeclarationStatement::fun(Box::new(<>)),
+    GlobalVarDeclareFactor => Declaration::global_var(Box::new(GlobalVariableDeclare::new(None, <>))),
+    FuncDecl => Declaration::fun(Box::new(<>)),
 }
 
 FuncDecl: FunctionDeclare = {
@@ -228,10 +223,10 @@ FuncDecl: FunctionDeclare = {
     "PROGRAM" <name: "IDENTIFIER"> ":" <ty: Type?> <v: VariableDeclareFactor?> "END_PROGRAM" => FunctionDeclare::new(name, DeclareClass::Program, ty, v.unwrap_or(vec![])),
 }
 
-TypeDeclaration: DeclarationStatement = {
-    <name: "IDENTIFIER"> ":" "(" <fields: Comma<EnumFieldDecl>> ")" <ty: Type?> ";" => DeclarationStatement::enum_(Box::new(EnumDeclare::new(name, ty, fields))),
-    <name: "IDENTIFIER"> ":" <alias: Type> ";" => DeclarationStatement::alias(Box::new(AliasDeclare::new(<>))),
-    <name: "IDENTIFIER"> ":" "STRUCT" <vars: VariableDeclareList> "END_STRUCT" => DeclarationStatement::struct_(Box::new(StructDeclare::new(<>))),
+TypeDeclaration: Declaration = {
+    <name: "IDENTIFIER"> ":" "(" <fields: Comma<EnumFieldDecl>> ")" <ty: Type?> ";" => Declaration::enum_(Box::new(EnumDeclare::new(name, ty, fields))),
+    <name: "IDENTIFIER"> ":" <alias: Type> ";" => Declaration::alias(Box::new(AliasDeclare::new(<>))),
+    <name: "IDENTIFIER"> ":" "STRUCT" <vars: VariableDeclareList> "END_STRUCT" => Declaration::struct_(Box::new(StructDeclare::new(<>))),
 }
 
 EnumFieldDecl: Rc<Variable> = {
@@ -243,6 +238,7 @@ EnumFieldDecl: Rc<Variable> = {
 Type: Rc<Box<dyn Type>> = {
     "INT" => Rc::new(Box::new(IntType::new())),
     "BOOL" => Rc::new(Box::new(BoolType::new())),
+    "REAL" => Rc::new(Box::new(RealType::new())),
     "IDENTIFIER" => Rc::new(Box::new(UserType::from_name(<>))),
 }
 
@@ -252,10 +248,10 @@ VariableDeclareFactor: Vec<Rc<Variable>> = {
     <mut v: VariableDeclareFactor> <mut e: VariableDeclareGroup> => { v.append(&mut e); v }
 }
 
-//GlobalVarDeclareFactor: Vec<Rc<Variable>> = {
-//    GlobalVarDeclGroup,
-//    <mut v: GlobalVarDeclareFactor> <mut e: GlobalVarDeclGroup> => { v.append(&mut e); v }
-//}
+GlobalVarDeclareFactor: Vec<Rc<Variable>> = {
+    GlobalVarDeclGroup,
+    <mut v: GlobalVarDeclareFactor> <mut e: GlobalVarDeclGroup> => { v.append(&mut e); v }
+}
 
 /// Single variable declare group, constain a list of same scope variable
 VariableDeclareGroup: Vec<Rc<Variable>> = {

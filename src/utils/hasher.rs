@@ -150,7 +150,7 @@ impl<H: Hasher> AstVisitor<'_> for AstHasher<H> {
         }
     }
 
-    fn visit_declaration_statement(&mut self, _: &DeclarationStatement) {
+    fn visit_declaration(&mut self, _: &Declaration) {
         VisitType::DeclarationStatement.hash(&mut self.hasher);
         unimplemented!()
     }

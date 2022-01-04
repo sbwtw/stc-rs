@@ -361,12 +361,12 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
         }
     }
 
-    fn visit_declaration_statement(&mut self, decl: &DeclarationStatement) {
+    fn visit_declaration(&mut self, decl: &Declaration) {
         let name = self.unique_name("declaration_statement");
 
         let mut buf = vec![];
         let mut stringify = StringifyVisitor::new(&mut buf);
-        stringify.visit_declaration_statement(decl);
+        stringify.visit_declaration(decl);
 
         let s = String::from_utf8_lossy(&buf);
         let labels = GraphvizLabelGroup::from_name("Declaration")

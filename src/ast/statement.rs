@@ -1,4 +1,4 @@
-use crate::ast::{AstVisitor, DeclarationStatement, ExprStatement, IfStatement};
+use crate::ast::{AstVisitor, ExprStatement, IfStatement, IntoStatement};
 use crate::impl_ast_display;
 
 #[derive(Debug)]
@@ -6,7 +6,6 @@ pub enum StmtKind {
     Expr(Box<ExprStatement>),
     If(Box<IfStatement>),
     Stmts(Box<Vec<Statement>>),
-    Decl(Box<DeclarationStatement>),
 }
 
 #[derive(Debug)]
@@ -18,13 +17,16 @@ impl_ast_display!(Statement, visit_statement);
 
 impl Statement {
     pub fn push(self, stmt: Statement) -> Self {
-        match self.kind {
+        let x = match self.kind {
             StmtKind::Stmts(mut stmts) => {
                 stmts.push(stmt);
                 return Self::statement_list(stmts);
             }
-            _ => todo!(),
-        }
+            StmtKind::If(x) => x.into_statement(),
+            StmtKind::Expr(x) => x.into_statement(),
+        };
+
+        Self::statement_list(Box::new(vec![x, stmt]))
     }
 
     pub fn statement_list(stmts: Box<Vec<Statement>>) -> Self {
@@ -42,12 +44,6 @@ impl Statement {
     pub fn if_stmt(if_stmt: Box<IfStatement>) -> Self {
         Self {
             kind: StmtKind::If(if_stmt),
-        }
-    }
-
-    pub fn decl(decl: Box<DeclarationStatement>) -> Self {
-        Self {
-            kind: StmtKind::Decl(decl),
         }
     }
 }

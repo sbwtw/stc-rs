@@ -11,11 +11,11 @@ pub enum DeclKind {
 }
 
 #[derive(Debug)]
-pub struct DeclarationStatement {
+pub struct Declaration {
     pub kind: DeclKind,
 }
 
-impl DeclarationStatement {
+impl Declaration {
     pub fn identifier(&self) -> &StString {
         match self.kind {
             DeclKind::Fun(ref fun) => fun.name(),

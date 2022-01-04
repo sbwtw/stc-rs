@@ -1,10 +1,10 @@
 #![allow(dead_code)]
 
 use crate::ast::{
-    AliasDeclare, AssignExpression, CompoAccessExpression, DeclKind, DeclarationStatement,
-    EnumDeclare, ExprKind, ExprStatement, Expression, FunctionDeclare, GlobalVariableDeclare,
-    IfStatement, LiteralExpression, OperatorExpression, Statement, StmtKind, StructDeclare,
-    Variable, VariableExpression,
+    AliasDeclare, AssignExpression, CompoAccessExpression, DeclKind, Declaration, EnumDeclare,
+    ExprKind, ExprStatement, Expression, FunctionDeclare, GlobalVariableDeclare, IfStatement,
+    LiteralExpression, OperatorExpression, Statement, StmtKind, StructDeclare, Variable,
+    VariableExpression,
 };
 
 // Mutable visitor
@@ -37,8 +37,8 @@ pub trait AstVisitorMut: Sized {
         walk_if_statement_mut(self, ifst)
     }
 
-    fn visit_declaration_statement_mut(&mut self, decl: &mut DeclarationStatement) {
-        walk_declaration_statement_mut(self, decl)
+    fn visit_declaration_mut(&mut self, decl: &mut Declaration) {
+        walk_declaration_mut(self, decl)
     }
 
     fn visit_function_declaration_mut(&mut self, decl: &mut FunctionDeclare) {
@@ -94,7 +94,6 @@ fn walk_expression_mut<V: AstVisitorMut>(vis: &mut V, expr: &mut Expression) {
 
 fn walk_statement_mut<V: AstVisitorMut>(vis: &mut V, stmt: &mut Statement) {
     match stmt.kind {
-        StmtKind::Decl(ref mut decl) => vis.visit_declaration_statement_mut(decl),
         StmtKind::Expr(ref mut expr) => vis.visit_expr_statement_mut(expr),
         StmtKind::If(ref mut ifst) => vis.visit_if_statement_mut(ifst),
         StmtKind::Stmts(ref mut v) => vis.visit_statement_list_mut(v),
@@ -129,7 +128,7 @@ fn walk_if_statement_mut<V: AstVisitorMut>(vis: &mut V, ifst: &mut IfStatement) 
     }
 }
 
-fn walk_declaration_statement_mut<V: AstVisitorMut>(vis: &mut V, decl: &mut DeclarationStatement) {
+fn walk_declaration_mut<V: AstVisitorMut>(vis: &mut V, decl: &mut Declaration) {
     match decl.kind {
         DeclKind::Struct(ref mut struct_) => vis.visit_struct_declaration_mut(struct_),
         DeclKind::Enum(ref mut enum_) => vis.visit_enum_declaration_mut(enum_),
@@ -204,8 +203,8 @@ pub trait AstVisitor<'ast>: Sized {
         walk_if_statement(self, ifst)
     }
 
-    fn visit_declaration_statement(&mut self, decl: &'ast DeclarationStatement) {
-        walk_declaration_statement(self, decl)
+    fn visit_declaration(&mut self, decl: &'ast Declaration) {
+        walk_declaration(self, decl)
     }
 
     fn visit_function_declaration(&mut self, decl: &'ast FunctionDeclare) {
@@ -261,7 +260,6 @@ fn walk_expression<'a, V: AstVisitor<'a>>(vis: &mut V, expr: &'a Expression) {
 
 fn walk_statement<'a, V: AstVisitor<'a>>(vis: &mut V, stmt: &'a Statement) {
     match stmt.kind {
-        StmtKind::Decl(ref decl) => vis.visit_declaration_statement(decl),
         StmtKind::Expr(ref expr) => vis.visit_expr_statement(expr),
         StmtKind::If(ref ifst) => vis.visit_if_statement(ifst),
         StmtKind::Stmts(ref v) => vis.visit_statement_list(v),
@@ -296,7 +294,7 @@ fn walk_if_statement<'a, V: AstVisitor<'a>>(vis: &mut V, ifst: &'a IfStatement) 
     }
 }
 
-fn walk_declaration_statement<'a, V: AstVisitor<'a>>(vis: &mut V, decl: &'a DeclarationStatement) {
+fn walk_declaration<'a, V: AstVisitor<'a>>(vis: &mut V, decl: &'a Declaration) {
     match decl.kind {
         DeclKind::Struct(ref struct_) => vis.visit_struct_declaration(struct_),
         DeclKind::Enum(ref enum_) => vis.visit_enum_declaration(enum_),

@@ -51,7 +51,7 @@ fn main() {
 
     let global = StLexer::new("VAR_GLOBAL END_VAR VAR_GLOBAL c: REAL; END_VAR");
     let global = parser::StDeclarationParser::new().parse(global).unwrap();
-    let global_id = app.add_declaration(global);
+    let _global_id = app.add_declaration(global);
 
     let body = StLexer::new("if a < c then a := 1; else b := 2; end_if");
     let body = parser::StFunctionParser::new().parse(body).unwrap();

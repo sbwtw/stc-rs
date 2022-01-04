@@ -21,7 +21,7 @@ impl StDeclarationParser {
         Self {}
     }
 
-    pub fn parse<I>(&self, lexer: I) -> Result<DeclarationStatement, ParseError>
+    pub fn parse<I>(&self, lexer: I) -> Result<Declaration, ParseError>
     where
         I: IntoIterator<Item = LexerResult>,
     {
@@ -107,7 +107,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
     /// parse a declaration
     #[allow(unused)]
-    fn parse_declaration(&mut self) -> Result<DeclarationStatement, ParseError> {
+    fn parse_declaration(&mut self) -> Result<Declaration, ParseError> {
         match self.except_one_of(&[Tok::Type, Tok::Function, Tok::Program])? {
             Tok::Type => {
                 let type_decl = self.parse_type_declaration()?;
@@ -138,7 +138,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
                     DeclareClass::Program
                 };
 
-                Ok(DeclarationStatement::fun(Box::new(FunctionDeclare::new(
+                Ok(Declaration::fun(Box::new(FunctionDeclare::new(
                     name,
                     class,
                     ret_type,
@@ -184,7 +184,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     /// TypeDeclaration: Enum/Alias/Struct
-    fn parse_type_declaration(&mut self) -> ParseResult<DeclarationStatement> {
+    fn parse_type_declaration(&mut self) -> ParseResult<Declaration> {
         let name = self.except_identifier()?;
         let _ = self.except_one_of(&[Tok::Colon])?;
 
@@ -194,9 +194,9 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             // ';'
             let _ = self.except_one_of(&[Tok::Semicolon])?;
 
-            return Ok(Some(DeclarationStatement::alias(Box::new(
-                AliasDeclare::new(name, alias),
-            ))));
+            return Ok(Some(Declaration::alias(Box::new(AliasDeclare::new(
+                name, alias,
+            )))));
         } else {
             self.next = pos;
         }
@@ -233,9 +233,9 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             // ';'
             let _ = self.except_one_of(&[Tok::Semicolon])?;
 
-            return Ok(Some(DeclarationStatement::enum_(Box::new(
-                EnumDeclare::new(name, enum_ty, fields),
-            ))));
+            return Ok(Some(Declaration::enum_(Box::new(EnumDeclare::new(
+                name, enum_ty, fields,
+            )))));
         }
 
         // struct decl
@@ -243,9 +243,9 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             let fields = self.except_variable_declare_list()?;
             let _ = self.except_one_of(&[Tok::EndStruct])?;
 
-            return Ok(Some(DeclarationStatement::struct_(Box::new(
-                StructDeclare::new(name, fields),
-            ))));
+            return Ok(Some(Declaration::struct_(Box::new(StructDeclare::new(
+                name, fields,
+            )))));
         }
 
         Err(ParseError::UnexpectedToken(tok.as_ref().0, vec![]))
@@ -415,12 +415,12 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             return Ok(Some(expr));
         }
 
-        let pos = self.next;
-        if let Ok(decl) = self.parse_declaration() {
-            return Ok(Some(Statement::decl(Box::new(decl))));
-        }
-
-        self.next = pos;
+        // let pos = self.next;
+        // if let Ok(decl) = self.parse_declaration() {
+        //     return Ok(Some(Statement::decl(Box::new(decl))));
+        // }
+        //
+        // self.next = pos;
         Ok(None)
     }
 

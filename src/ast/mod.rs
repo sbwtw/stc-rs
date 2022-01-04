@@ -22,7 +22,7 @@ mod if_statement;
 pub use if_statement::{ElseIfStatement, IfStatement};
 
 mod declaration_statement;
-pub use declaration_statement::{DeclKind, DeclarationStatement};
+pub use declaration_statement::{DeclKind, Declaration};
 
 mod literal_expression;
 pub use literal_expression::LiteralExpression;

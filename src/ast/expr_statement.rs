@@ -1,7 +1,10 @@
 use crate::ast::*;
+use crate::impl_into_statement;
 
 #[derive(Debug)]
 pub struct ExprStatement(Expression);
+
+impl_into_statement!(ExprStatement, |x| Statement::expr(Box::new(x)));
 
 impl ExprStatement {
     pub fn new(expr: Expression) -> Self {

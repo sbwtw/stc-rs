@@ -18,7 +18,7 @@ impl StDeclarationParser {
     pub fn parse<I: IntoIterator<Item = LexerResult>>(
         &self,
         lexer: I,
-    ) -> Result<DeclarationStatement, ParseError> {
+    ) -> Result<Declaration, ParseError> {
         self.inner.parse(lexer).map_err(Into::into)
     }
 }

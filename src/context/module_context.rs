@@ -21,11 +21,11 @@ fn get_next_declaration_id() -> usize {
 #[allow(unused)]
 struct DeclarationWrapper {
     id: usize,
-    decl: Arc<RwLock<DeclarationStatement>>,
+    decl: Arc<RwLock<Declaration>>,
 }
 
 impl DeclarationWrapper {
-    fn new(decl: DeclarationStatement) -> Self {
+    fn new(decl: Declaration) -> Self {
         Self {
             id: get_next_declaration_id(),
             decl: Arc::new(RwLock::new(decl)),
@@ -83,7 +83,7 @@ impl ModuleContext {
         &self.scope
     }
 
-    pub fn add_declaration(&mut self, decl: DeclarationStatement) -> usize {
+    pub fn add_declaration(&mut self, decl: Declaration) -> usize {
         let name = decl.identifier().clone();
         let wrapper = DeclarationWrapper::new(decl);
 
@@ -112,10 +112,7 @@ impl ModuleContext {
             .map(|x| x.function.clone())
     }
 
-    pub fn get_declaration_by_id(
-        &self,
-        decl_id: usize,
-    ) -> Option<Arc<RwLock<DeclarationStatement>>> {
+    pub fn get_declaration_by_id(&self, decl_id: usize) -> Option<Arc<RwLock<Declaration>>> {
         self.declaration_id_map
             .get(&decl_id)
             .map(|x| x.decl.clone())
