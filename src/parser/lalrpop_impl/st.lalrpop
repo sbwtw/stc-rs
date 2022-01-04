@@ -216,6 +216,7 @@ DeclarationStatement: Statement = {
 /// Declarations
 pub Declaration: DeclarationStatement = {
     "TYPE" <ty: TypeDeclaration> "END_TYPE" => ty,
+    GlobalVarDeclareGroup => DeclarationStatement::global_var(Box::new(GlobalVariableDeclare::new(None, <>))),
     FuncDecl => DeclarationStatement::fun(Box::new(<>)),
 }
 
@@ -251,24 +252,28 @@ VariableDeclareFactor: Vec<Rc<Variable>> = {
 /// Single variable declare group, constain a list of same scope variable
 VariableDeclareGroup: Vec<Rc<Variable>> = {
     VariableDeclareGroupStart VariableDeclareGroupAnnotation? "END_VAR" => vec![],
-    <g: VariableDeclareGroupStart> <anno: VariableDeclareGroupAnnotation?> <v: VariableDeclareList> "END_VAR" => VariableDeclareGroup::new(g, anno, v),
+    <g: VariableDeclareGroupStart> <anno: VariableDeclareGroupAnnotation?> <v: VariableDeclareList> "END_VAR" => VariableDeclareGroup::new(anno.unwrap_or(VariableFlags::NONE) | g, v),
 }
 
-VariableDeclareGroupStart: VariableScopeClass = {
-    "VAR" => VariableScopeClass::None,
-    "VAR_GLOBAL" => VariableScopeClass::Global,
-    "VAR_INPUT" => VariableScopeClass::Input,
-    "VAR_INOUT" => VariableScopeClass::InOut,
-    "VAR_OUTPUT" => VariableScopeClass::Output,
-    "VAR_TEMP" => VariableScopeClass::Temp,
-    "VAR_STAT" => VariableScopeClass::Static,
+GlobalVarDeclareGroup: Vec<Rc<Variable>> = {
+    "VAR_GLOBAL" VariableDeclareGroupAnnotation? "END_VAR" => vec![],
+    "VAR_GLOBAL" <anno: VariableDeclareGroupAnnotation?> <v: VariableDeclareList> "END_VAR" => VariableDeclareGroup::new(anno.unwrap_or(VariableFlags::NONE) | VariableFlags::GLOBAL, v),
 }
 
-VariableDeclareGroupAnnotation: RetainAnnotationFlags = {
-    "RETAIN" => RetainAnnotationFlags::RETAIN,
-    "PERSISTENT" => RetainAnnotationFlags::PERSISTENT,
-    "RETAIN" "PERSISTENT" => RetainAnnotationFlags::RETAINPERSISTENT,
-    "PERSISTENT" "RETAIN" => RetainAnnotationFlags::RETAINPERSISTENT,
+VariableDeclareGroupStart: VariableFlags = {
+    "VAR" => VariableFlags::NONE,
+    "VAR_INPUT" => VariableFlags::INPUT,
+    "VAR_INOUT" => VariableFlags::INOUT,
+    "VAR_OUTPUT" => VariableFlags::OUTPUT,
+    "VAR_TEMP" => VariableFlags::TEMP,
+    "VAR_STAT" => VariableFlags::STATIC,
+}
+
+VariableDeclareGroupAnnotation: VariableFlags = {
+    "RETAIN" => VariableFlags::RETAIN,
+    "PERSISTENT" => VariableFlags::PERSISTENT,
+    "RETAIN" "PERSISTENT" => VariableFlags::RETAINPERSISTENT,
+    "PERSISTENT" "RETAIN" => VariableFlags::RETAINPERSISTENT,
 }
 
 /// A list of same scope varaible

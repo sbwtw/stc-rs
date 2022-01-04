@@ -296,30 +296,31 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let _ = self.except_one_of(&[Tok::EndVar])?;
 
         Ok(Some(VariableDeclareGroup::new(
-            group_type, annotation, var_list,
+            group_type | annotation.unwrap_or(VariableFlags::NONE),
+            var_list,
         )))
     }
 
-    fn parse_variable_group_start(&mut self) -> ParseResult<VariableScopeClass> {
+    fn parse_variable_group_start(&mut self) -> ParseResult<VariableFlags> {
         let x = match &*self.next_token()? {
-            (_, Tok::Var, _) => VariableScopeClass::None,
-            (_, Tok::VarGlobal, _) => VariableScopeClass::Global,
-            (_, Tok::VarInput, _) => VariableScopeClass::Input,
-            (_, Tok::VarInOut, _) => VariableScopeClass::InOut,
-            (_, Tok::VarOutput, _) => VariableScopeClass::Output,
-            (_, Tok::VarTemp, _) => VariableScopeClass::Temp,
-            (_, Tok::VarStat, _) => VariableScopeClass::Static,
+            (_, Tok::Var, _) => VariableFlags::NONE,
+            (_, Tok::VarGlobal, _) => VariableFlags::GLOBAL,
+            (_, Tok::VarInput, _) => VariableFlags::INPUT,
+            (_, Tok::VarInOut, _) => VariableFlags::INOUT,
+            (_, Tok::VarOutput, _) => VariableFlags::OUTPUT,
+            (_, Tok::VarTemp, _) => VariableFlags::TEMP,
+            (_, Tok::VarStat, _) => VariableFlags::STATIC,
             _ => return Ok(None),
         };
 
         Ok(Some(x))
     }
 
-    fn parse_variable_declare_group_annotation(&mut self) -> ParseResult<RetainAnnotationFlags> {
+    fn parse_variable_declare_group_annotation(&mut self) -> ParseResult<VariableFlags> {
         let pos = self.next;
         let x = match (&*self.next_token()?).1 {
-            Tok::Retain => RetainAnnotationFlags::RETAIN,
-            Tok::Persistent => RetainAnnotationFlags::PERSISTENT,
+            Tok::Retain => VariableFlags::RETAIN,
+            Tok::Persistent => VariableFlags::PERSISTENT,
             _ => {
                 self.next = pos;
                 return Ok(None);
@@ -328,10 +329,8 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         let pos = self.next;
         let y = match (x, &*self.next_token()?) {
-            (RetainAnnotationFlags::RETAIN, (_, Tok::Persistent, _))
-            | (RetainAnnotationFlags::PERSISTENT, (_, Tok::Retain, _)) => {
-                RetainAnnotationFlags::RETAINPERSISTENT
-            }
+            (VariableFlags::RETAIN, (_, Tok::Persistent, _))
+            | (VariableFlags::PERSISTENT, (_, Tok::Retain, _)) => VariableFlags::RETAINPERSISTENT,
             _ => {
                 self.next = pos;
                 x

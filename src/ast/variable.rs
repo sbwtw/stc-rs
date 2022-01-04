@@ -10,8 +10,6 @@ pub struct Variable {
     attributes: BTreeMap<StString, String>,
     name: StString,
     ty: Option<Rc<Box<dyn Type>>>,
-    scope: VariableScopeClass,
-    retain_flags: RetainAnnotationFlags,
     flags: VariableFlags,
     initial: Option<Box<Expression>>,
 }
@@ -51,10 +49,6 @@ impl Variable {
             .collect()
     }
 
-    pub fn set_scope(&mut self, scope: VariableScopeClass) {
-        self.scope = scope
-    }
-
     pub fn name(&self) -> &StString {
         &self.name
     }
@@ -76,16 +70,16 @@ impl Variable {
         &self.initial
     }
 
-    pub fn scope_class(&self) -> &VariableScopeClass {
-        &self.scope
+    pub fn set_flags(&mut self, flags: VariableFlags) {
+        self.flags = flags
     }
 
-    pub fn annotation(&self) -> RetainAnnotationFlags {
-        self.retain_flags
+    pub fn flags(&self) -> VariableFlags {
+        self.flags
     }
 
-    pub fn set_annotation(&mut self, flags: RetainAnnotationFlags) {
-        self.retain_flags = flags
+    pub fn scope(&self) -> VariableFlags {
+        self.flags & (VariableFlags::INPUT | VariableFlags::INOUT | VariableFlags::OUTPUT)
     }
 }
 
@@ -95,8 +89,6 @@ impl Default for Variable {
             attributes: BTreeMap::new(),
             name: StString::new(""),
             ty: None,
-            scope: VariableScopeClass::None,
-            retain_flags: RetainAnnotationFlags::NONE,
             flags: VariableFlags::NONE,
             initial: None,
         }
@@ -108,16 +100,9 @@ impl_has_attribute!(Variable, attributes);
 pub struct VariableDeclareGroup;
 
 impl VariableDeclareGroup {
-    pub fn new(
-        scope: VariableScopeClass,
-        flags: Option<RetainAnnotationFlags>,
-        mut vars: Vec<Rc<Variable>>,
-    ) -> Vec<Rc<Variable>> {
+    pub fn new(flags: VariableFlags, mut vars: Vec<Rc<Variable>>) -> Vec<Rc<Variable>> {
         for v in vars.iter_mut() {
-            Rc::get_mut(v).unwrap().set_scope(scope);
-            Rc::get_mut(v)
-                .unwrap()
-                .set_annotation(flags.unwrap_or(RetainAnnotationFlags::NONE));
+            Rc::get_mut(v).unwrap().set_flags(flags);
         }
 
         vars

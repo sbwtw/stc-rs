@@ -2,9 +2,9 @@
 
 use crate::ast::{
     AliasDeclare, AssignExpression, CompoAccessExpression, DeclKind, DeclarationStatement,
-    EnumDeclare, ExprKind, ExprStatement, Expression, FunctionDeclare, IfStatement,
-    LiteralExpression, OperatorExpression, Statement, StmtKind, StructDeclare, Variable,
-    VariableExpression,
+    EnumDeclare, ExprKind, ExprStatement, Expression, FunctionDeclare, GlobalVariableDeclare,
+    IfStatement, LiteralExpression, OperatorExpression, Statement, StmtKind, StructDeclare,
+    Variable, VariableExpression,
 };
 
 // Mutable visitor
@@ -55,6 +55,10 @@ pub trait AstVisitorMut: Sized {
 
     fn visit_struct_declaration_mut(&mut self, decl: &mut StructDeclare) {
         walk_struct_declaration_mut(self, decl)
+    }
+
+    fn visit_global_variable_declaration_mut(&mut self, decl: &mut GlobalVariableDeclare) {
+        walk_global_variable_declaration_mut(self, decl)
     }
 
     fn visit_variable_declaration_mut(&mut self, variable: &mut Variable) {
@@ -127,14 +131,21 @@ fn walk_if_statement_mut<V: AstVisitorMut>(vis: &mut V, ifst: &mut IfStatement) 
 
 fn walk_declaration_statement_mut<V: AstVisitorMut>(vis: &mut V, decl: &mut DeclarationStatement) {
     match decl.kind {
-        DeclKind::Struct(ref mut struct_) => walk_struct_declaration_mut(vis, struct_),
-        DeclKind::Enum(ref mut enum_) => walk_enum_declaration_mut(vis, enum_),
-        DeclKind::Alias(ref mut alias) => walk_alias_declaration_mut(vis, alias),
-        DeclKind::Fun(ref mut fun) => walk_function_declaration_mut(vis, fun),
+        DeclKind::Struct(ref mut struct_) => vis.visit_struct_declaration_mut(struct_),
+        DeclKind::Enum(ref mut enum_) => vis.visit_enum_declaration_mut(enum_),
+        DeclKind::Alias(ref mut alias) => vis.visit_alias_declaration_mut(alias),
+        DeclKind::Fun(ref mut fun) => vis.visit_function_declaration_mut(fun),
+        DeclKind::GlobalVar(ref mut gv) => vis.visit_global_variable_declaration_mut(gv),
     }
 }
 
 fn walk_struct_declaration_mut<V: AstVisitorMut>(_: &mut V, _: &mut StructDeclare) {}
+
+fn walk_global_variable_declaration_mut<V: AstVisitorMut>(
+    _: &mut V,
+    _: &mut GlobalVariableDeclare,
+) {
+}
 
 fn walk_enum_declaration_mut<V: AstVisitorMut>(_: &mut V, _: &mut EnumDeclare) {}
 
@@ -213,6 +224,10 @@ pub trait AstVisitor<'ast>: Sized {
         walk_struct_declaration(self, decl)
     }
 
+    fn visit_global_variable_declaration(&mut self, decl: &'ast GlobalVariableDeclare) {
+        walk_global_variable_declaration(self, decl)
+    }
+
     fn visit_variable_declaration(&mut self, variable: &'ast Variable) {
         walk_variable_declaration(self, variable)
     }
@@ -283,10 +298,11 @@ fn walk_if_statement<'a, V: AstVisitor<'a>>(vis: &mut V, ifst: &'a IfStatement) 
 
 fn walk_declaration_statement<'a, V: AstVisitor<'a>>(vis: &mut V, decl: &'a DeclarationStatement) {
     match decl.kind {
-        DeclKind::Struct(ref struct_) => walk_struct_declaration(vis, struct_),
-        DeclKind::Enum(ref enum_) => walk_enum_declaration(vis, enum_),
-        DeclKind::Alias(ref alias) => walk_alias_declaration(vis, alias),
-        DeclKind::Fun(ref fun) => walk_function_declaration(vis, fun),
+        DeclKind::Struct(ref struct_) => vis.visit_struct_declaration(struct_),
+        DeclKind::Enum(ref enum_) => vis.visit_enum_declaration(enum_),
+        DeclKind::Alias(ref alias) => vis.visit_alias_declaration(alias),
+        DeclKind::Fun(ref fun) => vis.visit_function_declaration(fun),
+        DeclKind::GlobalVar(ref gv) => vis.visit_global_variable_declaration(gv),
     }
 }
 
@@ -297,6 +313,12 @@ fn walk_enum_declaration<'a, V: AstVisitor<'a>>(_: &mut V, _: &'a EnumDeclare) {
 fn walk_alias_declaration<'a, V: AstVisitor<'a>>(_: &mut V, _: &'a AliasDeclare) {}
 
 fn walk_function_declaration<'a, V: AstVisitor<'a>>(_: &mut V, _: &'a FunctionDeclare) {}
+
+fn walk_global_variable_declaration<'a, V: AstVisitor<'a>>(
+    _: &mut V,
+    _: &'a GlobalVariableDeclare,
+) {
+}
 
 fn walk_variable_declaration<'a, V: AstVisitor<'a>>(_: &mut V, _: &'a Variable) {}
 

@@ -33,6 +33,10 @@ impl StString {
         }
     }
 
+    pub fn empty() -> Self {
+        Self::Origin(String::new())
+    }
+
     pub fn origin_string(&self) -> &String {
         match &self {
             Self::Origin(s) => s,
@@ -155,20 +159,6 @@ impl Display for LiteralValue {
         }
     }
 }
-
-// impl AstNode for LiteralValue {
-//     fn as_any(&self) -> &dyn Any {
-//         self
-//     }
-//
-//     fn accept(&self, visitor: &mut dyn AstVisitor) {
-//         visitor.visit_literal(self)
-//     }
-//
-//     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
-//         visitor.visit_literal_mut(self)
-//     }
-// }
 
 #[derive(Debug, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub enum LexicalError {
@@ -313,6 +303,9 @@ impl<'input> StLexer<'input> {
             Tok::Struct,
             Tok::EndStruct,
             Tok::Var,
+            Tok::VarInput,
+            Tok::VarInOut,
+            Tok::VarOutput,
             Tok::VarGlobal,
             Tok::EndVar,
             Tok::Retain,

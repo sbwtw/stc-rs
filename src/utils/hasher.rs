@@ -39,8 +39,7 @@ impl MyHash for LiteralValue {
 impl MyHash for Variable {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.name().hash(state);
-        self.scope_class().hash(state);
-        self.annotation().hash(state);
+        self.flags().hash(state);
         if let Some(ty) = self.ty() {
             MyHash::hash(ty.as_ref(), state)
         }

@@ -48,6 +48,9 @@ pub use expression::{ExprKind, Expression};
 mod variable_expression;
 pub use variable_expression::VariableExpression;
 
+mod global_variable_declaration;
+pub use global_variable_declaration::GlobalVariableDeclare;
+
 pub trait HasSourcePosition {}
 
 pub trait HasAttribute {
@@ -155,41 +158,36 @@ impl Display for dyn Type {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-#[allow(dead_code)]
-pub enum VariableScopeClass {
-    None,
-    Global,
-    Input,
-    InOut,
-    Output,
-    Temp,
-    Static,
-}
-
-bitflags! {
-    pub struct RetainAnnotationFlags: u32 {
-        const NONE              = 0b0000_0000_0000_0000;
-        const RETAIN            = 0b0000_0000_0000_0001;
-        const PERSISTENT        = 0b0000_0000_0000_0010;
-        const RETAINPERSISTENT  = Self::RETAIN.bits | Self::PERSISTENT.bits;
-    }
-}
-
 bitflags! {
     pub struct VariableFlags: u32 {
         const NONE              = 0b0000_0000_0000_0000;
-        const CONST             = 0b0000_0000_0000_0001;
-        const GLOBAL            = 0b0000_0000_0000_0010;
-        // All enum field is const value
-        const ENUM_FIELD        = 0b0000_0000_0001_0000 | Self::CONST.bits;
-        const UNION_FIELD       = 0b0000_0000_0010_0000;
+
+        // Scopes
+        const GLOBAL            = 0b0000_0000_0000_0001;
+        const INPUT             = 0b0000_0000_0000_0010;
+        const INOUT             = 0b0000_0000_0000_0100;
+        const OUTPUT            = 0b0000_0000_0000_1000;
+        const TEMP              = 0b0000_0000_0001_0000;
+        const STATIC            = 0b0000_0000_0010_0000;
+
+        // Retain
+        const RETAIN            = 0b0000_0001_0000_0000;
+        const PERSISTENT        = 0b0000_0010_0000_0000;
+        const RETAINPERSISTENT  = Self::RETAIN.bits | Self::PERSISTENT.bits;
+
+        // CV
+        const CONST             = 0b0000_1000_0000_0000;
+
+        // special field
+        const ENUM_FIELD        = 0b0001_0000_0000_0000;
+        const UNION_FIELD       = 0b0010_0000_0000_0000;
     }
 }
 
 bitflags! {
-    pub struct VariableInternalFlags: u32 {
+    pub struct CompilerInternalFlags: u32 {
         const NONE              = 0b0000_0000_0000_0000;
+        const HAS_ERROR         = 0b0000_0000_0000_0001;
     }
 }
 
@@ -200,6 +198,7 @@ pub enum DeclareClass {
     Program,
     FunctionBlock,
     Method,
+    Action,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]

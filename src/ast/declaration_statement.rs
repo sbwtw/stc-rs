@@ -6,6 +6,7 @@ pub enum DeclKind {
     Alias(Box<AliasDeclare>),
     Struct(Box<StructDeclare>),
     Enum(Box<EnumDeclare>),
+    GlobalVar(Box<GlobalVariableDeclare>),
 }
 
 #[derive(Debug)]
@@ -20,6 +21,7 @@ impl DeclarationStatement {
             DeclKind::Alias(ref alias) => alias.name(),
             DeclKind::Struct(ref struct_) => struct_.name(),
             DeclKind::Enum(ref enum_) => enum_.name(),
+            DeclKind::GlobalVar(ref gv) => gv.name(),
         }
     }
 
@@ -46,18 +48,10 @@ impl DeclarationStatement {
             kind: DeclKind::Enum(enum_),
         }
     }
-}
 
-// impl AstNode for DeclarationStatement {
-//     fn as_any(&self) -> &dyn Any {
-//         self
-//     }
-//
-//     fn accept(&self, visitor: &mut dyn AstVisitor) {
-//         visitor.visit_declaration_statement(self)
-//     }
-//
-//     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
-//         visitor.visit_declaration_statement_mut(self)
-//     }
-// }
+    pub fn global_var(global_var: Box<GlobalVariableDeclare>) -> Self {
+        Self {
+            kind: DeclKind::GlobalVar(global_var),
+        }
+    }
+}

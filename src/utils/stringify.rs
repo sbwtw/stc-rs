@@ -142,17 +142,14 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
             let mut current_scope = None;
             for v in variables {
                 // new group
-                if current_scope != Some(v.scope_class()) {
+                if current_scope != Some(v.scope()) {
                     if current_scope.is_some() {
                         self.writeln(format_args!("{}", Tok::EndVar));
                     }
 
-                    self.writeln(format_args!(
-                        "{}",
-                        variable_scope_start_tok(v.scope_class())
-                    ));
+                    self.writeln(format_args!("{}", variable_scope_start_tok(v.scope())));
 
-                    current_scope = Some(v.scope_class());
+                    current_scope = Some(v.scope());
                 }
 
                 // dump variable
@@ -265,10 +262,10 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
     }
 }
 
-fn variable_scope_start_tok(class: &VariableScopeClass) -> Tok {
+fn variable_scope_start_tok(class: VariableFlags) -> Tok {
     match class {
-        VariableScopeClass::None => Tok::Var,
-        VariableScopeClass::Global => Tok::VarGlobal,
+        VariableFlags::NONE => Tok::Var,
+        VariableFlags::GLOBAL => Tok::VarGlobal,
         _ => unimplemented!(),
     }
 }
