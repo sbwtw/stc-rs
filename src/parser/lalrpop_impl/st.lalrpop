@@ -80,7 +80,7 @@ pub StFunction = StatementList;
 /// ST Statements
 StatementList: Statement = {
     Statement,
-    <mut v: Statement+> <s: Statement> => Statement::statement_list(Box::new({ v.push(s); v })),
+    <v: StatementList> <s: Statement> => v.push(s),
 }
 
 /// Single statement
@@ -208,15 +208,18 @@ Term: Expression = {
     "(" <Expr> ")",
 };
 
-/// Declaration statement
-DeclarationStatement: Statement = {
-    Declaration => Statement::decl(Box::new(<>)),
-}
 
 /// Declarations
-pub Declaration: DeclarationStatement = {
+pub Declaration = SingleDeclaration;
+
+/// Declaration statement
+DeclarationStatement: Statement = {
+    SingleDeclaration => Statement::decl(Box::new(<>)),
+}
+
+SingleDeclaration: DeclarationStatement = {
     "TYPE" <ty: TypeDeclaration> "END_TYPE" => ty,
-    GlobalVarDeclareGroup => DeclarationStatement::global_var(Box::new(GlobalVariableDeclare::new(None, <>))),
+    GlobalVarDeclGroup => DeclarationStatement::global_var(Box::new(GlobalVariableDeclare::new(None, <>))),
     FuncDecl => DeclarationStatement::fun(Box::new(<>)),
 }
 
@@ -249,13 +252,18 @@ VariableDeclareFactor: Vec<Rc<Variable>> = {
     <mut v: VariableDeclareFactor> <mut e: VariableDeclareGroup> => { v.append(&mut e); v }
 }
 
+//GlobalVarDeclareFactor: Vec<Rc<Variable>> = {
+//    GlobalVarDeclGroup,
+//    <mut v: GlobalVarDeclareFactor> <mut e: GlobalVarDeclGroup> => { v.append(&mut e); v }
+//}
+
 /// Single variable declare group, constain a list of same scope variable
 VariableDeclareGroup: Vec<Rc<Variable>> = {
     VariableDeclareGroupStart VariableDeclareGroupAnnotation? "END_VAR" => vec![],
     <g: VariableDeclareGroupStart> <anno: VariableDeclareGroupAnnotation?> <v: VariableDeclareList> "END_VAR" => VariableDeclareGroup::new(anno.unwrap_or(VariableFlags::NONE) | g, v),
 }
 
-GlobalVarDeclareGroup: Vec<Rc<Variable>> = {
+GlobalVarDeclGroup: Vec<Rc<Variable>> = {
     "VAR_GLOBAL" VariableDeclareGroupAnnotation? "END_VAR" => vec![],
     "VAR_GLOBAL" <anno: VariableDeclareGroupAnnotation?> <v: VariableDeclareList> "END_VAR" => VariableDeclareGroup::new(anno.unwrap_or(VariableFlags::NONE) | VariableFlags::GLOBAL, v),
 }

@@ -2,6 +2,7 @@ use crate::ast::*;
 
 #[derive(Debug)]
 pub enum DeclKind {
+    // Stmts(Box<Vec<DeclarationStatement>>),
     Fun(Box<FunctionDeclare>),
     Alias(Box<AliasDeclare>),
     Struct(Box<StructDeclare>),

@@ -313,7 +313,9 @@ impl<'input> StLexer<'input> {
             Tok::Type,
             Tok::EndType,
             Tok::Int,
-            Tok::Bool
+            Tok::Bool,
+            Tok::Real,
+            Tok::LReal
         ];
 
         self.keywords = keywords;

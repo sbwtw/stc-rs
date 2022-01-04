@@ -17,6 +17,16 @@ pub struct Statement {
 impl_ast_display!(Statement, visit_statement);
 
 impl Statement {
+    pub fn push(self, stmt: Statement) -> Self {
+        match self.kind {
+            StmtKind::Stmts(mut stmts) => {
+                stmts.push(stmt);
+                return Self::statement_list(stmts);
+            }
+            _ => todo!(),
+        }
+    }
+
     pub fn statement_list(stmts: Box<Vec<Statement>>) -> Self {
         Self {
             kind: StmtKind::Stmts(stmts),
