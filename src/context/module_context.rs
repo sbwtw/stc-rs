@@ -21,12 +21,12 @@ fn get_next_declaration_id() -> usize {
 
 #[derive(Clone)]
 #[allow(unused)]
-struct DeclarationWrapper {
+pub struct Prototype {
     id: usize,
     decl: Arc<RwLock<Declaration>>,
 }
 
-impl DeclarationWrapper {
+impl Prototype {
     fn new(decl: Declaration) -> Self {
         Self {
             id: get_next_declaration_id(),
@@ -35,15 +35,15 @@ impl DeclarationWrapper {
     }
 }
 
-impl PartialEq for DeclarationWrapper {
+impl PartialEq for Prototype {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
 }
 
-impl Eq for DeclarationWrapper {}
+impl Eq for Prototype {}
 
-impl Hash for DeclarationWrapper {
+impl Hash for Prototype {
     fn hash<H: Hasher>(&self, state: &mut H) {
         state.write_usize(self.id)
     }
@@ -51,12 +51,12 @@ impl Hash for DeclarationWrapper {
 
 #[derive(Clone)]
 #[allow(unused)]
-struct FunctionWrapper {
+pub struct Function {
     decl_id: usize,
     function: Arc<RwLock<Statement>>,
 }
 
-impl FunctionWrapper {
+impl Function {
     fn new(decl_id: usize, function: Arc<RwLock<Statement>>) -> Self {
         Self { decl_id, function }
     }
@@ -74,10 +74,10 @@ impl Eq for ModuleContext {}
 pub struct ModuleContext {
     id: usize,
     scope: ModuleContextScope,
-    declaration_id_map: HashMap<usize, DeclarationWrapper>,
-    declaration_name_map: HashMap<StString, DeclarationWrapper>,
-    function_id_map: HashMap<usize, FunctionWrapper>,
-    toplevel_global_variable_declarations: HashSet<DeclarationWrapper>,
+    declaration_id_map: HashMap<usize, Prototype>,
+    declaration_name_map: HashMap<StString, Prototype>,
+    function_id_map: HashMap<usize, Function>,
+    toplevel_global_variable_declarations: HashSet<Prototype>,
 }
 
 impl ModuleContext {
@@ -111,7 +111,7 @@ impl ModuleContext {
             }
         }
 
-        let wrapper = DeclarationWrapper::new(decl);
+        let wrapper = Prototype::new(decl);
 
         self.declaration_id_map.insert(wrapper.id, wrapper.clone());
         self.declaration_name_map.insert(name, wrapper.clone());
@@ -130,11 +130,22 @@ impl ModuleContext {
         fun: Statement,
     ) -> Option<Arc<RwLock<Statement>>> {
         self.function_id_map
-            .insert(
-                decl_id,
-                FunctionWrapper::new(decl_id, Arc::new(RwLock::new(fun))),
-            )
+            .insert(decl_id, Function::new(decl_id, Arc::new(RwLock::new(fun))))
             .map(|x| x.function.clone())
+    }
+
+    pub fn declarations(&self) -> impl Iterator<Item = &Arc<RwLock<Declaration>>> {
+        self.declaration_id_map
+            .values()
+            .map(|x| &x.decl)
+            .into_iter()
+    }
+
+    pub fn functions(&self) -> impl Iterator<Item = &Arc<RwLock<Statement>>> {
+        self.function_id_map
+            .values()
+            .map(|x| &x.function)
+            .into_iter()
     }
 
     pub fn get_function(&self, decl_id: usize) -> Option<Arc<RwLock<Statement>>> {
@@ -149,7 +160,7 @@ impl ModuleContext {
             .map(|x| x.decl.clone())
     }
 
-    pub fn get_declaration_by_name(&self, ident: &StString) -> Option<Arc<RwLock<Declaration>>> {
+    pub fn find_declaration_by_name(&self, ident: &StString) -> Option<Arc<RwLock<Declaration>>> {
         self.declaration_name_map.get(ident).map(|x| x.decl.clone())
     }
 

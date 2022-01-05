@@ -36,6 +36,21 @@ impl Scope {
         }
     }
 
+    pub fn find_declaration(
+        &self,
+        ident: &StString,
+    ) -> (Option<Arc<RwLock<Declaration>>>, Option<Scope>) {
+        let decl = self
+            .local_context
+            .as_ref()
+            .and_then(|ctx| ctx.read().unwrap().find_declaration_by_name(ident));
+
+        match decl {
+            Some(_) => (decl, None),
+            None => (decl, None),
+        }
+    }
+
     pub fn find_variable(&self, ident: &StString) -> Option<Rc<Variable>> {
         self.find_local_variable(ident)
             .or_else(|| self.find_global_variable(ident))

@@ -318,6 +318,7 @@ impl<'input> StLexer<'input> {
             Tok::EndType,
             Tok::Int,
             Tok::Bool,
+            Tok::Byte,
             Tok::Real,
             Tok::LReal
         ];

@@ -4,7 +4,6 @@ use std::rc::Rc;
 
 #[derive(Debug)]
 pub enum DeclKind {
-    // Stmts(Box<Vec<DeclarationStatement>>),
     Fun(Box<FunctionDeclare>),
     Alias(Box<AliasDeclare>),
     Struct(Box<StructDeclare>),
@@ -35,6 +34,12 @@ impl Declaration {
             DeclKind::Enum(ref e) => Cow::Borrowed(e.fields()),
             DeclKind::GlobalVar(ref g) => Cow::Borrowed(g.variables()),
             _ => Cow::Owned(vec![]),
+        }
+    }
+
+    pub fn ty(&self) -> Option<Rc<Box<dyn Type>>> {
+        match self.kind {
+            _ => None,
         }
     }
 

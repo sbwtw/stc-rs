@@ -58,6 +58,7 @@ extern {
         "INT" => Tok::Int,
         "BOOL" => Tok::Bool,
         "REAL" => Tok::Real,
+        "BYTE" => Tok::Byte,
         "LITERAL" => Tok::Literal(<LiteralValue>),
         "IDENTIFIER" => Tok::Identifier(<StString>),
     }
@@ -238,6 +239,7 @@ EnumFieldDecl: Rc<Variable> = {
 Type: Rc<Box<dyn Type>> = {
     "INT" => Rc::new(Box::new(IntType::new())),
     "BOOL" => Rc::new(Box::new(BoolType::new())),
+    "BYTE" => Rc::new(Box::new(ByteType::new())),
     "REAL" => Rc::new(Box::new(RealType::new())),
     "IDENTIFIER" => Rc::new(Box::new(UserType::from_name(<>))),
 }
