@@ -37,6 +37,10 @@ impl StString {
         Self::Origin(String::new())
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.origin_string().is_empty()
+    }
+
     pub fn origin_string(&self) -> &String {
         match &self {
             Self::Origin(s) => s,

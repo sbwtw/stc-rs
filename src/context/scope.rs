@@ -38,24 +38,23 @@ impl Scope {
 
     pub fn find_variable(&self, ident: &StString) -> Option<Rc<Variable>> {
         self.find_local_variable(ident)
+            .or_else(|| self.find_global_variable(ident))
     }
 
     pub fn find_local_variable(&self, ident: &StString) -> Option<Rc<Variable>> {
         self.local_declaration.as_ref().and_then(|decl| {
             let decl = decl.read().unwrap();
-            let defaults = vec![];
-            let variables = match &decl.kind {
-                DeclKind::Fun(f) => f.parameters(),
-                DeclKind::Struct(s) => s.variables(),
-                DeclKind::Enum(e) => e.fields(),
-                _ => &defaults,
-            };
-
-            variables
+            decl.variables()
                 .iter()
                 .find(|x| x.name() == ident)
                 .map(|x| x.clone())
         })
+    }
+
+    pub fn find_global_variable(&self, ident: &StString) -> Option<Rc<Variable>> {
+        self.local_context
+            .as_ref()
+            .and_then(|ctx| ctx.read().unwrap().find_toplevel_global_variable(ident))
     }
 }
 

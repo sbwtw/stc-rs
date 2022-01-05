@@ -2,7 +2,9 @@ use crate::ast::*;
 use crate::context::ModuleContextScope;
 use crate::parser::StString;
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::hash::{Hash, Hasher};
+use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, RwLock};
 
@@ -30,6 +32,20 @@ impl DeclarationWrapper {
             id: get_next_declaration_id(),
             decl: Arc::new(RwLock::new(decl)),
         }
+    }
+}
+
+impl PartialEq for DeclarationWrapper {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl Eq for DeclarationWrapper {}
+
+impl Hash for DeclarationWrapper {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write_usize(self.id)
     }
 }
 
@@ -61,6 +77,7 @@ pub struct ModuleContext {
     declaration_id_map: HashMap<usize, DeclarationWrapper>,
     declaration_name_map: HashMap<StString, DeclarationWrapper>,
     function_id_map: HashMap<usize, FunctionWrapper>,
+    toplevel_global_variable_declarations: HashSet<DeclarationWrapper>,
 }
 
 impl ModuleContext {
@@ -71,6 +88,7 @@ impl ModuleContext {
             declaration_id_map: HashMap::new(),
             declaration_name_map: HashMap::new(),
             function_id_map: HashMap::new(),
+            toplevel_global_variable_declarations: HashSet::new(),
         }
     }
 
@@ -85,10 +103,23 @@ impl ModuleContext {
 
     pub fn add_declaration(&mut self, decl: Declaration) -> usize {
         let name = decl.identifier().clone();
+        let mut toplevel_global_variable_declaration = false;
+
+        if let DeclKind::GlobalVar(ref g) = decl.kind {
+            if g.name().is_empty() {
+                toplevel_global_variable_declaration = true;
+            }
+        }
+
         let wrapper = DeclarationWrapper::new(decl);
 
         self.declaration_id_map.insert(wrapper.id, wrapper.clone());
         self.declaration_name_map.insert(name, wrapper.clone());
+
+        if toplevel_global_variable_declaration {
+            self.toplevel_global_variable_declarations
+                .insert(wrapper.clone());
+        }
 
         wrapper.id
     }
@@ -116,5 +147,29 @@ impl ModuleContext {
         self.declaration_id_map
             .get(&decl_id)
             .map(|x| x.decl.clone())
+    }
+
+    pub fn get_declaration_by_name(&self, ident: &StString) -> Option<Arc<RwLock<Declaration>>> {
+        self.declaration_name_map.get(ident).map(|x| x.decl.clone())
+    }
+
+    pub fn find_toplevel_global_variable(&self, ident: &StString) -> Option<Rc<Variable>> {
+        self.find_toplevel_global_variable_map(|x| x.name() == ident)
+    }
+
+    pub fn find_toplevel_global_variable_map<F>(&self, f: F) -> Option<Rc<Variable>>
+    where
+        F: Fn(&Rc<Variable>) -> bool,
+    {
+        for decl in self.toplevel_global_variable_declarations.iter() {
+            let decl = decl.decl.read().unwrap();
+            for v in decl.variables().iter() {
+                if f(v) {
+                    return Some(v.clone());
+                }
+            }
+        }
+
+        return None;
     }
 }
