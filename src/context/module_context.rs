@@ -2,8 +2,10 @@ use crate::ast::*;
 use crate::context::ModuleContextScope;
 use crate::parser::StString;
 use once_cell::sync::Lazy;
+use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
+use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, RwLock};
@@ -20,24 +22,13 @@ fn get_next_declaration_id() -> usize {
 }
 
 #[derive(Clone)]
-#[allow(unused)]
 pub struct Prototype {
-    id: usize,
-    decl: Arc<RwLock<Declaration>>,
-}
-
-impl Prototype {
-    fn new(decl: Declaration) -> Self {
-        Self {
-            id: get_next_declaration_id(),
-            decl: Arc::new(RwLock::new(decl)),
-        }
-    }
+    inner: Arc<RwLock<PrototypeImpl>>,
 }
 
 impl PartialEq for Prototype {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
+        self.read().unwrap().id == other.read().unwrap().id
     }
 }
 
@@ -45,20 +36,85 @@ impl Eq for Prototype {}
 
 impl Hash for Prototype {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        state.write_usize(self.id)
+        state.write_usize(self.read().unwrap().id)
+    }
+}
+
+impl Deref for Prototype {
+    type Target = Arc<RwLock<PrototypeImpl>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl Prototype {
+    fn new(decl: Declaration) -> Self {
+        Self {
+            inner: Arc::new(RwLock::new(PrototypeImpl::new(decl))),
+        }
     }
 }
 
 #[derive(Clone)]
-#[allow(unused)]
 pub struct Function {
-    decl_id: usize,
-    function: Arc<RwLock<Statement>>,
+    inner: Arc<RwLock<FunctionImpl>>,
+}
+
+impl Deref for Function {
+    type Target = Arc<RwLock<FunctionImpl>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
 }
 
 impl Function {
-    fn new(decl_id: usize, function: Arc<RwLock<Statement>>) -> Self {
+    fn new(decl_id: usize, function: Statement) -> Self {
+        Self {
+            inner: Arc::new(RwLock::new(FunctionImpl::new(decl_id, function))),
+        }
+    }
+}
+
+pub struct PrototypeImpl {
+    id: usize,
+    decl: Declaration,
+}
+
+impl PrototypeImpl {
+    fn new(decl: Declaration) -> Self {
+        Self {
+            id: get_next_declaration_id(),
+            decl,
+        }
+    }
+
+    pub fn variables(&self) -> Cow<Vec<Rc<Variable>>> {
+        self.decl.variables()
+    }
+
+    pub fn ty(&self) -> Option<Rc<Box<dyn Type>>> {
+        None
+    }
+}
+
+pub struct FunctionImpl {
+    decl_id: usize,
+    function: Statement,
+}
+
+impl FunctionImpl {
+    fn new(decl_id: usize, function: Statement) -> Self {
         Self { decl_id, function }
+    }
+
+    pub fn body(&self) -> &Statement {
+        &self.function
+    }
+
+    pub fn body_mut(&mut self) -> &mut Statement {
+        &mut self.function
     }
 }
 
@@ -111,57 +167,44 @@ impl ModuleContext {
             }
         }
 
-        let wrapper = Prototype::new(decl);
+        let decl = Prototype::new(decl);
+        let proto_id = decl.read().unwrap().id;
 
-        self.declaration_id_map.insert(wrapper.id, wrapper.clone());
-        self.declaration_name_map.insert(name, wrapper.clone());
+        self.declaration_id_map.insert(proto_id, decl.clone());
+        self.declaration_name_map.insert(name, decl.clone());
 
         if toplevel_global_variable_declaration {
             self.toplevel_global_variable_declarations
-                .insert(wrapper.clone());
+                .insert(decl.clone());
         }
 
-        wrapper.id
+        proto_id
     }
 
-    pub fn add_function(
-        &mut self,
-        decl_id: usize,
-        fun: Statement,
-    ) -> Option<Arc<RwLock<Statement>>> {
-        self.function_id_map
-            .insert(decl_id, Function::new(decl_id, Arc::new(RwLock::new(fun))))
-            .map(|x| x.function.clone())
+    pub fn add_function(&mut self, decl_id: usize, fun: Statement) -> Option<Function> {
+        let fun = Function::new(decl_id, fun);
+
+        self.function_id_map.insert(decl_id, fun).map(|x| x.clone())
     }
 
-    pub fn declarations(&self) -> impl Iterator<Item = &Arc<RwLock<Declaration>>> {
-        self.declaration_id_map
-            .values()
-            .map(|x| &x.decl)
-            .into_iter()
+    pub fn declarations(&self) -> impl Iterator<Item = &Prototype> {
+        self.declaration_id_map.values().into_iter()
     }
 
-    pub fn functions(&self) -> impl Iterator<Item = &Arc<RwLock<Statement>>> {
-        self.function_id_map
-            .values()
-            .map(|x| &x.function)
-            .into_iter()
+    pub fn functions(&self) -> impl Iterator<Item = &Function> {
+        self.function_id_map.values().into_iter()
     }
 
-    pub fn get_function(&self, decl_id: usize) -> Option<Arc<RwLock<Statement>>> {
-        self.function_id_map
-            .get(&decl_id)
-            .map(|x| x.function.clone())
+    pub fn get_function(&self, decl_id: usize) -> Option<Function> {
+        self.function_id_map.get(&decl_id).map(|x| x.clone())
     }
 
-    pub fn get_declaration_by_id(&self, decl_id: usize) -> Option<Arc<RwLock<Declaration>>> {
-        self.declaration_id_map
-            .get(&decl_id)
-            .map(|x| x.decl.clone())
+    pub fn get_declaration_by_id(&self, decl_id: usize) -> Option<Prototype> {
+        self.declaration_id_map.get(&decl_id).map(|x| x.clone())
     }
 
-    pub fn find_declaration_by_name(&self, ident: &StString) -> Option<Arc<RwLock<Declaration>>> {
-        self.declaration_name_map.get(ident).map(|x| x.decl.clone())
+    pub fn find_declaration_by_name(&self, ident: &StString) -> Option<Prototype> {
+        self.declaration_name_map.get(ident).map(|x| x.clone())
     }
 
     pub fn find_toplevel_global_variable(&self, ident: &StString) -> Option<Rc<Variable>> {
@@ -173,8 +216,8 @@ impl ModuleContext {
         F: Fn(&Rc<Variable>) -> bool,
     {
         for decl in self.toplevel_global_variable_declarations.iter() {
-            let decl = decl.decl.read().unwrap();
-            for v in decl.variables().iter() {
+            let decl = decl.read().unwrap();
+            for v in decl.decl.variables().iter() {
                 if f(v) {
                     return Some(v.clone());
                 }

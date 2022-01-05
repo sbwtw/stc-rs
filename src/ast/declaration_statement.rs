@@ -37,12 +37,6 @@ impl Declaration {
         }
     }
 
-    pub fn ty(&self) -> Option<Rc<Box<dyn Type>>> {
-        match self.kind {
-            _ => None,
-        }
-    }
-
     pub fn fun(fun: Box<FunctionDeclare>) -> Self {
         Self {
             kind: DeclKind::Fun(fun),

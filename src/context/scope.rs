@@ -1,5 +1,5 @@
-use crate::ast::*;
-use crate::context::{ModuleContext, UnitsManager};
+use crate::ast::Variable;
+use crate::context::{ModuleContext, Prototype, UnitsManager};
 use crate::parser::StString;
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
@@ -9,7 +9,7 @@ use std::sync::{Arc, RwLock};
 pub struct Scope {
     units_manager: Option<Arc<RwLock<UnitsManager>>>,
     local_context: Option<Arc<RwLock<ModuleContext>>>,
-    local_declaration: Option<Arc<RwLock<Declaration>>>,
+    local_declaration: Option<Prototype>,
 }
 
 impl Scope {
@@ -36,19 +36,13 @@ impl Scope {
         }
     }
 
-    pub fn find_declaration(
-        &self,
-        ident: &StString,
-    ) -> (Option<Arc<RwLock<Declaration>>>, Option<Scope>) {
+    pub fn find_declaration(&self, ident: &StString) -> (Option<Prototype>, Option<Scope>) {
         let decl = self
             .local_context
             .as_ref()
             .and_then(|ctx| ctx.read().unwrap().find_declaration_by_name(ident));
 
-        match decl {
-            Some(_) => (decl, None),
-            None => (decl, None),
-        }
+        (decl, Some(self.clone()))
     }
 
     pub fn find_variable(&self, ident: &StString) -> Option<Rc<Variable>> {

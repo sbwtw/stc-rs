@@ -77,10 +77,10 @@ fn main() {
             Some(ctx_id),
             Some(decl_id),
         );
-        type_analyzer.analyze_statement(&mut f, scope);
+        type_analyzer.analyze_statement(f.body_mut(), scope);
 
-        display_ast(&f);
+        display_ast(f.body());
 
-        println!("{}", &f);
+        println!("{}", f.body());
     }
 }
