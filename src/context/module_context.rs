@@ -80,22 +80,34 @@ impl Function {
 pub struct PrototypeImpl {
     id: usize,
     decl: Declaration,
+    ty: Option<Rc<Box<dyn Type>>>,
 }
 
 impl PrototypeImpl {
     fn new(decl: Declaration) -> Self {
+        let user_ty = UserType::from_name(decl.identifier().clone());
+
         Self {
             id: get_next_declaration_id(),
             decl,
+            ty: Some(Rc::new(Box::new(user_ty))),
         }
+    }
+
+    pub fn id(&self) -> usize {
+        self.id
     }
 
     pub fn variables(&self) -> Cow<Vec<Rc<Variable>>> {
         self.decl.variables()
     }
 
-    pub fn ty(&self) -> Option<Rc<Box<dyn Type>>> {
-        None
+    pub fn ty(&self) -> &Option<Rc<Box<dyn Type>>> {
+        &self.ty
+    }
+
+    pub fn set_ty(&mut self, ty: Option<Rc<Box<dyn Type>>>) {
+        self.ty = ty
     }
 }
 

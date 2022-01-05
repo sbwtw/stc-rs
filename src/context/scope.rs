@@ -42,7 +42,17 @@ impl Scope {
             .as_ref()
             .and_then(|ctx| ctx.read().unwrap().find_declaration_by_name(ident));
 
-        (decl, Some(self.clone()))
+        match decl {
+            None => (None, None),
+            Some(decl) => {
+                let ctx_id = self.local_context.as_ref().map(|x| x.read().unwrap().id());
+                let fun_id = decl.read().unwrap().id();
+                (
+                    Some(decl),
+                    Some(Self::new(self.units_manager.clone(), ctx_id, Some(fun_id))),
+                )
+            }
+        }
     }
 
     pub fn find_variable(&self, ident: &StString) -> Option<Rc<Variable>> {
