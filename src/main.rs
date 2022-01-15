@@ -42,26 +42,28 @@ fn display_ast(statement: &Statement) {
 
 fn main() {
     let mut mgr = UnitsManager::new();
-    let mut app = ModuleContext::new(ModuleContextScope::Application);
-    let ctx_id = app.id();
+    let app = ModuleContext::new(ModuleContextScope::Application);
+    let app_id = app.read().id();
+    mgr.add_context(app);
 
+    let mut app = mgr.get_context(app_id).unwrap();
     let decl = StLexer::new("function test: int VAR a: INT; b: INT; END_VAR end_function");
     let decl = parser::StDeclarationParser::new().parse(decl).unwrap();
-    let decl_id = app.add_declaration(decl);
+    let decl_id = app.write().add_declaration(decl);
 
     let prg = StLexer::new("program prg: int VAR a: BYTE; END_VAR end_program");
     let prg = parser::StDeclarationParser::new().parse(prg).unwrap();
-    let _prg_id = app.add_declaration(prg);
+    let _prg_id = app.write().add_declaration(prg);
 
     let global = StLexer::new("VAR_GLOBAL END_VAR VAR_GLOBAL c: REAL; END_VAR");
     let global = parser::StDeclarationParser::new().parse(global).unwrap();
-    let _global_id = app.add_declaration(global);
+    let _global_id = app.write().add_declaration(global);
 
     let body = StLexer::new("if a < c then prg.a := 1; else b := 2; end_if");
     let body = parser::StFunctionParser::new().parse(body).unwrap();
-    app.add_function(decl_id, body);
-    let fun = app.get_function(decl_id);
-    mgr.add_context(Arc::new(RwLock::new(app)));
+    app.write().add_function(decl_id, body);
+
+    let fun = app.read().get_function(decl_id);
 
     let mut type_analyzer = TypeAnalyzer::new();
 
@@ -74,7 +76,7 @@ fn main() {
 
         let scope = Scope::new(
             Some(Arc::new(RwLock::new(mgr))),
-            Some(ctx_id),
+            Some(app_id),
             Some(decl_id),
         );
         type_analyzer.analyze_statement(f.body_mut(), scope);

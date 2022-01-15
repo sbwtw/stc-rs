@@ -8,7 +8,7 @@ use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 static CONTEXT_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
 static DECLARATION_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
@@ -130,16 +130,43 @@ impl FunctionImpl {
     }
 }
 
+#[derive(Clone)]
+pub struct ModuleContext {
+    inner: Arc<RwLock<ModuleContextImpl>>,
+}
+
 impl PartialEq for ModuleContext {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
+        self.inner.read().unwrap().id == other.inner.read().unwrap().id
     }
 }
 
 impl Eq for ModuleContext {}
 
-#[allow(unused)]
-pub struct ModuleContext {
+impl ModuleContext {
+    pub fn new(scope: ModuleContextScope) -> Self {
+        Self {
+            inner: Arc::new(RwLock::new(ModuleContextImpl {
+                id: get_next_context_id(),
+                scope,
+                declaration_id_map: HashMap::new(),
+                declaration_name_map: HashMap::new(),
+                function_id_map: HashMap::new(),
+                toplevel_global_variable_declarations: HashSet::new(),
+            })),
+        }
+    }
+
+    pub fn read(&self) -> RwLockReadGuard<'_, ModuleContextImpl> {
+        self.inner.read().unwrap()
+    }
+
+    pub fn write(&self) -> RwLockWriteGuard<'_, ModuleContextImpl> {
+        self.inner.write().unwrap()
+    }
+}
+
+pub struct ModuleContextImpl {
     id: usize,
     scope: ModuleContextScope,
     declaration_id_map: HashMap<usize, Prototype>,
@@ -148,18 +175,7 @@ pub struct ModuleContext {
     toplevel_global_variable_declarations: HashSet<Prototype>,
 }
 
-impl ModuleContext {
-    pub fn new(scope: ModuleContextScope) -> Self {
-        Self {
-            id: get_next_context_id(),
-            scope,
-            declaration_id_map: HashMap::new(),
-            declaration_name_map: HashMap::new(),
-            function_id_map: HashMap::new(),
-            toplevel_global_variable_declarations: HashSet::new(),
-        }
-    }
-
+impl ModuleContextImpl {
     pub fn id(&self) -> usize {
         self.id
     }

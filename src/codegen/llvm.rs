@@ -1,10 +1,10 @@
 use crate::codegen::*;
 
-pub struct ArmBackend {
+pub struct LLVMBackend {
     adapter: BackendAdapter,
 }
 
-impl Backend for ArmBackend {
+impl Backend for LLVMBackend {
     fn gen_function(&mut self) {
         todo!()
     }

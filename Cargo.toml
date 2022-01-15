@@ -20,7 +20,9 @@ chrono = "*"
 [build-dependencies]
 cbindgen = "*"
 lalrpop = { version = "*", optional = true }
+llvm-sys = { version = "130", optional = true }
 
 [features]
 default = ["use_lalrpop"]
 use_lalrpop = ["lalrpop", "lalrpop-util"]
+llvm = ["llvm-sys"]

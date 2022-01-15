@@ -6,7 +6,7 @@ use std::sync::{Arc, RwLock};
 #[allow(dead_code)]
 pub struct UnitsManager {
     active_application: Option<usize>,
-    contexts: HashMap<usize, Arc<RwLock<ModuleContext>>>,
+    contexts: HashMap<usize, ModuleContext>,
 }
 
 #[allow(dead_code)]
@@ -18,8 +18,8 @@ impl UnitsManager {
         }
     }
 
-    pub fn add_context(&mut self, ctx: Arc<RwLock<ModuleContext>>) {
-        let id = ctx.read().unwrap().id();
+    pub fn add_context(&mut self, ctx: ModuleContext) {
+        let id = ctx.read().id();
         if self.contexts.contains_key(&id) {
             return;
         }
@@ -31,7 +31,7 @@ impl UnitsManager {
         self.active_application = app
     }
 
-    pub fn get_context(&self, ctx_id: usize) -> Option<Arc<RwLock<ModuleContext>>> {
+    pub fn get_context(&self, ctx_id: usize) -> Option<ModuleContext> {
         self.contexts.get(&ctx_id).map(|x| x.clone())
     }
 }
