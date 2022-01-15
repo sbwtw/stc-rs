@@ -39,6 +39,7 @@ builtin_type_impl!(struct StringType, TypeClass::String);
 #[derive(Debug, Clone)]
 pub struct UserType {
     name: StString,
+    decl_id: Option<usize>,
     class: Option<UserTypeClass>,
     attributes: BTreeMap<StString, String>,
 }
@@ -47,6 +48,7 @@ impl UserType {
     pub fn from_name(name: StString) -> Self {
         Self {
             name,
+            decl_id: None,
             class: None,
             attributes: BTreeMap::new(),
         }
