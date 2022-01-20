@@ -15,6 +15,7 @@ pub struct Variable {
 }
 
 impl Variable {
+    #[allow(dead_code)]
     pub fn new(name: StString) -> Self {
         Self {
             name,
@@ -40,9 +41,9 @@ impl Variable {
 
     /// comma split variable declare list, like: a, b, c: INT;
     pub fn multiple_variable_with_type(
-        names: Vec<StString>,
+        names: SmallVec8<StString>,
         ty: Rc<Box<dyn Type>>,
-    ) -> Vec<Rc<Self>> {
+    ) -> SmallVec8<Rc<Self>> {
         names
             .iter()
             .map(|x| Rc::new(Self::with_type(x.clone(), ty.clone())))
@@ -53,6 +54,7 @@ impl Variable {
         &self.name
     }
 
+    #[allow(dead_code)]
     pub fn origin_name(&self) -> &String {
         self.name.origin_string()
     }
@@ -100,7 +102,7 @@ impl_has_attribute!(Variable, attributes);
 pub struct VariableDeclareGroup;
 
 impl VariableDeclareGroup {
-    pub fn new(flags: VariableFlags, mut vars: Vec<Rc<Variable>>) -> Vec<Rc<Variable>> {
+    pub fn new(flags: VariableFlags, mut vars: SmallVec8<Rc<Variable>>) -> SmallVec8<Rc<Variable>> {
         for v in vars.iter_mut() {
             Rc::get_mut(v).unwrap().set_flags(flags);
         }

@@ -1,6 +1,7 @@
 use crate::ast::*;
 use crate::parser::*;
 use std::rc::Rc;
+use smallvec::smallvec;
 
 grammar;
 
@@ -70,6 +71,18 @@ Comma<T>: Vec<T> = {
         None => v,
         Some(e) => {
             let mut v = v;
+            v.push(e);
+            v
+        }
+    }
+};
+
+// TODO: Bad implementation
+SmallComma<T>: SmallVec8<T> = {
+    <v:(<T> ",")+> <e:T?> => match e {
+        None => SmallVec8::from_vec(v),
+        Some(e) => {
+            let mut v = SmallVec8::from_vec(v);
             v.push(e);
             v
         }
@@ -220,8 +233,8 @@ SingleDeclaration: Declaration = {
 }
 
 FuncDecl: FunctionDeclare = {
-    "FUNCTION" <name: "IDENTIFIER"> ":" <ty: Type?> <v: VariableDeclareFactor?> "END_FUNCTION" => FunctionDeclare::new(name, DeclareClass::Function, ty, v.unwrap_or(vec![])),
-    "PROGRAM" <name: "IDENTIFIER"> ":" <ty: Type?> <v: VariableDeclareFactor?> "END_PROGRAM" => FunctionDeclare::new(name, DeclareClass::Program, ty, v.unwrap_or(vec![])),
+    "FUNCTION" <name: "IDENTIFIER"> ":" <ty: Type?> <v: VariableDeclareFactor?> "END_FUNCTION" => FunctionDeclare::new(name, DeclareClass::Function, ty, v.unwrap_or(smallvec![])),
+    "PROGRAM" <name: "IDENTIFIER"> ":" <ty: Type?> <v: VariableDeclareFactor?> "END_PROGRAM" => FunctionDeclare::new(name, DeclareClass::Program, ty, v.unwrap_or(smallvec![])),
 }
 
 TypeDeclaration: Declaration = {
@@ -245,24 +258,24 @@ Type: Rc<Box<dyn Type>> = {
 }
 
 /// Variable declare groups flat
-VariableDeclareFactor: Vec<Rc<Variable>> = {
+VariableDeclareFactor: SmallVec8<Rc<Variable>> = {
     VariableDeclareGroup,
     <mut v: VariableDeclareFactor> <mut e: VariableDeclareGroup> => { v.append(&mut e); v }
 }
 
-GlobalVarDeclareFactor: Vec<Rc<Variable>> = {
+GlobalVarDeclareFactor: SmallVec8<Rc<Variable>> = {
     GlobalVarDeclGroup,
     <mut v: GlobalVarDeclareFactor> <mut e: GlobalVarDeclGroup> => { v.append(&mut e); v }
 }
 
 /// Single variable declare group, constain a list of same scope variable
-VariableDeclareGroup: Vec<Rc<Variable>> = {
-    VariableDeclareGroupStart VariableDeclareGroupAnnotation? "END_VAR" => vec![],
+VariableDeclareGroup: SmallVec8<Rc<Variable>> = {
+    VariableDeclareGroupStart VariableDeclareGroupAnnotation? "END_VAR" => smallvec![],
     <g: VariableDeclareGroupStart> <anno: VariableDeclareGroupAnnotation?> <v: VariableDeclareList> "END_VAR" => VariableDeclareGroup::new(anno.unwrap_or(VariableFlags::NONE) | g, v),
 }
 
-GlobalVarDeclGroup: Vec<Rc<Variable>> = {
-    "VAR_GLOBAL" VariableDeclareGroupAnnotation? "END_VAR" => vec![],
+GlobalVarDeclGroup: SmallVec8<Rc<Variable>> = {
+    "VAR_GLOBAL" VariableDeclareGroupAnnotation? "END_VAR" => smallvec![],
     "VAR_GLOBAL" <anno: VariableDeclareGroupAnnotation?> <v: VariableDeclareList> "END_VAR" => VariableDeclareGroup::new(anno.unwrap_or(VariableFlags::NONE) | VariableFlags::GLOBAL, v),
 }
 
@@ -283,9 +296,9 @@ VariableDeclareGroupAnnotation: VariableFlags = {
 }
 
 /// A list of same scope varaible
-VariableDeclareList: Vec<Rc<Variable>> = {
+VariableDeclareList: SmallVec8<Rc<Variable>> = {
     MultiVariableDeclareStatement,
-    VariableDeclareStatement => vec![<>],
+    VariableDeclareStatement => smallvec![<>],
     <mut v: VariableDeclareList> <e: VariableDeclareStatement> => { v.push(e); v },
     <mut v: VariableDeclareList> <mut e: MultiVariableDeclareStatement> => { v.append(&mut e); v }
 }
@@ -296,6 +309,6 @@ VariableDeclareStatement: Rc<Variable> = {
 }
 
 /// Multiple variable declare in one statement
-MultiVariableDeclareStatement: Vec<Rc<Variable>> = {
-    <ident_list: Comma<"IDENTIFIER">> ":" <ty: Type> ";" => Variable::multiple_variable_with_type(<>),
+MultiVariableDeclareStatement: SmallVec8<Rc<Variable>> = {
+    <ident_list: SmallComma<"IDENTIFIER">> ":" <ty: Type> ";" => Variable::multiple_variable_with_type(<>),
 }

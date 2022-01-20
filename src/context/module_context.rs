@@ -98,7 +98,7 @@ impl PrototypeImpl {
         self.id
     }
 
-    pub fn variables(&self) -> Cow<Vec<Rc<Variable>>> {
+    pub fn variables(&self) -> Cow<[Rc<Variable>]> {
         self.decl.variables()
     }
 

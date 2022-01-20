@@ -16,6 +16,7 @@ once_cell = "*"
 crc = "*"
 regex = "*"
 chrono = "*"
+smallvec = { version = "*", features = ["write", "union"] }
 
 [build-dependencies]
 cbindgen = "*"

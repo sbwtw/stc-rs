@@ -1,5 +1,6 @@
 use crate::ast::*;
 use crate::parser::*;
+use smallvec::smallvec;
 use std::rc::Rc;
 
 ///
@@ -142,7 +143,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
                     name,
                     class,
                     ret_type,
-                    vars.unwrap_or(vec![]),
+                    vars.unwrap_or(smallvec![]),
                 ))))
             }
             _ => unreachable!(),
@@ -273,8 +274,8 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         return Ok(Some(Rc::new(Variable::with_initial(field_name, None))));
     }
 
-    fn parse_variable_declare_factor(&mut self) -> ParseResult<Vec<Rc<Variable>>> {
-        let mut v = vec![];
+    fn parse_variable_declare_factor(&mut self) -> ParseResult<SmallVec8<Rc<Variable>>> {
+        let mut v = smallvec![];
         while let Some(mut x) = self.parse_variable_group()? {
             v.append(&mut x);
         }
@@ -282,7 +283,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         Ok(Some(v))
     }
 
-    fn parse_variable_group(&mut self) -> ParseResult<Vec<Rc<Variable>>> {
+    fn parse_variable_group(&mut self) -> ParseResult<SmallVec8<Rc<Variable>>> {
         let pos = self.next;
         let group_type = match self.parse_variable_group_start()? {
             Some(x) => x,
@@ -340,8 +341,8 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         Ok(Some(y))
     }
 
-    fn except_variable_declare_list(&mut self) -> Result<Vec<Rc<Variable>>, ParseError> {
-        let mut variables = vec![];
+    fn except_variable_declare_list(&mut self) -> Result<SmallVec8<Rc<Variable>>, ParseError> {
+        let mut variables = smallvec![];
 
         while let Some(mut v) = self.expect_single_line_variable_declare()? {
             variables.append(&mut v);
@@ -350,10 +351,10 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         Ok(variables)
     }
 
-    fn expect_single_line_variable_declare(&mut self) -> ParseResult<Vec<Rc<Variable>>> {
+    fn expect_single_line_variable_declare(&mut self) -> ParseResult<SmallVec8<Rc<Variable>>> {
         let pos = self.next;
         let mut name_list = match &*self.next_token()? {
-            (_, Tok::Identifier(s), _) => vec![s.to_owned()],
+            (_, Tok::Identifier(s), _) => smallvec![s.to_owned()],
             _ => {
                 self.next = pos;
                 return Ok(None);

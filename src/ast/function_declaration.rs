@@ -1,6 +1,7 @@
 use crate::ast::{AstVisitor, DeclareClass, Type, Variable};
 use crate::impl_ast_display;
 use crate::parser::StString;
+use smallvec::SmallVec;
 use std::rc::Rc;
 
 #[derive(Debug)]
@@ -8,7 +9,7 @@ pub struct FunctionDeclare {
     name: StString,
     decl_class: DeclareClass,
     return_type: Option<Rc<Box<dyn Type>>>,
-    parameters: Vec<Rc<Variable>>,
+    parameters: SmallVec<[Rc<Variable>; 8]>,
 }
 
 impl_ast_display!(FunctionDeclare, visit_function_declaration);
@@ -18,7 +19,7 @@ impl FunctionDeclare {
         name: StString,
         class: DeclareClass,
         ty: Option<Rc<Box<dyn Type>>>,
-        variables: Vec<Rc<Variable>>,
+        variables: SmallVec<[Rc<Variable>; 8]>,
     ) -> Self {
         Self {
             name,
@@ -40,7 +41,7 @@ impl FunctionDeclare {
         self.return_type.clone()
     }
 
-    pub fn parameters(&self) -> &Vec<Rc<Variable>> {
-        &self.parameters
+    pub fn parameters(&self) -> &[Rc<Variable>] {
+        self.parameters.as_slice()
     }
 }

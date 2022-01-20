@@ -126,11 +126,11 @@ impl Type for AliasDeclare {
 #[allow(unused)]
 pub struct StructDeclare {
     name: StString,
-    variables: Vec<Rc<Variable>>,
+    variables: SmallVec8<Rc<Variable>>,
 }
 
 impl StructDeclare {
-    pub fn new(name: StString, variables: Vec<Rc<Variable>>) -> Self {
+    pub fn new(name: StString, variables: SmallVec8<Rc<Variable>>) -> Self {
         Self { name, variables }
     }
 
@@ -138,12 +138,12 @@ impl StructDeclare {
         &self.name
     }
 
-    pub fn variables(&self) -> &Vec<Rc<Variable>> {
-        &self.variables
+    pub fn variables(&self) -> &[Rc<Variable>] {
+        self.variables.as_slice()
     }
 
-    pub fn variables_mut(&mut self) -> &mut Vec<Rc<Variable>> {
-        &mut self.variables
+    pub fn variables_mut(&mut self) -> &mut [Rc<Variable>] {
+        self.variables.as_mut_slice()
     }
 }
 

@@ -1,6 +1,5 @@
 use crate::context::ModuleContext;
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
 
 /// Program Organization Units Manager
 #[allow(dead_code)]

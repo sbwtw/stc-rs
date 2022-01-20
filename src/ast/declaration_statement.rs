@@ -27,13 +27,13 @@ impl Declaration {
         }
     }
 
-    pub fn variables(&self) -> Cow<Vec<Rc<Variable>>> {
+    pub fn variables(&self) -> Cow<[Rc<Variable>]> {
         match self.kind {
-            DeclKind::Fun(ref f) => Cow::Borrowed(f.parameters()),
-            DeclKind::Struct(ref s) => Cow::Borrowed(s.variables()),
-            DeclKind::Enum(ref e) => Cow::Borrowed(e.fields()),
-            DeclKind::GlobalVar(ref g) => Cow::Borrowed(g.variables()),
-            _ => Cow::Owned(vec![]),
+            DeclKind::Fun(ref f) => Cow::from(f.parameters()),
+            DeclKind::Struct(ref s) => Cow::from(s.variables()),
+            DeclKind::Enum(ref e) => Cow::from(e.fields()),
+            DeclKind::GlobalVar(ref g) => Cow::from(g.variables()),
+            _ => Cow::from(vec![]),
         }
     }
 

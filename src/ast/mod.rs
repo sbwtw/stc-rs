@@ -1,4 +1,5 @@
 use bitflags::bitflags;
+use smallvec::SmallVec;
 use std::fmt::{self, Debug, Display, Formatter};
 
 use crate::parser::{LiteralValue, StString, Tok};
@@ -50,6 +51,8 @@ pub use variable_expression::VariableExpression;
 
 mod global_variable_declaration;
 pub use global_variable_declaration::GlobalVariableDeclare;
+
+pub type SmallVec8<T> = SmallVec<[T; 8]>;
 
 pub trait HasSourcePosition {}
 

@@ -1,15 +1,15 @@
-use crate::ast::Variable;
+use crate::ast::{SmallVec8, Variable};
 use crate::StString;
 use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct GlobalVariableDeclare {
     name: StString,
-    variables: Vec<Rc<Variable>>,
+    variables: SmallVec8<Rc<Variable>>,
 }
 
 impl GlobalVariableDeclare {
-    pub fn new(name: Option<StString>, variables: Vec<Rc<Variable>>) -> Self {
+    pub fn new(name: Option<StString>, variables: SmallVec8<Rc<Variable>>) -> Self {
         Self {
             name: name.unwrap_or(StString::empty()),
             variables,
@@ -20,7 +20,7 @@ impl GlobalVariableDeclare {
         &self.name
     }
 
-    pub fn variables(&self) -> &Vec<Rc<Variable>> {
-        &self.variables
+    pub fn variables(&self) -> &[Rc<Variable>] {
+        self.variables.as_slice()
     }
 }
