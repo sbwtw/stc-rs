@@ -238,7 +238,7 @@ FuncDecl: FunctionDeclare = {
 }
 
 TypeDeclaration: Declaration = {
-    <name: "IDENTIFIER"> ":" "(" <fields: Comma<EnumFieldDecl>> ")" <ty: Type?> ";" => Declaration::enum_(Box::new(EnumDeclare::new(name, ty, fields))),
+    <name: "IDENTIFIER"> ":" "(" <fields: SmallComma<EnumFieldDecl>> ")" <ty: Type?> ";" => Declaration::enum_(Box::new(EnumDeclare::new(name, ty, fields))),
     <name: "IDENTIFIER"> ":" <alias: Type> ";" => Declaration::alias(Box::new(AliasDeclare::new(<>))),
     <name: "IDENTIFIER"> ":" "STRUCT" <vars: VariableDeclareList> "END_STRUCT" => Declaration::struct_(Box::new(StructDeclare::new(<>))),
 }

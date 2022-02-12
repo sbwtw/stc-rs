@@ -1,6 +1,6 @@
 use crate::ast::*;
 use crate::impl_has_attribute;
-use std::collections::BTreeMap;
+use smallmap::Map;
 use std::rc::Rc;
 
 macro_rules! builtin_type_impl {
@@ -42,7 +42,7 @@ pub struct UserType {
     #[allow(dead_code)]
     decl_id: Option<usize>,
     class: Option<UserTypeClass>,
-    attributes: BTreeMap<StString, String>,
+    attributes: Map<StString, String>,
 }
 
 impl UserType {
@@ -51,7 +51,7 @@ impl UserType {
             name,
             decl_id: None,
             class: None,
-            attributes: BTreeMap::new(),
+            attributes: Map::new(),
         }
     }
 
@@ -73,11 +73,15 @@ impl_has_attribute!(UserType, attributes);
 pub struct EnumDeclare {
     name: StString,
     ty: Option<Rc<Box<dyn Type>>>,
-    fields: Vec<Rc<Variable>>,
+    fields: SmallVec8<Rc<Variable>>,
 }
 
 impl EnumDeclare {
-    pub fn new(name: StString, ty: Option<Rc<Box<dyn Type>>>, fields: Vec<Rc<Variable>>) -> Self {
+    pub fn new(
+        name: StString,
+        ty: Option<Rc<Box<dyn Type>>>,
+        fields: SmallVec8<Rc<Variable>>,
+    ) -> Self {
         Self { name, ty, fields }
     }
 
@@ -89,7 +93,7 @@ impl EnumDeclare {
         self.ty.clone()
     }
 
-    pub fn fields(&self) -> &Vec<Rc<Variable>> {
+    pub fn fields(&self) -> &[Rc<Variable>] {
         &self.fields
     }
 }

@@ -218,7 +218,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         // enum decl
         let tok = self.next_token()?;
         if matches!(&*tok, (_, Tok::LeftParentheses, _)) {
-            let mut fields = vec![];
+            let mut fields = smallvec![];
 
             // first field
             if let Some(field) = self.parse_enum_field_decl()? {
