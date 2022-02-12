@@ -1,6 +1,7 @@
 use crate::codegen::*;
 
 pub struct LLVMBackend {
+    #[allow(dead_code)]
     adapter: BackendAdapter,
 }
 

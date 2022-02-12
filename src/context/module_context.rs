@@ -106,12 +106,14 @@ impl PrototypeImpl {
         &self.ty
     }
 
+    #[allow(dead_code)]
     pub fn set_ty(&mut self, ty: Option<Rc<Box<dyn Type>>>) {
         self.ty = ty
     }
 }
 
 pub struct FunctionImpl {
+    #[allow(dead_code)]
     decl_id: usize,
     function: Statement,
 }

@@ -39,6 +39,7 @@ builtin_type_impl!(struct StringType, TypeClass::String);
 #[derive(Debug, Clone)]
 pub struct UserType {
     name: StString,
+    #[allow(dead_code)]
     decl_id: Option<usize>,
     class: Option<UserTypeClass>,
     attributes: BTreeMap<StString, String>,
@@ -142,6 +143,7 @@ impl StructDeclare {
         self.variables.as_slice()
     }
 
+    #[allow(dead_code)]
     pub fn variables_mut(&mut self) -> &mut [Rc<Variable>] {
         self.variables.as_mut_slice()
     }

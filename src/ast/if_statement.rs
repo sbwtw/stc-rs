@@ -99,6 +99,7 @@ pub struct ElseIfStatement {
 }
 
 impl ElseIfStatement {
+    #[allow(dead_code)]
     pub fn new(condition: Expression) -> Self {
         Self {
             condition,

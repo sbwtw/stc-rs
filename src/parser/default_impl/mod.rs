@@ -109,7 +109,18 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     /// parse a declaration
     #[allow(unused)]
     fn parse_declaration(&mut self) -> Result<Declaration, ParseError> {
-        match self.except_one_of(&[Tok::Type, Tok::Function, Tok::Program])? {
+        match self.except_one_of(&[Tok::Type, Tok::Function, Tok::Program, Tok::VarGlobal])? {
+            // pure global variables declare
+            Tok::VarGlobal => {
+                let global_vars = self
+                    .parse_global_variable_declare_factor()?
+                    .unwrap_or(smallvec![]);
+                return Ok(Declaration::global_var(Box::new(
+                    GlobalVariableDeclare::new(None, global_vars),
+                )));
+            }
+
+            // type declare
             Tok::Type => {
                 let type_decl = self.parse_type_declaration()?;
                 if type_decl.is_none() {
@@ -119,6 +130,8 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
                 let _ = self.except_one_of(&[Tok::EndType])?;
                 Ok(type_decl.unwrap())
             }
+
+            // functions declare
             tok @ Tok::Function | tok @ Tok::Program => {
                 // name ':'
                 let name = self.except_identifier()?;
@@ -274,6 +287,34 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         return Ok(Some(Rc::new(Variable::with_initial(field_name, None))));
     }
 
+    fn parse_global_variable_declare_factor(&mut self) -> ParseResult<SmallVec8<Rc<Variable>>> {
+        let mut v = smallvec![];
+        while let Some(mut x) = self.parse_global_variable_group()? {
+            v.append(&mut x);
+        }
+
+        Ok(Some(v))
+    }
+
+    fn parse_global_variable_group(&mut self) -> ParseResult<SmallVec8<Rc<Variable>>> {
+        let pos = self.next;
+        let tok = self.next()?;
+
+        if !matches!(tok.as_deref(), Some((_, Tok::VarGlobal, _))) {
+            self.next = pos;
+            return Ok(None);
+        }
+
+        let annotation = self.parse_variable_declare_group_annotation()?;
+        let var_list = self.except_variable_declare_list()?;
+        let _ = self.except_one_of(&[Tok::EndVar])?;
+
+        Ok(Some(VariableDeclareGroup::new(
+            VariableFlags::GLOBAL | annotation.unwrap_or(VariableFlags::NONE),
+            var_list,
+        )))
+    }
+
     fn parse_variable_declare_factor(&mut self) -> ParseResult<SmallVec8<Rc<Variable>>> {
         let mut v = smallvec![];
         while let Some(mut x) = self.parse_variable_group()? {
@@ -305,7 +346,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     fn parse_variable_group_start(&mut self) -> ParseResult<VariableFlags> {
         let x = match &*self.next_token()? {
             (_, Tok::Var, _) => VariableFlags::NONE,
-            (_, Tok::VarGlobal, _) => VariableFlags::GLOBAL,
+            // (_, Tok::VarGlobal, _) => VariableFlags::GLOBAL,
             (_, Tok::VarInput, _) => VariableFlags::INPUT,
             (_, Tok::VarInOut, _) => VariableFlags::INOUT,
             (_, Tok::VarOutput, _) => VariableFlags::OUTPUT,
