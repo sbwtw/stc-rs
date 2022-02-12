@@ -36,7 +36,7 @@ builtin_type_impl!(struct RealType, TypeClass::Real);
 builtin_type_impl!(struct LRealType, TypeClass::LReal);
 builtin_type_impl!(struct StringType, TypeClass::String);
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct UserType {
     name: StString,
     #[allow(dead_code)]
@@ -69,7 +69,7 @@ impl Type for UserType {
 
 impl_has_attribute!(UserType, attributes);
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct EnumDeclare {
     name: StString,
     ty: Option<Rc<Box<dyn Type>>>,
@@ -100,7 +100,7 @@ impl Type for EnumDeclare {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[allow(unused)]
 pub struct AliasDeclare {
     name: StString,
@@ -123,7 +123,7 @@ impl Type for AliasDeclare {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[allow(unused)]
 pub struct StructDeclare {
     name: StString,
