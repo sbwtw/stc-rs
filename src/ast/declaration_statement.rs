@@ -1,6 +1,7 @@
 use crate::ast::*;
-use std::borrow::Cow;
 use std::rc::Rc;
+
+const EMPTY_VARIABLES: &[Rc<Variable>] = &[];
 
 #[derive(Debug)]
 pub enum DeclKind {
@@ -27,13 +28,13 @@ impl Declaration {
         }
     }
 
-    pub fn variables(&self) -> Cow<[Rc<Variable>]> {
+    pub fn variables(&self) -> &[Rc<Variable>] {
         match self.kind {
-            DeclKind::Fun(ref f) => Cow::from(f.parameters()),
-            DeclKind::Struct(ref s) => Cow::from(s.variables()),
-            DeclKind::Enum(ref e) => Cow::from(e.fields()),
-            DeclKind::GlobalVar(ref g) => Cow::from(g.variables()),
-            _ => Cow::from(vec![]),
+            DeclKind::Fun(ref f) => f.parameters(),
+            DeclKind::Struct(ref s) => s.variables(),
+            DeclKind::Enum(ref e) => e.fields(),
+            DeclKind::GlobalVar(ref g) => g.variables(),
+            _ => EMPTY_VARIABLES,
         }
     }
 

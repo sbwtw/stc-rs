@@ -25,7 +25,7 @@ impl Scope {
         let local_declaration = ctx
             .as_ref()
             .zip(local_function)
-            .and_then(|(ctx, local_id)| ctx.read().get_declaration_by_id(local_id).clone());
+            .and_then(|(ctx, local_id)| ctx.read().get_declaration_by_id(local_id).cloned());
 
         Self {
             units_manager: mgr,
@@ -38,7 +38,7 @@ impl Scope {
         let decl = self
             .local_context
             .as_ref()
-            .and_then(|ctx| ctx.read().find_declaration_by_name(ident));
+            .and_then(|ctx| ctx.read().find_declaration_by_name(ident).cloned());
 
         match decl {
             None => (None, None),
@@ -61,10 +61,7 @@ impl Scope {
     pub fn find_local_variable(&self, ident: &StString) -> Option<Rc<Variable>> {
         self.local_declaration.as_ref().and_then(|decl| {
             let decl = decl.read().unwrap();
-            decl.variables()
-                .iter()
-                .find(|x| x.name() == ident)
-                .map(|x| x.clone())
+            decl.variables().iter().find(|x| x.name() == ident).cloned()
         })
     }
 

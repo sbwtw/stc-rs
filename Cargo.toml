@@ -17,6 +17,7 @@ crc = "*"
 regex = "*"
 chrono = "*"
 smallvec = { version = "*", features = ["write", "union"] }
+smallmap = "*"
 
 [build-dependencies]
 cbindgen = "*"

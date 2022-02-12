@@ -271,12 +271,12 @@ GlobalVarDeclareFactor: SmallVec8<Rc<Variable>> = {
 /// Single variable declare group, constain a list of same scope variable
 VariableDeclareGroup: SmallVec8<Rc<Variable>> = {
     VariableDeclareGroupStart VariableDeclareGroupAnnotation? "END_VAR" => smallvec![],
-    <g: VariableDeclareGroupStart> <anno: VariableDeclareGroupAnnotation?> <v: VariableDeclareList> "END_VAR" => VariableDeclareGroup::new(anno.unwrap_or(VariableFlags::NONE) | g, v),
+    <g: VariableDeclareGroupStart> <anno: VariableDeclareGroupAnnotation?> <v: VariableDeclareList> "END_VAR" => VariableDeclareGroup::from_variables(anno.unwrap_or(VariableFlags::NONE) | g, v),
 }
 
 GlobalVarDeclGroup: SmallVec8<Rc<Variable>> = {
     "VAR_GLOBAL" VariableDeclareGroupAnnotation? "END_VAR" => smallvec![],
-    "VAR_GLOBAL" <anno: VariableDeclareGroupAnnotation?> <v: VariableDeclareList> "END_VAR" => VariableDeclareGroup::new(anno.unwrap_or(VariableFlags::NONE) | VariableFlags::GLOBAL, v),
+    "VAR_GLOBAL" <anno: VariableDeclareGroupAnnotation?> <v: VariableDeclareList> "END_VAR" => VariableDeclareGroup::from_variables(anno.unwrap_or(VariableFlags::NONE) | VariableFlags::GLOBAL, v),
 }
 
 VariableDeclareGroupStart: VariableFlags = {

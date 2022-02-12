@@ -2,7 +2,6 @@ use crate::ast::*;
 use crate::context::ModuleContextScope;
 use crate::parser::StString;
 use once_cell::sync::Lazy;
-use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
@@ -98,7 +97,7 @@ impl PrototypeImpl {
         self.id
     }
 
-    pub fn variables(&self) -> Cow<[Rc<Variable>]> {
+    pub fn variables(&self) -> &[Rc<Variable>] {
         self.decl.variables()
     }
 
@@ -214,27 +213,27 @@ impl ModuleContextImpl {
     pub fn add_function(&mut self, decl_id: usize, fun: Statement) -> Option<Function> {
         let fun = Function::new(decl_id, fun);
 
-        self.function_id_map.insert(decl_id, fun).map(|x| x.clone())
+        self.function_id_map.insert(decl_id, fun)
     }
 
     pub fn declarations(&self) -> impl Iterator<Item = &Prototype> {
-        self.declaration_id_map.values().into_iter()
+        self.declaration_id_map.values()
     }
 
     pub fn functions(&self) -> impl Iterator<Item = &Function> {
-        self.function_id_map.values().into_iter()
+        self.function_id_map.values()
     }
 
-    pub fn get_function(&self, decl_id: usize) -> Option<Function> {
-        self.function_id_map.get(&decl_id).map(|x| x.clone())
+    pub fn get_function(&self, decl_id: usize) -> Option<&Function> {
+        self.function_id_map.get(&decl_id)
     }
 
-    pub fn get_declaration_by_id(&self, decl_id: usize) -> Option<Prototype> {
-        self.declaration_id_map.get(&decl_id).map(|x| x.clone())
+    pub fn get_declaration_by_id(&self, decl_id: usize) -> Option<&Prototype> {
+        self.declaration_id_map.get(&decl_id)
     }
 
-    pub fn find_declaration_by_name(&self, ident: &StString) -> Option<Prototype> {
-        self.declaration_name_map.get(ident).map(|x| x.clone())
+    pub fn find_declaration_by_name(&self, ident: &StString) -> Option<&Prototype> {
+        self.declaration_name_map.get(ident)
     }
 
     pub fn find_toplevel_global_variable(&self, ident: &StString) -> Option<Rc<Variable>> {

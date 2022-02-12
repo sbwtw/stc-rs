@@ -309,7 +309,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let var_list = self.except_variable_declare_list()?;
         let _ = self.except_one_of(&[Tok::EndVar])?;
 
-        Ok(Some(VariableDeclareGroup::new(
+        Ok(Some(VariableDeclareGroup::from_variables(
             VariableFlags::GLOBAL | annotation.unwrap_or(VariableFlags::NONE),
             var_list,
         )))
@@ -337,7 +337,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let var_list = self.except_variable_declare_list()?;
         let _ = self.except_one_of(&[Tok::EndVar])?;
 
-        Ok(Some(VariableDeclareGroup::new(
+        Ok(Some(VariableDeclareGroup::from_variables(
             group_type | annotation.unwrap_or(VariableFlags::NONE),
             var_list,
         )))

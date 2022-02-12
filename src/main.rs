@@ -63,7 +63,8 @@ fn main() {
     let body = parser::StFunctionParser::new().parse(body).unwrap();
     app.write().add_function(decl_id, body);
 
-    let fun = app.read().get_function(decl_id);
+    let app = app.read();
+    let fun = app.get_function(decl_id);
 
     let mut type_analyzer = TypeAnalyzer::new();
 

@@ -1,11 +1,11 @@
 use crate::context::ModuleContext;
-use std::collections::HashMap;
+use smallmap::Map;
 
 /// Program Organization Units Manager
 #[allow(dead_code)]
 pub struct UnitsManager {
     active_application: Option<usize>,
-    contexts: HashMap<usize, ModuleContext>,
+    contexts: Map<usize, ModuleContext>,
 }
 
 #[allow(dead_code)]
@@ -13,7 +13,7 @@ impl UnitsManager {
     pub fn new() -> Self {
         Self {
             active_application: None,
-            contexts: HashMap::new(),
+            contexts: Map::new(),
         }
     }
 

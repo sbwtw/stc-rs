@@ -1,13 +1,13 @@
 use crate::ast::*;
 use crate::impl_has_attribute;
 use crate::parser::StString;
-use std::collections::BTreeMap;
+use smallmap::Map;
 use std::default::Default;
 use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct Variable {
-    attributes: BTreeMap<StString, String>,
+    attributes: Map<StString, String>,
     name: StString,
     ty: Option<Rc<Box<dyn Type>>>,
     flags: VariableFlags,
@@ -88,7 +88,7 @@ impl Variable {
 impl Default for Variable {
     fn default() -> Self {
         Self {
-            attributes: BTreeMap::new(),
+            attributes: Map::new(),
             name: StString::new(""),
             ty: None,
             flags: VariableFlags::NONE,
@@ -102,7 +102,10 @@ impl_has_attribute!(Variable, attributes);
 pub struct VariableDeclareGroup;
 
 impl VariableDeclareGroup {
-    pub fn new(flags: VariableFlags, mut vars: SmallVec8<Rc<Variable>>) -> SmallVec8<Rc<Variable>> {
+    pub fn from_variables(
+        flags: VariableFlags,
+        mut vars: SmallVec8<Rc<Variable>>,
+    ) -> SmallVec8<Rc<Variable>> {
         for v in vars.iter_mut() {
             Rc::get_mut(v).unwrap().set_flags(flags);
         }

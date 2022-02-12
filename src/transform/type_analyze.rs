@@ -3,25 +3,13 @@ use crate::context::Scope;
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 struct TypeAnalyzerAttribute {
     scope: Option<Scope>,
     search_local_only: bool,
     derived_variable: Option<Rc<Variable>>,
     derived_declaration: Option<Arc<RwLock<Declaration>>>,
     derived_type: Option<Rc<Box<dyn Type>>>,
-}
-
-impl Default for TypeAnalyzerAttribute {
-    fn default() -> Self {
-        Self {
-            search_local_only: false,
-            derived_variable: None,
-            derived_declaration: None,
-            scope: None,
-            derived_type: None,
-        }
-    }
 }
 
 pub struct TypeAnalyzer {
@@ -48,8 +36,7 @@ impl TypeAnalyzer {
     }
 
     fn current_scope(&self) -> &Scope {
-        &self
-            .attribute_stack
+        self.attribute_stack
             .last()
             .and_then(|x| x.scope.as_ref())
             .unwrap_or(&self.local_scope)

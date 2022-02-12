@@ -1,7 +1,7 @@
 use crate::ast::*;
 use crate::parser::Tok;
+use smallmap::Map;
 use std::cmp::Ordering;
-use std::collections::HashMap;
 use std::fmt::{self, Display, Formatter};
 use std::hash::{Hash, Hasher};
 use std::str::CharIndices;
@@ -248,13 +248,13 @@ impl StLexerOptions {
 
 pub struct StLexer<'input> {
     buffer: LexerBuffer<'input>,
-    keywords: HashMap<StString, Tok>,
+    keywords: Map<StString, Tok>,
     options: StLexerOptions,
 }
 
 macro_rules! keywords {
     ($($tok:expr),*) => {{
-        let mut keywords = HashMap::new();
+        let mut keywords = Map::new();
         $(
             keywords.insert($tok.into(), $tok);
         )*
@@ -267,7 +267,7 @@ impl<'input> StLexer<'input> {
     fn from_options(options: StLexerOptions, input: &'input str) -> Self {
         let mut s = Self {
             buffer: LexerBuffer::new(input),
-            keywords: HashMap::new(),
+            keywords: Map::new(),
             options,
         };
 
@@ -279,7 +279,7 @@ impl<'input> StLexer<'input> {
     pub fn new(input: &'input str) -> Self {
         let mut s = Self {
             buffer: LexerBuffer::new(input),
-            keywords: HashMap::new(),
+            keywords: Map::new(),
             options: Default::default(),
         };
 
