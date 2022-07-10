@@ -6,6 +6,7 @@ use std::fmt::{self, Display, Formatter};
 use std::hash::{Hash, Hasher};
 use std::str::CharIndices;
 
+#[allow(dead_code)]
 pub(crate) type LexerItem = (usize, Tok, usize);
 pub(crate) type LexerResult = Result<LexerItem, LexicalError>;
 
@@ -19,13 +20,7 @@ impl StString {
     pub fn new<S: AsRef<str>>(str: S) -> Self {
         let origin = str.as_ref().to_owned();
 
-        if str
-            .as_ref()
-            .as_bytes()
-            .iter()
-            .position(u8::is_ascii_lowercase)
-            .is_some()
-        {
+        if str.as_ref().as_bytes().iter().any(u8::is_ascii_lowercase) {
             let converted = origin.to_ascii_uppercase();
             Self::Converted(origin, converted)
         } else {
@@ -391,7 +386,7 @@ impl<'input> StLexer<'input> {
         let mut s = String::new();
 
         loop {
-            if escape == true {
+            if escape {
                 escape = false;
 
                 match self.buffer.next() {
@@ -479,7 +474,7 @@ impl<'input> StLexer<'input> {
             return keyword.clone();
         }
 
-        return Tok::Identifier(st_str);
+        Tok::Identifier(st_str)
     }
 
     fn is_valid_identifier_character(&self, ch: char) -> bool {

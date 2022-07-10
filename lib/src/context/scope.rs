@@ -2,26 +2,25 @@ use crate::ast::Variable;
 use crate::context::{ModuleContext, Prototype, UnitsManager};
 use crate::parser::StString;
 use std::rc::Rc;
-use std::sync::{Arc, RwLock};
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[allow(unused)]
 pub struct Scope {
-    units_manager: Option<Arc<RwLock<UnitsManager>>>,
+    units_manager: Option<UnitsManager>,
     local_context: Option<ModuleContext>,
     local_declaration: Option<Prototype>,
 }
 
 impl Scope {
     pub fn new(
-        mgr: Option<Arc<RwLock<UnitsManager>>>,
+        mgr: Option<UnitsManager>,
         local_ctx: Option<usize>,
         local_function: Option<usize>,
     ) -> Self {
         let ctx = mgr
             .as_ref()
             .zip(local_ctx)
-            .and_then(|(mgr, ctx_id)| mgr.read().unwrap().get_context(ctx_id));
+            .and_then(|(mgr, ctx_id)| mgr.read().get_context(ctx_id));
         let local_declaration = ctx
             .as_ref()
             .zip(local_function)
@@ -69,15 +68,5 @@ impl Scope {
         self.local_context
             .as_ref()
             .and_then(|ctx| ctx.read().find_toplevel_global_variable(ident))
-    }
-}
-
-impl Default for Scope {
-    fn default() -> Self {
-        Self {
-            units_manager: None,
-            local_context: None,
-            local_declaration: None,
-        }
     }
 }
