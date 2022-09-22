@@ -214,7 +214,7 @@ impl<W: Write> GraphvizExporter<W> {
 }
 
 fn display_type(ty: Option<Rc<Box<dyn Type>>>) -> String {
-    ty.map(|x| format!("{}", x)).unwrap_or(String::new())
+    ty.map(|x| x.to_string()).unwrap_or(String::new())
 }
 
 impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
@@ -377,14 +377,13 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
     fn visit_operator_expression(&mut self, expr: &OperatorExpression) {
         let name = self.unique_name("operator_expression");
 
-        let op_str = format!("{}", expr.op());
         let labels = [
-            format!("Operator '{}'", graphviz_escape(&op_str)),
+            format!("Operator '{}'", graphviz_escape(&expr.op().to_string())),
             format!("Type: {}", display_type(expr.ty())),
         ];
-        let s = format!("{}", expr);
-        let labels = GraphvizLabelGroup::from_iter(&labels)
-            .append_group(GraphvizLabelGroup::from_name(graphviz_escape(&s)));
+        let labels = GraphvizLabelGroup::from_iter(&labels).append_group(
+            GraphvizLabelGroup::from_name(graphviz_escape(&expr.to_string())),
+        );
         self.write_node(&name, labels);
 
         for operand in expr.operands() {
@@ -427,7 +426,7 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
         ];
 
         let lines = GraphvizLabelGroup::from_iter(&titles)
-            .append_group(GraphvizLabelGroup::from(format!("{}", assign)))
+            .append_group(GraphvizLabelGroup::from(assign.to_string()))
             .append_group(GraphvizLabelGroup::from_iter(&labels));
         self.write_node(&name, lines);
 
