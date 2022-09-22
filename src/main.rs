@@ -48,19 +48,19 @@ fn main() {
 
     let mut app = mgr.get_context(app_id).unwrap();
     let decl = StLexer::new("function test: int VAR a: INT; b: INT; END_VAR end_function");
-    let decl = parser::StDeclarationParser::new().parse(decl).unwrap();
+    let decl = StDeclarationParser::new().parse(decl).unwrap();
     let decl_id = app.write().add_declaration(decl);
 
     let prg = StLexer::new("program prg: int VAR a: BYTE; END_VAR end_program");
-    let prg = parser::StDeclarationParser::new().parse(prg).unwrap();
+    let prg = StDeclarationParser::new().parse(prg).unwrap();
     let _prg_id = app.write().add_declaration(prg);
 
-    let global = StLexer::new("VAR_GLOBAL END_VAR VAR_GLOBAL c: REAL; END_VAR");
-    let global = parser::StDeclarationParser::new().parse(global).unwrap();
+    let global = StLexer::new("VAR_GLOBAL END_VAR VAR_GLOBAL 全局变量1: REAL; END_VAR");
+    let global = StDeclarationParser::new().parse(global).unwrap();
     let _global_id = app.write().add_declaration(global);
 
-    let body = StLexer::new("if a < c then prg.a := 1; else b := 2; end_if");
-    let body = parser::StFunctionParser::new().parse(body).unwrap();
+    let body = StLexer::new("if a < 全局变量1 then prg.a := 1; else b := 2; end_if");
+    let body = StFunctionParser::new().parse(body).unwrap();
     app.write().add_function(decl_id, body);
 
     let app = app.read();
