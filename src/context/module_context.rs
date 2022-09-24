@@ -216,10 +216,12 @@ impl ModuleContextImpl {
         self.function_id_map.insert(decl_id, fun)
     }
 
+    #[allow(unused)]
     pub fn declarations(&self) -> impl Iterator<Item = &Prototype> {
         self.declaration_id_map.values()
     }
 
+    #[allow(unused)]
     pub fn functions(&self) -> impl Iterator<Item = &Function> {
         self.function_id_map.values()
     }

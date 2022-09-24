@@ -32,9 +32,9 @@ impl From<lalrpop_util::ParseError<usize, Tok, LexicalError>> for ParseError {
                 ParseError::InvalidToken(loc)
             }
             lalrpop_util::ParseError::UnrecognizedEOF {
-                location: loc,
-                expected: exp,
-            } => ParseError::UnexpectedToken(loc, exp),
+                location: _,
+                expected: _,
+            } => ParseError::UnexpectedEnd,
             lalrpop_util::ParseError::UnrecognizedToken {
                 token: (loc, _, _),
                 expected: exp,

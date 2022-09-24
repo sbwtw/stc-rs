@@ -13,7 +13,7 @@ impl_ast_display!(IfStatement, visit_if_statement);
 impl_into_statement!(IfStatement, |x| Statement::if_stmt(Box::new(x)));
 
 impl IfStatement {
-    #[allow(dead_code)]
+    #[allow(unused)]
     pub fn new(condition: Expression) -> Self {
         Self {
             condition,
@@ -99,7 +99,7 @@ pub struct ElseIfStatement {
 }
 
 impl ElseIfStatement {
-    #[allow(dead_code)]
+    #[allow(unused)]
     pub fn new(condition: Expression) -> Self {
         Self {
             condition,
@@ -107,7 +107,7 @@ impl ElseIfStatement {
         }
     }
 
-    #[allow(dead_code)]
+    #[allow(unused)]
     pub fn from_then(condition: Expression, then_control: Statement) -> Self {
         Self {
             condition,

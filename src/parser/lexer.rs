@@ -7,7 +7,7 @@ use std::hash::{Hash, Hasher};
 use std::str::CharIndices;
 
 pub(crate) type LexerItem = (usize, Tok, usize);
-pub(crate) type LexerResult = Result<(usize, Tok, usize), LexicalError>;
+pub(crate) type LexerResult = Result<LexerItem, LexicalError>;
 
 #[derive(Debug, Clone)]
 pub enum StString {

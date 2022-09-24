@@ -8,7 +8,9 @@ use std::sync::{Arc, RwLock};
 struct TypeAnalyzerAttribute {
     scope: Option<Scope>,
     search_local_only: bool,
+    #[allow(unused)]
     derived_variable: Option<Rc<Variable>>,
+    #[allow(unused)]
     derived_declaration: Option<Arc<RwLock<Declaration>>>,
     /// the analysis result of current type
     derived_type: Option<Rc<Box<dyn Type>>>,
@@ -54,10 +56,6 @@ impl TypeAnalyzer {
 
     fn push(&mut self, attr: TypeAnalyzerAttribute) {
         self.attribute_stack.push(attr)
-    }
-
-    fn push_dup(&mut self) {
-        self.push(self.top().clone())
     }
 
     fn push_default(&mut self) {
