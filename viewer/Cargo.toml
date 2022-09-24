@@ -5,3 +5,5 @@ edition = "2021"
 
 [dependencies]
 stc-rs = { path = "../lib" }
+
+gtk = "*"

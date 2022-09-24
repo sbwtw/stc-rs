@@ -1,3 +1,5 @@
+use gtk::prelude::*;
+use gtk::{Application, ApplicationWindow, Button, Orientation, SearchEntry, WindowPosition};
 use stc::ast::Statement;
 use stc::context::{ModuleContext, ModuleContextScope, Scope, UnitsManager};
 use stc::parser::{StDeclarationParser, StFunctionParser, StLexer};
@@ -78,4 +80,31 @@ fn main() {
 
         println!("{}", f.body());
     }
+
+    let app = Application::new(None, Default::default());
+    app.connect_activate(build_ui);
+    app.run();
+}
+
+fn build_ui(app: &Application) {
+    let window = ApplicationWindow::new(app);
+
+    window.set_title("STC compilation units viewer");
+    window.set_position(WindowPosition::Center);
+
+    let v_layout = gtk::Box::new(Orientation::Vertical, 0);
+    let toolbar_layout = gtk::Box::new(Orientation::Horizontal, 0);
+    let entry = SearchEntry::new();
+    let refresh = Button::with_label("Refresh");
+
+    toolbar_layout.add(&entry);
+    toolbar_layout.add(&refresh);
+    v_layout.add(&toolbar_layout);
+
+    refresh.connect_clicked(move |x| {
+        entry.set_text(x.label().unwrap().as_str());
+    });
+
+    window.add(&v_layout);
+    window.show_all();
 }
