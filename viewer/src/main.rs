@@ -1,17 +1,9 @@
-mod ast;
-mod codegen;
-mod context;
-mod parser;
-mod transform;
-mod utils;
+use stc::ast::Statement;
+use stc::context::{ModuleContext, ModuleContextScope, Scope, UnitsManager};
+use stc::parser::{StDeclarationParser, StFunctionParser, StLexer};
+use stc::transform::TypeAnalyzer;
+use stc::utils;
 
-#[cfg(test)]
-mod test;
-
-use crate::ast::Statement;
-use crate::context::{ModuleContext, ModuleContextScope, Scope, UnitsManager};
-use crate::transform::TypeAnalyzer;
-use parser::*;
 use std::fs::OpenOptions;
 use std::process::Command;
 use std::sync::{Arc, RwLock};

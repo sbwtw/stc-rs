@@ -1,5 +1,5 @@
 use crate::ast::Type;
-use crate::StString;
+use crate::parser::StString;
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]

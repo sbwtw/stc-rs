@@ -1,8 +1,8 @@
 use crate::ast::{
     AssignExpression, AstVisitor, CompoAccessExpression, ExprStatement, IntoStatement,
-    LiteralExpression, OperatorExpression, VariableExpression,
+    LiteralExpression, OperatorExpression, Statement, VariableExpression,
 };
-use crate::{impl_ast_display, impl_into_statement, Statement};
+use crate::{impl_ast_display, impl_into_statement};
 
 #[derive(Debug)]
 pub enum ExprKind {
