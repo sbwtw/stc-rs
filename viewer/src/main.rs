@@ -1,5 +1,11 @@
+mod stc_viewer;
+
+use crate::stc_viewer::StcViewerApp;
+
 use gtk::prelude::*;
-use gtk::{Application, ApplicationWindow, Button, Orientation, SearchEntry, WindowPosition};
+use gtk::{
+    Adjustment, Application, ApplicationWindow, Orientation, ScrolledWindow, WindowPosition,
+};
 use stc::ast::Statement;
 use stc::context::{ModuleContext, ModuleContextScope, Scope, UnitsManager};
 use stc::parser::{StDeclarationParser, StFunctionParser, StLexer};
@@ -81,30 +87,45 @@ fn main() {
         println!("{}", f.body());
     }
 
-    let app = Application::new(None, Default::default());
-    app.connect_activate(build_ui);
-    app.run();
+    let gtk_app = Application::new(None, Default::default());
+    gtk_app.connect_activate(build_ui);
+    gtk_app.run();
 }
 
 fn build_ui(app: &Application) {
+    let stc_app = StcViewerApp::new();
     let window = ApplicationWindow::new(app);
 
     window.set_title("STC compilation units viewer");
     window.set_position(WindowPosition::Center);
+    window.set_size_request(800, 600);
 
-    let v_layout = gtk::Box::new(Orientation::Vertical, 0);
-    let toolbar_layout = gtk::Box::new(Orientation::Horizontal, 0);
-    let entry = SearchEntry::new();
-    let refresh = Button::with_label("Refresh");
+    let left_layout = gtk::Box::new(Orientation::Vertical, 0);
+    left_layout.add(&stc_app.search_entry);
+    left_layout.add(&stc_app.tree_view);
+    left_layout.set_width_request(300);
 
-    toolbar_layout.add(&entry);
-    toolbar_layout.add(&refresh);
-    v_layout.add(&toolbar_layout);
+    let content_scroll = ScrolledWindow::new(Adjustment::NONE, Adjustment::NONE);
+    content_scroll.add(&stc_app.content_view);
+    content_scroll.set_expand(true);
 
-    refresh.connect_clicked(move |x| {
-        entry.set_text(x.label().unwrap().as_str());
+    let button_layout = gtk::Box::new(Orientation::Horizontal, 0);
+    button_layout.add(&stc_app.refresh_button);
+
+    let right_layout = gtk::Box::new(Orientation::Vertical, 0);
+    right_layout.add(&button_layout);
+    right_layout.add(&content_scroll);
+
+    let main_layout = gtk::Box::new(Orientation::Horizontal, 0);
+    main_layout.add(&left_layout);
+    main_layout.add(&right_layout);
+
+    let app = stc_app.clone();
+    stc_app.refresh_button.connect_clicked(move |x| {
+        app.search_entry.set_text(x.label().unwrap().as_str());
+        app.refresh();
     });
 
-    window.add(&v_layout);
+    window.add(&main_layout);
     window.show_all();
 }
