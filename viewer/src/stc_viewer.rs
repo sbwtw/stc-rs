@@ -1,7 +1,6 @@
 use gtk::builders::TextBufferBuilder;
 use gtk::glib::Type;
-use gtk::prelude::*;
-use gtk::{Button, SearchEntry, TextBuffer, TextView, TreeStore, TreeView, WrapMode};
+use gtk::{Button, SearchEntry, TextBuffer, TextView, TreeStore, TreeView};
 
 #[derive(Clone)]
 pub struct StcViewerApp {
@@ -17,8 +16,6 @@ impl StcViewerApp {
     pub fn new() -> Self {
         let content_buffer = TextBufferBuilder::new().build();
         let content_view = TextView::with_buffer(&content_buffer);
-        content_view.set_monospace(true);
-        content_view.set_wrap_mode(WrapMode::WordChar);
 
         let tree_model = TreeStore::new(&[Type::STRING]);
         let tree_view = TreeView::with_model(&tree_model);

@@ -5,6 +5,7 @@ use crate::stc_viewer::StcViewerApp;
 use gtk::prelude::*;
 use gtk::{
     Adjustment, Application, ApplicationWindow, Orientation, ScrolledWindow, WindowPosition,
+    WrapMode,
 };
 use stc::ast::Statement;
 use stc::context::{ModuleContext, ModuleContextScope, Scope, UnitsManager};
@@ -14,7 +15,6 @@ use stc::utils;
 
 use std::fs::OpenOptions;
 use std::process::Command;
-use std::sync::{Arc, RwLock};
 
 fn display_ast(statement: &Statement) {
     // graphviz
@@ -41,12 +41,12 @@ fn display_ast(statement: &Statement) {
 }
 
 fn main() {
-    let mut mgr = UnitsManager::new();
+    let mgr = UnitsManager::new();
     let app = ModuleContext::new(ModuleContextScope::Application);
     let app_id = app.read().id();
-    mgr.add_context(app);
+    mgr.write().add_context(app);
 
-    let mut app = mgr.get_context(app_id).unwrap();
+    let app = mgr.write().get_context(app_id).unwrap();
     let decl = StLexer::new("function test: int VAR a: INT; b: INT; END_VAR end_function");
     let decl = StDeclarationParser::new().parse(decl).unwrap();
     let decl_id = app.write().add_declaration(decl);
@@ -75,11 +75,7 @@ fn main() {
     if let Some(f) = fun {
         let mut f = f.write().unwrap();
 
-        let scope = Scope::new(
-            Some(Arc::new(RwLock::new(mgr))),
-            Some(app_id),
-            Some(decl_id),
-        );
+        let scope = Scope::new(Some(mgr), Some(app_id), Some(decl_id));
         type_analyzer.analyze_statement(f.body_mut(), scope);
 
         display_ast(f.body());
@@ -99,6 +95,9 @@ fn build_ui(app: &Application) {
     window.set_title("STC compilation units viewer");
     window.set_position(WindowPosition::Center);
     window.set_size_request(800, 600);
+
+    stc_app.content_view.set_monospace(true);
+    stc_app.content_view.set_wrap_mode(WrapMode::WordChar);
 
     let left_layout = gtk::Box::new(Orientation::Vertical, 0);
     left_layout.add(&stc_app.search_entry);

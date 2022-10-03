@@ -1,8 +1,6 @@
-use crate::UnitsManager;
+use crate::context::UnitsManager;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
-
-mod arm;
 
 pub enum CodeGenError {
     AppNotFound,

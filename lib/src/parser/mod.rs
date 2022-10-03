@@ -4,9 +4,6 @@ pub use lexer::*;
 mod token;
 pub use token::Tok;
 
-#[cfg(test)]
-mod test;
-
 #[derive(Clone, Debug)]
 pub enum ParseError {
     LexerError(LexicalError),
