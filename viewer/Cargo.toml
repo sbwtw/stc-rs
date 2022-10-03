@@ -7,3 +7,4 @@ edition = "2021"
 stc-rs = { path = "../lib" }
 
 gtk = "*"
+once_cell = "*"

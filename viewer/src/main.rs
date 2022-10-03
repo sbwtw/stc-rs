@@ -4,8 +4,8 @@ use crate::stc_viewer::StcViewerApp;
 
 use gtk::prelude::*;
 use gtk::{
-    Adjustment, Application, ApplicationWindow, Orientation, ScrolledWindow, WindowPosition,
-    WrapMode,
+    Adjustment, Application, ApplicationWindow, CellRendererText, Orientation, Paned,
+    ScrolledWindow, WindowPosition, WrapMode,
 };
 use stc::ast::Statement;
 use stc::context::{ModuleContext, ModuleContextScope, Scope, UnitsManager};
@@ -42,6 +42,7 @@ fn display_ast(statement: &Statement) {
 
 fn main() {
     let mgr = UnitsManager::new();
+    let mgr_ui_app = mgr.clone();
     let app = ModuleContext::new(ModuleContextScope::Application);
     let app_id = app.read().id();
     mgr.write().add_context(app);
@@ -84,12 +85,12 @@ fn main() {
     }
 
     let gtk_app = Application::new(None, Default::default());
-    gtk_app.connect_activate(build_ui);
+    gtk_app.connect_activate(move |app| build_ui(app, mgr_ui_app.clone()));
     gtk_app.run();
 }
 
-fn build_ui(app: &Application) {
-    let stc_app = StcViewerApp::new();
+fn build_ui(app: &Application, mgr: UnitsManager) {
+    let stc_app = StcViewerApp::new(mgr);
     let window = ApplicationWindow::new(app);
 
     window.set_title("STC compilation units viewer");
@@ -99,10 +100,19 @@ fn build_ui(app: &Application) {
     stc_app.content_view.set_monospace(true);
     stc_app.content_view.set_wrap_mode(WrapMode::WordChar);
 
+    let cell = CellRendererText::new();
+    stc_app.tree_column_name.pack_start(&cell, true);
+    stc_app.tree_column_name.add_attribute(&cell, "text", 0);
+    stc_app.tree_view.append_column(&stc_app.tree_column_name);
+    stc_app.tree_view.set_headers_visible(false);
+
+    let tree_scroll = ScrolledWindow::new(Adjustment::NONE, Adjustment::NONE);
+    tree_scroll.add(&stc_app.tree_view);
+    tree_scroll.set_expand(true);
+
     let left_layout = gtk::Box::new(Orientation::Vertical, 0);
     left_layout.add(&stc_app.search_entry);
-    left_layout.add(&stc_app.tree_view);
-    left_layout.set_width_request(300);
+    left_layout.add(&tree_scroll);
 
     let content_scroll = ScrolledWindow::new(Adjustment::NONE, Adjustment::NONE);
     content_scroll.add(&stc_app.content_view);
@@ -115,16 +125,19 @@ fn build_ui(app: &Application) {
     right_layout.add(&button_layout);
     right_layout.add(&content_scroll);
 
-    let main_layout = gtk::Box::new(Orientation::Horizontal, 0);
-    main_layout.add(&left_layout);
-    main_layout.add(&right_layout);
+    let paned = Paned::new(Orientation::Horizontal);
+    paned.add(&left_layout);
+    paned.add(&right_layout);
 
     let app = stc_app.clone();
-    stc_app.refresh_button.connect_clicked(move |x| {
-        app.search_entry.set_text(x.label().unwrap().as_str());
+    stc_app.refresh_button.connect_clicked(move |_| {
         app.refresh();
     });
 
-    window.add(&main_layout);
+    stc_app
+        .tree_view
+        .connect_row_expanded(move |view, _, _| view.queue_compute_expand());
+
+    window.add(&paned);
     window.show_all();
 }

@@ -1287,6 +1287,7 @@ name = "viewer"
 version = "0.1.0"
 dependencies = [
  "gtk",
+ "once_cell",
  "stc-rs",
 ]
 
