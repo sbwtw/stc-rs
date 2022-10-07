@@ -41,17 +41,33 @@ impl StcViewerApp {
     pub fn refresh(&self) {
         self.tree_model.clear();
 
-        for i in 0..10 {
-            // insert_with_values takes a slice of tuples: column index and ToValue
-            // trait objects. ToValue is implemented for strings, numeric types,
-            // bool and Object descendants
-            let iter =
+        for ctx in self.mgr.read().contexts() {
+            let ctx_iter =
                 self.tree_model
-                    .insert_with_values(None, None, &[(0, &format!("Hello {}", i))]);
+                    .insert_with_values(None, None, &[(0, &format!("{}", ctx.read()))]);
 
-            for _ in 0..i {
+            // Declarations
+            let decl_iter =
                 self.tree_model
-                    .insert_with_values(Some(&iter), None, &[(0, &"I'm a child node")]);
+                    .insert_with_values(Some(&ctx_iter), None, &[(0, &"Declarations")]);
+            for decl in ctx.read().declarations() {
+                self.tree_model.insert_with_values(
+                    Some(&decl_iter),
+                    None,
+                    &[(0, &format!("{}", decl.read().unwrap()))],
+                );
+            }
+
+            // Functions
+            let function_iter =
+                self.tree_model
+                    .insert_with_values(Some(&ctx_iter), None, &[(0, &"Functions")]);
+            for fun in ctx.read().functions() {
+                self.tree_model.insert_with_values(
+                    Some(&function_iter),
+                    None,
+                    &[(0, &format!("{}", fun.read().unwrap().decl_id()))],
+                );
             }
         }
     }

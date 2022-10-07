@@ -1,8 +1,9 @@
 use crate::ast::*;
 use crate::context::ModuleContextScope;
-use crate::parser::StString;
+use crate::parser::{StString, Tok};
 use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet};
+use std::fmt::{Display, Formatter};
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::rc::Rc;
@@ -111,6 +112,38 @@ impl PrototypeImpl {
     }
 }
 
+impl Display for PrototypeImpl {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match &self.decl.kind {
+            DeclKind::Fun(fun) => f.write_fmt(format_args!(
+                "{} ({})",
+                fun.name().origin_string(),
+                Tok::Function
+            )),
+            DeclKind::Alias(alias) => f.write_fmt(format_args!(
+                "{} ({})",
+                alias.name().origin_string(),
+                Tok::Type
+            )),
+            DeclKind::Struct(s) => f.write_fmt(format_args!(
+                "{} ({})",
+                s.name().origin_string(),
+                Tok::Struct
+            )),
+            DeclKind::Enum(e) => f.write_fmt(format_args!(
+                "{} ({})",
+                e.name().origin_string(),
+                Tok::Struct
+            )),
+            DeclKind::GlobalVar(g) => f.write_fmt(format_args!(
+                "{} ({})",
+                g.name().origin_string(),
+                Tok::VarGlobal
+            )),
+        }
+    }
+}
+
 pub struct FunctionImpl {
     #[allow(dead_code)]
     decl_id: usize,
@@ -120,6 +153,10 @@ pub struct FunctionImpl {
 impl FunctionImpl {
     fn new(decl_id: usize, function: Statement) -> Self {
         Self { decl_id, function }
+    }
+
+    pub fn decl_id(&self) -> usize {
+        self.decl_id
     }
 
     pub fn body(&self) -> &Statement {
@@ -203,8 +240,7 @@ impl ModuleContextImpl {
         self.declaration_name_map.insert(name, decl.clone());
 
         if toplevel_global_variable_declaration {
-            self.toplevel_global_variable_declarations
-                .insert(decl.clone());
+            self.toplevel_global_variable_declarations.insert(decl);
         }
 
         proto_id
@@ -255,6 +291,17 @@ impl ModuleContextImpl {
             }
         }
 
-        return None;
+        None
+    }
+}
+
+impl Display for ModuleContextImpl {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let scope = match self.scope {
+            ModuleContextScope::Application => "App",
+            ModuleContextScope::CompilerBuiltin => "Builtin",
+        };
+
+        f.write_fmt(format_args!("{}_{}", scope, self.id))
     }
 }
