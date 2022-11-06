@@ -134,9 +134,10 @@ fn build_ui(app: &Application, mgr: UnitsManager) {
         app.refresh();
     });
 
-    // stc_app
-    //     .tree_view
-    //     .connect_row_expanded(move |view, _, _| view.queue_compute_expand());
+    let app = stc_app.clone();
+    stc_app
+        .tree_view
+        .connect_cursor_changed(move |_| app.on_cursor_changed());
 
     window.add(&paned);
     window.show_all();
