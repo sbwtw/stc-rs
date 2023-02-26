@@ -65,6 +65,10 @@ impl UnitsManagerImpl {
         self.contexts.get(&ctx_id).cloned()
     }
 
+    pub fn active_application(&self) -> Option<ModuleContext> {
+        self.active_application.and_then(|x| self.get_context(x))
+    }
+
     pub fn contexts(&self) -> impl Iterator<Item = &ModuleContext> {
         self.contexts.values()
     }

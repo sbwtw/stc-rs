@@ -23,6 +23,7 @@ regex = "*"
 chrono = "*"
 smallvec = { version = "*", features = ["write", "union"] }
 smallmap = "*"
+log = "*"
 
 [build-dependencies]
 cbindgen = "*"

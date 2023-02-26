@@ -2,21 +2,25 @@ mod stc_viewer;
 
 use crate::stc_viewer::StcViewerApp;
 
-use gtk::prelude::*;
-use gtk::{
-    Adjustment, Application, ApplicationWindow, CellRendererText, Orientation, Paned,
-    ScrolledWindow, WindowPosition, WrapMode,
-};
 use stc::ast::Statement;
 use stc::context::{ModuleContext, ModuleContextScope, Scope, UnitsManager};
 use stc::parser::{StDeclarationParser, StFunctionParser, StLexer};
 use stc::transform::TypeAnalyzer;
 use stc::utils;
 
+use gtk::prelude::*;
+use gtk::{
+    Adjustment, Application, ApplicationWindow, CellRendererText, Orientation, Paned,
+    ScrolledWindow, WindowPosition, WrapMode,
+};
+use log::debug;
+use stc::codegen::CodeGenerator;
 use std::fs::OpenOptions;
 use std::process::Command;
 
-fn display_ast(statement: &Statement) {
+fn write_ast_to_file(statement: &Statement, name: &str) {
+    let dot_file_name = format!("{}.dot", name);
+
     // graphviz
     // dump dot file
     {
@@ -24,7 +28,7 @@ fn display_ast(statement: &Statement) {
             .write(true)
             .create(true)
             .truncate(true)
-            .open("test.dot")
+            .open(&dot_file_name)
             .unwrap();
 
         let mut graphviz = utils::GraphvizExporter::new(&mut out);
@@ -34,37 +38,39 @@ fn display_ast(statement: &Statement) {
     // convert to svg
     {
         Command::new("dot")
-            .args(&["-Tsvg", "test.dot", "-o", "test.svg"])
+            .args(["-Tsvg", &dot_file_name, "-o", &format!("{}.svg", name)])
             .status()
-            .expect("failed.");
+            .expect("write ast to file failed.");
     }
 }
 
 fn main() {
+    pretty_env_logger::init();
+
     let mgr = UnitsManager::new();
-    let mgr_ui_app = mgr.clone();
+    let mgr_gen = mgr.clone();
     let app = ModuleContext::new(ModuleContextScope::Application);
     let app_id = app.read().id();
     mgr.write().add_context(app);
 
-    let app = mgr.write().get_context(app_id).unwrap();
+    let app_ctx = mgr.write().get_context(app_id).unwrap();
     let decl = StLexer::new("function test: int VAR a: INT; b: INT; END_VAR end_function");
     let decl = StDeclarationParser::new().parse(decl).unwrap();
-    let decl_id = app.write().add_declaration(decl);
+    let decl_id = app_ctx.write().add_declaration(decl);
 
     let prg = StLexer::new("program prg: int VAR a: BYTE; END_VAR end_program");
     let prg = StDeclarationParser::new().parse(prg).unwrap();
-    let _prg_id = app.write().add_declaration(prg);
+    let _prg_id = app_ctx.write().add_declaration(prg);
 
     let global = StLexer::new("VAR_GLOBAL END_VAR VAR_GLOBAL 全局变量1: REAL; END_VAR");
     let global = StDeclarationParser::new().parse(global).unwrap();
-    let _global_id = app.write().add_declaration(global);
+    let _global_id = app_ctx.write().add_declaration(global);
 
     let body = StLexer::new("if a < 全局变量1 then prg.a := 1; else b := 2; end_if");
     let body = StFunctionParser::new().parse(body).unwrap();
-    app.write().add_function(decl_id, body);
+    app_ctx.write().add_function(decl_id, body);
 
-    let app = app.read();
+    let app = app_ctx.read();
     let fun = app.get_function(decl_id);
 
     let mut type_analyzer = TypeAnalyzer::new();
@@ -79,14 +85,17 @@ fn main() {
         let scope = Scope::new(Some(mgr), Some(app_id), Some(decl_id));
         type_analyzer.analyze_statement(f.body_mut(), scope);
 
-        display_ast(f.body());
+        write_ast_to_file(f.body(), "test");
 
         println!("{}", f.body());
     }
 
-    let gtk_app = Application::new(None, Default::default());
-    gtk_app.connect_activate(move |app| build_ui(app, mgr_ui_app.clone()));
-    gtk_app.run();
+    let mut code_gen = CodeGenerator::new(mgr_gen);
+    println!("CodeGen: {:?}", code_gen.build_application(app.id()));
+
+    // let gtk_app = Application::new(None, Default::default());
+    // gtk_app.connect_activate(move |app| build_ui(app, mgr_ui_app.clone()));
+    // gtk_app.run();
 }
 
 fn build_ui(app: &Application, mgr: UnitsManager) {

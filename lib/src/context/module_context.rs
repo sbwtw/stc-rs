@@ -257,6 +257,10 @@ impl ModuleContextImpl {
         self.declaration_id_map.values()
     }
 
+    pub fn declaration_ids(&self) -> impl Iterator<Item = &usize> {
+        self.declaration_id_map.keys()
+    }
+
     #[allow(unused)]
     pub fn functions(&self) -> impl Iterator<Item = &Function> {
         self.function_id_map.values()
