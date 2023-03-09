@@ -11,7 +11,7 @@ mod types;
 pub use types::*;
 
 mod visitor;
-pub use visitor::{AstVisitor, AstVisitorMut};
+pub use visitor::{AcceptMut, AstVisitor, AstVisitorMut};
 
 mod function_declaration;
 pub use function_declaration::FunctionDeclare;
@@ -111,6 +111,18 @@ macro_rules! impl_into_statement {
         }
     };
 }
+
+// #[macro_export]
+// macro_rules! impl_accept {
+//     ($ty:ident, $closure:expr) => {
+//         impl Accept for $ty {
+//             fn accept(&self) {
+//                 let f: &dyn Fn(Self) -> Statement = &$closure;
+//                 f(self)
+//             }
+//         }
+//     };
+// }
 
 pub trait IntoExpression {
     fn into_expression(self) -> Expression;

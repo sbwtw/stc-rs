@@ -2,10 +2,10 @@ mod stc_viewer;
 
 use crate::stc_viewer::StcViewerApp;
 
+use stc::analysis::TypeAnalyzer;
 use stc::ast::Statement;
 use stc::context::{ModuleContext, ModuleContextScope, Scope, UnitsManager};
 use stc::parser::{StDeclarationParser, StFunctionParser, StLexer};
-use stc::transform::TypeAnalyzer;
 use stc::utils;
 
 use gtk::prelude::*;
@@ -13,7 +13,7 @@ use gtk::{
     Adjustment, Application, ApplicationWindow, CellRendererText, Orientation, Paned,
     ScrolledWindow, WindowPosition, WrapMode,
 };
-use log::debug;
+use log::*;
 use stc::codegen::CodeGenerator;
 use std::fs::OpenOptions;
 use std::process::Command;
@@ -90,8 +90,8 @@ fn main() {
         println!("{}", f.body());
     }
 
-    let mut code_gen = CodeGenerator::new(mgr_gen);
-    println!("CodeGen: {:?}", code_gen.build_application(app.id()));
+    let mut code_gen = CodeGenerator::new(mgr_gen, app.id()).unwrap();
+    println!("CodeGen: {:?}", code_gen.build_application());
 
     // let gtk_app = Application::new(None, Default::default());
     // gtk_app.connect_activate(move |app| build_ui(app, mgr_ui_app.clone()));
