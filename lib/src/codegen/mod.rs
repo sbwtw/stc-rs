@@ -1,17 +1,21 @@
-mod code_adapter;
 mod lua_backend;
 
-use crate::ast::{AstVisitorMut, IfStatement, OperatorExpression, Variable};
-use crate::codegen::code_adapter::CodeGenAdapterImpl;
+use crate::ast::{OperatorExpression, Variable};
+use crate::codegen::lua_backend::LuaBackend;
 use crate::context::{ModuleContext, UnitsManager};
 
-use crate::codegen::lua_backend::LuaBackend;
+use bitflags::bitflags;
 use log::info;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 
-pub trait CodeGenAdapter: AstVisitorMut {
-    fn generate(&mut self, fun_id: usize) -> Box<dyn TargetCode>;
+bitflags! {
+    pub struct AccessModeFlags: u32 {
+        const NONE              = 0b0000_0000_0000_0000;
+        const READ              = 0b0000_0000_0000_0001;
+        const WRITE             = 0b0000_0000_0000_0010;
+        const PARAMETER         = 0b0000_0000_0000_0100;
+    }
 }
 
 pub trait CodeGenBackend {
@@ -19,6 +23,7 @@ pub trait CodeGenBackend {
 
     fn take_code(&mut self) -> Box<dyn TargetCode>;
     fn define_label<S: AsRef<str>>(&mut self, label: Option<S>) -> Self::Label;
+    fn gen_function(&mut self, func: usize) -> Result<(), CodeGenError>;
     fn gen_variable_load(&mut self, variable: &mut Variable);
     fn gen_operator(&mut self, operator: &mut OperatorExpression);
 }
@@ -27,6 +32,7 @@ pub trait TargetCode: Display {}
 
 pub enum CodeGenError {
     AppNotFound,
+    FunctionNotDefined(usize),
 }
 
 impl Error for CodeGenError {}
@@ -35,6 +41,9 @@ impl Display for CodeGenError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             CodeGenError::AppNotFound => f.write_str("Application Not Found"),
+            CodeGenError::FunctionNotDefined(func) => {
+                f.write_str(&format!("Function {} not defined", func))
+            }
         }
     }
 }
@@ -45,13 +54,16 @@ impl Debug for CodeGenError {
     }
 }
 
-pub struct CodeGenerator<T: CodeGenAdapter> {
+pub struct CodeGenerator<B>
+where
+    B: CodeGenBackend,
+{
     mgr: UnitsManager,
     app: ModuleContext,
-    adapter: T,
+    backcend: B,
 }
 
-impl CodeGenerator<CodeGenAdapterImpl<LuaBackend>> {
+impl CodeGenerator<LuaBackend> {
     pub fn new(mgr: UnitsManager, app_id: usize) -> Result<Self, CodeGenError> {
         let app = mgr
             .read()
@@ -61,20 +73,28 @@ impl CodeGenerator<CodeGenAdapterImpl<LuaBackend>> {
         Ok(Self {
             mgr: mgr.clone(),
             app: app.clone(),
-            adapter: CodeGenAdapterImpl::new(mgr, app, LuaBackend::new()),
+            backcend: LuaBackend::new(mgr, app),
         })
     }
 }
 
-impl<T: CodeGenAdapter> CodeGenerator<T> {
+impl<B> CodeGenerator<B>
+where
+    B: CodeGenBackend,
+{
     pub fn build_application(&mut self) -> Result<(), CodeGenError> {
-        let mut fun_ids: Vec<_> = self.app.read().declaration_ids().copied().collect();
-        fun_ids.sort();
+        let mut fun_info: Vec<(_, _)> = self
+            .app
+            .read()
+            .declarations()
+            .map(|x| x.read().unwrap())
+            .map(|x| (x.id(), format!("{}", x)))
+            .collect();
+        fun_info.sort();
 
-        for f in fun_ids {
-            info!("generating code for function {}", f);
-
-            self.adapter.generate(f);
+        for (id, display) in fun_info {
+            info!("generating code for function {} {}", id, display);
+            self.backcend.gen_function(id)?;
         }
 
         Ok(())

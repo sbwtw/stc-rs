@@ -1,4 +1,5 @@
-use crate::ast::Type;
+use crate::ast::{AstVisitor, Type};
+use crate::impl_ast_display;
 use crate::parser::StString;
 use std::rc::Rc;
 
@@ -7,6 +8,8 @@ pub struct VariableExpression {
     name: StString,
     ty: Option<Rc<Box<dyn Type>>>,
 }
+
+impl_ast_display!(VariableExpression, visit_variable_expression);
 
 impl VariableExpression {
     pub fn new(var: StString) -> Self {

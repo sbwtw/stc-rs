@@ -338,11 +338,3 @@ fn walk_compo_access_expression<'a, V: AstVisitor<'a>>(
     vis.visit_expression(compo.left());
     vis.visit_expression(compo.right());
 }
-
-pub trait Accept {
-    fn accept<'a, V: AstVisitor<'a>>(&'a self, visitor: &mut V);
-}
-
-pub trait AcceptMut {
-    fn accept_mut<V: AstVisitorMut>(&mut self, visitor: &mut V);
-}

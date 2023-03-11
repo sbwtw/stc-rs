@@ -11,7 +11,7 @@ mod types;
 pub use types::*;
 
 mod visitor;
-pub use visitor::{AcceptMut, AstVisitor, AstVisitorMut};
+pub use visitor::{AstVisitor, AstVisitorMut};
 
 mod function_declaration;
 pub use function_declaration::FunctionDeclare;

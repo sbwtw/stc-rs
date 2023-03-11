@@ -2,7 +2,7 @@ use crate::ast::*;
 use crate::parser::Tok;
 use smallmap::Map;
 use std::cmp::Ordering;
-use std::fmt::{self, Display, Formatter};
+use std::fmt::{self, Display, Formatter, Write};
 use std::hash::{Hash, Hasher};
 use std::str::CharIndices;
 
@@ -92,6 +92,12 @@ impl PartialOrd for StString {
 impl Ord for StString {
     fn cmp(&self, other: &Self) -> Ordering {
         self.partial_cmp(other).unwrap()
+    }
+}
+
+impl Display for StString {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str(self.origin_string())
     }
 }
 

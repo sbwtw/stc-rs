@@ -2,6 +2,7 @@ use crate::ast::*;
 use crate::context::ModuleContextScope;
 use crate::parser::{StString, Tok};
 use once_cell::sync::Lazy;
+use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::hash::{Hash, Hasher};
@@ -98,6 +99,10 @@ impl PrototypeImpl {
         self.id
     }
 
+    pub fn name(&self) -> &StString {
+        self.decl.identifier()
+    }
+
     pub fn variables(&self) -> &[Rc<Variable>] {
         self.decl.variables()
     }
@@ -112,32 +117,42 @@ impl PrototypeImpl {
     }
 }
 
+fn proto_name_string(name: &StString) -> Cow<String> {
+    let s = name.origin_string();
+
+    if s.is_empty() {
+        return Cow::Owned("(No Name)".to_owned());
+    }
+
+    Cow::Borrowed(name.origin_string())
+}
+
 impl Display for PrototypeImpl {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self.decl.kind {
             DeclKind::Fun(fun) => f.write_fmt(format_args!(
                 "{} ({})",
-                fun.name().origin_string(),
+                proto_name_string(fun.name()),
                 Tok::Function
             )),
             DeclKind::Alias(alias) => f.write_fmt(format_args!(
                 "{} ({})",
-                alias.name().origin_string(),
+                proto_name_string(alias.name()),
                 Tok::Type
             )),
             DeclKind::Struct(s) => f.write_fmt(format_args!(
                 "{} ({})",
-                s.name().origin_string(),
+                proto_name_string(s.name()),
                 Tok::Struct
             )),
             DeclKind::Enum(e) => f.write_fmt(format_args!(
                 "{} ({})",
-                e.name().origin_string(),
+                proto_name_string(e.name()),
                 Tok::Struct
             )),
             DeclKind::GlobalVar(g) => f.write_fmt(format_args!(
                 "{} ({})",
-                g.name().origin_string(),
+                proto_name_string(g.name()),
                 Tok::VarGlobal
             )),
         }
