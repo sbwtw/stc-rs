@@ -2,7 +2,7 @@ use crate::ast::*;
 use crate::parser::Tok;
 use smallmap::Map;
 use std::cmp::Ordering;
-use std::fmt::{self, Display, Formatter, Write};
+use std::fmt::{self, Display, Formatter};
 use std::hash::{Hash, Hasher};
 use std::str::CharIndices;
 

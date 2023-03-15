@@ -1,20 +1,23 @@
-use gtk::builders::{TextBufferBuilder, TreeViewColumnBuilder};
+use gtk::builders::TextBufferBuilder;
 use gtk::glib::Type;
 use gtk::prelude::*;
 use gtk::{Button, SearchEntry, TextBuffer, TextView, TreeStore, TreeView, TreeViewColumn};
 use stc::context::UnitsManager;
 
-#[derive(Clone)]
+pub const STC_VIEWER_COLUMN_NAME: u32 = 0;
+
 pub struct StcViewerApp {
     pub mgr: UnitsManager,
 
     pub tree_view: TreeView,
     pub tree_store: TreeStore,
     pub tree_column_name: TreeViewColumn,
+    pub tree_column_data: TreeViewColumn,
     pub content_view: TextView,
     pub content_buffer: TextBuffer,
     pub search_entry: SearchEntry,
     pub refresh_button: Button,
+    pub compile_button: Button,
 }
 
 impl StcViewerApp {
@@ -31,48 +34,65 @@ impl StcViewerApp {
             tree_view,
             tree_store,
             tree_column_name: TreeViewColumn::new(),
+            tree_column_data: TreeViewColumn::new(),
             content_view,
             content_buffer,
             search_entry: SearchEntry::new(),
             refresh_button: Button::with_label("Refresh"),
+            compile_button: Button::with_label("Compile"),
         }
     }
 
     pub fn on_cursor_changed(&self) {
         let (path, column) = self.tree_view.cursor();
 
+        // if let Some(p) = path {
+        //     let iter = self.tree_store.iter(&p);
+        //     // let x = iter.unwrap().to_value().get::<PrototypeNode>();
+        //     dbg!(iter, p);
+        // }V
+
         dbg!(path.map(|x| x.to_str()), column.map(|x| x.to_string()));
     }
 
     pub fn refresh(&self) {
+        self.tree_store.clear();
+
         for ctx in self.mgr.read().contexts() {
-            let ctx_iter =
-                self.tree_store
-                    .insert_with_values(None, None, &[(0, &format!("{}", ctx.read()))]);
+            let ctx_iter = self.tree_store.insert_with_values(
+                None,
+                None,
+                &[(STC_VIEWER_COLUMN_NAME, &format!("{}", ctx.read()))],
+            );
 
             // Declarations
-            let decl_iter =
-                self.tree_store
-                    .insert_with_values(Some(&ctx_iter), None, &[(0, &"Declarations")]);
-            // for decl in ctx.read().declarations() {
-            //     self.tree_model.insert_with_values(
-            //         Some(&decl_iter),
-            //         None,
-            //         &[(0, &format!("{}", decl.read().unwrap()))],
-            //     );
-            // }
+            let decl_iter = self.tree_store.insert_with_values(
+                Some(&ctx_iter),
+                None,
+                &[(STC_VIEWER_COLUMN_NAME, &"Declarations")],
+            );
+            for decl in ctx.read().declarations() {
+                self.tree_store.insert_with_values(
+                    Some(&decl_iter),
+                    None,
+                    &[(STC_VIEWER_COLUMN_NAME, &format!("{}", decl.read().unwrap()))],
+                );
+            }
 
             // Functions
             let function_iter =
                 self.tree_store
                     .insert_with_values(Some(&ctx_iter), None, &[(0, &"Functions")]);
-            // for fun in ctx.read().functions() {
-            //     self.tree_model.insert_with_values(
-            //         Some(&function_iter),
-            //         None,
-            //         &[(0, &format!("{}", fun.read().unwrap().decl_id()))],
-            //     );
-            // }
+            for fun in ctx.read().functions() {
+                self.tree_store.insert_with_values(
+                    Some(&function_iter),
+                    None,
+                    &[(
+                        STC_VIEWER_COLUMN_NAME,
+                        &format!("{}", fun.read().unwrap().decl_id()),
+                    )],
+                );
+            }
         }
     }
 }

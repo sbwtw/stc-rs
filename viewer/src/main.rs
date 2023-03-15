@@ -1,6 +1,7 @@
 mod stc_viewer;
 
-use crate::stc_viewer::StcViewerApp;
+use crate::stc_viewer::{StcViewerApp, STC_VIEWER_COLUMN_NAME};
+use std::cell::RefCell;
 
 use stc::analysis::TypeAnalyzer;
 use stc::ast::Statement;
@@ -13,10 +14,10 @@ use gtk::{
     Adjustment, Application, ApplicationWindow, CellRendererText, Orientation, Paned,
     ScrolledWindow, WindowPosition, WrapMode,
 };
-use log::*;
 use stc::codegen::CodeGenerator;
 use std::fs::OpenOptions;
 use std::process::Command;
+use std::rc::Rc;
 
 fn write_ast_to_file(statement: &Statement, name: &str) {
     let dot_file_name = format!("{}.dot", name);
@@ -49,6 +50,7 @@ fn main() {
 
     let mgr = UnitsManager::new();
     let mgr_gen = mgr.clone();
+    let mgr_ui_app = mgr.clone();
     let app = ModuleContext::new(ModuleContextScope::Application);
     let app_id = app.read().id();
     mgr.write().add_context(app);
@@ -93,9 +95,9 @@ fn main() {
     let mut code_gen = CodeGenerator::new(mgr_gen, app.id()).unwrap();
     println!("CodeGen: {:?}", code_gen.build_application());
 
-    // let gtk_app = Application::new(None, Default::default());
-    // gtk_app.connect_activate(move |app| build_ui(app, mgr_ui_app.clone()));
-    // gtk_app.run();
+    let gtk_app = Application::new(None, Default::default());
+    gtk_app.connect_activate(move |app| build_ui(app, mgr_ui_app.clone()));
+    gtk_app.run();
 }
 
 fn build_ui(app: &Application, mgr: UnitsManager) {
@@ -111,8 +113,11 @@ fn build_ui(app: &Application, mgr: UnitsManager) {
 
     let cell = CellRendererText::new();
     stc_app.tree_column_name.pack_start(&cell, true);
-    stc_app.tree_column_name.add_attribute(&cell, "text", 0);
+    stc_app
+        .tree_column_name
+        .add_attribute(&cell, "text", STC_VIEWER_COLUMN_NAME as i32);
     stc_app.tree_view.append_column(&stc_app.tree_column_name);
+    stc_app.tree_view.append_column(&stc_app.tree_column_data);
     stc_app.tree_view.set_headers_visible(false);
 
     let tree_scroll = ScrolledWindow::new(Adjustment::NONE, Adjustment::NONE);
@@ -129,6 +134,7 @@ fn build_ui(app: &Application, mgr: UnitsManager) {
 
     let button_layout = gtk::Box::new(Orientation::Horizontal, 0);
     button_layout.add(&stc_app.refresh_button);
+    button_layout.add(&stc_app.compile_button);
 
     let right_layout = gtk::Box::new(Orientation::Vertical, 0);
     right_layout.add(&button_layout);
@@ -138,15 +144,16 @@ fn build_ui(app: &Application, mgr: UnitsManager) {
     paned.add(&left_layout);
     paned.add(&right_layout);
 
+    let stc_app = Rc::new(RefCell::new(stc_app));
     let app = stc_app.clone();
-    stc_app.refresh_button.connect_clicked(move |_| {
-        app.refresh();
+    stc_app.borrow().refresh_button.connect_clicked(move |_| {
+        let _ = app.try_borrow_mut().map(|x| x.refresh());
     });
 
     let app = stc_app.clone();
-    stc_app
-        .tree_view
-        .connect_cursor_changed(move |_| app.on_cursor_changed());
+    stc_app.borrow().tree_view.connect_cursor_changed(move |_| {
+        let _ = app.try_borrow_mut().map(|x| x.on_cursor_changed());
+    });
 
     window.add(&paned);
     window.show_all();
