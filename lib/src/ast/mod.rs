@@ -155,6 +155,7 @@ impl Display for dyn Type {
 }
 
 bitflags! {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub struct VariableFlags: u32 {
         const NONE              = 0b0000_0000_0000_0000;
 
@@ -169,7 +170,7 @@ bitflags! {
         // Retain
         const RETAIN            = 0b0000_0001_0000_0000;
         const PERSISTENT        = 0b0000_0010_0000_0000;
-        const RETAINPERSISTENT  = Self::RETAIN.bits | Self::PERSISTENT.bits;
+        const RETAINPERSISTENT  = Self::RETAIN.bits() | Self::PERSISTENT.bits();
 
         // CV
         const CONST             = 0b0000_1000_0000_0000;
@@ -181,6 +182,7 @@ bitflags! {
 }
 
 bitflags! {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub struct CompilerInternalFlags: u32 {
         const NONE              = 0b0000_0000_0000_0000;
         const HAS_ERROR         = 0b0000_0000_0000_0001;

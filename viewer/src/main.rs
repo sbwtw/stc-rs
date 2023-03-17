@@ -57,10 +57,9 @@ fn build_ui(app: &Application, mgr: UnitsManager) {
     stc_app.content_view.set_wrap_mode(WrapMode::WordChar);
 
     let cell = CellRendererText::new();
-    stc_app.tree_column_name.pack_start(&cell, true);
-    stc_app
-        .tree_column_name
-        .add_attribute(&cell, "text", STC_VIEWER_COLUMN_NAME as i32);
+    CellLayoutExt::pack_start(&stc_app.tree_column_name, &cell, true);
+    TreeViewColumnExt::add_attribute(&stc_app.tree_column_name, &cell, "text", STC_VIEWER_COLUMN_NAME as i32);
+
     stc_app.tree_view.append_column(&stc_app.tree_column_name);
     stc_app.tree_view.append_column(&stc_app.tree_column_data);
     stc_app.tree_view.set_headers_visible(false);
@@ -103,8 +102,8 @@ fn build_ui(app: &Application, mgr: UnitsManager) {
 
     let app_copy = stc_app.clone();
     app_lock
-        .compile_button
-        .connect_clicked(move |_| app_copy.lock().unwrap().on_cursor_changed());
+        .tree_view
+        .connect_cursor_changed(move |_| app_copy.lock().unwrap().on_cursor_changed());
 
     window.add(&paned);
     window.show_all();

@@ -1,4 +1,3 @@
-use gtk::builders::TextBufferBuilder;
 use gtk::glib::Type;
 use gtk::prelude::*;
 use gtk::{Button, SearchEntry, TextBuffer, TextView, TreeStore, TreeView, TreeViewColumn};
@@ -25,7 +24,7 @@ pub struct StcViewerApp {
 
 impl StcViewerApp {
     pub fn new(mgr: UnitsManager) -> Self {
-        let content_buffer = TextBufferBuilder::new().build();
+        let content_buffer = TextBuffer::builder().build();
         let content_view = TextView::with_buffer(&content_buffer);
 
         let tree_store = TreeStore::new(&[Type::STRING]);

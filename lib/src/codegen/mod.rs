@@ -10,6 +10,7 @@ use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 
 bitflags! {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub struct AccessModeFlags: u32 {
         const NONE              = 0b0000_0000_0000_0000;
         const READ              = 0b0000_0000_0000_0001;
