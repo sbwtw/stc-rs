@@ -207,6 +207,7 @@ pub struct StLexerOptions {
     allow_unicode_identifier: bool,
     allow_multiple_underline: bool,
     allow_suffix_underline: bool,
+    keep_whitespace_token: bool,
 }
 
 impl Default for StLexerOptions {
@@ -215,6 +216,7 @@ impl Default for StLexerOptions {
             allow_unicode_identifier: true,
             allow_multiple_underline: false,
             allow_suffix_underline: false,
+            keep_whitespace_token: false,
         }
     }
 }
@@ -444,6 +446,18 @@ impl<'input> StLexer<'input> {
         }
     }
 
+    fn parse_whitespace(&mut self, start: usize) -> LexerResult {
+        loop {
+            match self.buffer.next() {
+                (_, Some(' ')) | (_, Some('\n')) | (_, Some('\t')) | (_, Some('\r')) => {}
+                (i, x) => {
+                    self.buffer.stage((i, x));
+                    return Ok((start, Tok::Whitespace, i));
+                }
+            }
+        }
+    }
+
     fn parse_second_char(&mut self, start: usize, ch: char) -> Option<LexerResult> {
         let (tok, stage) = match (ch, self.buffer.next()) {
             ('<', (_, Some('='))) => (Tok::LessEqual, None),
@@ -498,14 +512,12 @@ impl<'input> StLexer<'input> {
             ch.is_ascii_alphabetic() || matches!(ch, '_')
         }
     }
-}
 
-impl<'input> Iterator for StLexer<'input> {
-    type Item = LexerResult;
-
-    fn next(&mut self) -> Option<Self::Item> {
+    fn next_raw(&mut self) -> Option<<Self as Iterator>::Item> {
         match self.buffer.next() {
-            (_, Some(' ')) | (_, Some('\t')) | (_, Some('\n')) | (_, Some('\r')) => self.next(),
+            (i, Some(' ')) | (i, Some('\t')) | (i, Some('\n')) | (i, Some('\r')) => {
+                Some(self.parse_whitespace(i))
+            }
             (i, Some('.')) => Some(Ok((i, Tok::Access, i + 1))),
             (i, Some('+')) => Some(Ok((i, Tok::Plus, i + 1))),
             (i, Some('-')) => Some(Ok((i, Tok::Minus, i + 1))),
@@ -528,6 +540,24 @@ impl<'input> Iterator for StLexer<'input> {
             }
             (i, Some(c)) => Some(Err(LexicalError::UnexpectedCharacter(i, c))),
             (_, None) => None,
+        }
+    }
+}
+
+impl<'input> Iterator for StLexer<'input> {
+    type Item = LexerResult;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.options.keep_whitespace_token {
+            return self.next_raw();
+        }
+
+        loop {
+            let tok = self.next_raw()?;
+
+            if !matches!(tok, Ok((_, Tok::Whitespace, _))) {
+                return Some(tok);
+            }
         }
     }
 }

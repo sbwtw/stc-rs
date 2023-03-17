@@ -39,7 +39,7 @@ impl StFunctionParser {
         Self {}
     }
 
-    pub fn parse<I: IntoIterator<Item = lexer::LexerResult>>(
+    pub fn parse<I: IntoIterator<Item = LexerResult>>(
         &self,
         lexer: I,
     ) -> Result<Statement, ParseError> {
