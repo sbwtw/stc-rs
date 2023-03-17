@@ -1,6 +1,9 @@
 mod lexer;
 pub use lexer::*;
 
+mod operator;
+pub use operator::Operator;
+
 mod token;
 pub use token::Tok;
 
@@ -52,5 +55,6 @@ pub use lalrpop_impl::{StDeclarationParser, StFunctionParser};
 
 #[cfg(not(feature = "use_lalrpop"))]
 mod default_impl;
+
 #[cfg(not(feature = "use_lalrpop"))]
 pub use default_impl::{StDeclarationParser, StFunctionParser};

@@ -4,7 +4,7 @@ use crate::ast::{
 use crate::codegen::{AccessModeFlags, CodeGenBackend, CodeGenError, TargetCode};
 use crate::context::{ModuleContext, Scope, UnitsManager};
 
-use crate::parser::Tok;
+use crate::parser::Operator;
 use log::*;
 use smallvec::{smallvec, SmallVec};
 use std::fmt::{Display, Formatter};
@@ -169,12 +169,12 @@ impl AstVisitorMut for LuaBackend {
 
         match op {
             // binary compare operators
-            Tok::Less
-            | Tok::LessEqual
-            | Tok::Equal
-            | Tok::NotEqual
-            | Tok::Greater
-            | Tok::GreaterEqual => {
+            Operator::Less
+            | Operator::LessEqual
+            | Operator::Equal
+            | Operator::NotEqual
+            | Operator::Greater
+            | Operator::GreaterEqual => {
                 self.push_access_attribute(AccessModeFlags::READ);
                 self.visit_expression_mut(&mut operands[0]);
                 self.pop_attribute();

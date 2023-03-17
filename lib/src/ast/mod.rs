@@ -2,7 +2,7 @@ use bitflags::bitflags;
 use smallvec::SmallVec;
 use std::fmt::{self, Debug, Display, Formatter};
 
-use crate::parser::{LiteralValue, StString, Tok};
+use crate::parser::{LiteralValue, Operator, StString};
 
 mod message;
 pub use message::*;
@@ -239,39 +239,22 @@ pub enum TypeClass {
     UserType(StString, Option<UserTypeClass>),
 }
 
-impl From<Tok> for TypeClass {
-    fn from(tok: Tok) -> Self {
-        match tok {
-            Tok::Bit => TypeClass::Bit,
-            Tok::Bool => TypeClass::Bool,
-            Tok::SInt => TypeClass::SInt,
-            Tok::Byte => TypeClass::Byte,
-            Tok::Int => TypeClass::Int,
-            Tok::UInt => TypeClass::UInt,
-            Tok::DInt => TypeClass::DInt,
-            Tok::LInt => TypeClass::LInt,
-            Tok::ULInt => TypeClass::ULInt,
-            _ => unreachable!(),
-        }
-    }
-}
-
 impl Display for TypeClass {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            TypeClass::Bit => write!(f, "{}", Tok::Bit),
-            TypeClass::Bool => write!(f, "{}", Tok::Bool),
-            TypeClass::SInt => write!(f, "{}", Tok::SInt),
-            TypeClass::Byte => write!(f, "{}", Tok::Byte),
-            TypeClass::Int => write!(f, "{}", Tok::Int),
-            TypeClass::UInt => write!(f, "{}", Tok::UInt),
-            TypeClass::DInt => write!(f, "{}", Tok::DInt),
-            TypeClass::UDInt => write!(f, "{}", Tok::UDInt),
-            TypeClass::LInt => write!(f, "{}", Tok::LInt),
-            TypeClass::ULInt => write!(f, "{}", Tok::ULInt),
-            TypeClass::Real => write!(f, "{}", Tok::Real),
-            TypeClass::LReal => write!(f, "{}", Tok::LReal),
-            TypeClass::String => write!(f, "{}", Tok::String),
+            TypeClass::Bit => write!(f, "BIT"),
+            TypeClass::Bool => write!(f, "BOOL"),
+            TypeClass::SInt => write!(f, "SINT"),
+            TypeClass::Byte => write!(f, "BYTE"),
+            TypeClass::Int => write!(f, "INT"),
+            TypeClass::UInt => write!(f, "UINT"),
+            TypeClass::DInt => write!(f, "DINT"),
+            TypeClass::UDInt => write!(f, "UDINT"),
+            TypeClass::LInt => write!(f, "LINT"),
+            TypeClass::ULInt => write!(f, "ULINT",),
+            TypeClass::Real => write!(f, "REAL"),
+            TypeClass::LReal => write!(f, "LREAL"),
+            TypeClass::String => write!(f, "STRING"),
             TypeClass::UserType(s, _) => write!(f, "{}", s.origin_string()),
         }
     }

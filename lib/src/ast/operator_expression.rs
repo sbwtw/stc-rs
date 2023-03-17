@@ -1,11 +1,10 @@
 use crate::ast::*;
-use crate::parser::Tok;
 use crate::{impl_ast_display, impl_into_expression};
 use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct OperatorExpression {
-    op: Tok,
+    op: Operator,
     ty: Option<Rc<Box<dyn Type>>>,
     operands: Vec<Expression>,
 }
@@ -14,11 +13,15 @@ impl_ast_display!(OperatorExpression, visit_operator_expression);
 impl_into_expression!(OperatorExpression, |x| Expression::operator(Box::new(x)));
 
 impl OperatorExpression {
-    pub fn new(op: Tok, operands: Vec<Expression>) -> Self {
+    pub fn new(op: Operator, operands: Vec<Expression>) -> Self {
         match operands.len() {
-            1 => debug_assert!(op.is_unary_operator(), "'{}' is not a unary operator", op),
-            2 => debug_assert!(op.is_binary_operator(), "'{}' is not a binary operator", op),
-            _ => debug_assert!(op.is_operator(), "'{}' is not a operator", op),
+            1 => debug_assert!(op.is_unary_operator(), "'{:?}' is not a unary operator", op),
+            2 => debug_assert!(
+                op.is_binary_operator(),
+                "'{:?}' is not a binary operator",
+                op
+            ),
+            _ => {}
         }
 
         Self {
@@ -28,7 +31,7 @@ impl OperatorExpression {
         }
     }
 
-    pub fn op(&self) -> &Tok {
+    pub fn op(&self) -> &Operator {
         &self.op
     }
 

@@ -131,17 +131,17 @@ AssignExpr: AssignExpression = {
 }
 
 BitOrExpr: Expression = {
-    <lhs: BitOrExpr> <op: "|"> <rhs: XorExpr> => Expression::operator(Box::new(OperatorExpression::new(op, vec![lhs, rhs]))),
+    <lhs: BitOrExpr> <op: "|"> <rhs: XorExpr> => Expression::operator(Box::new(OperatorExpression::new(op.into(), vec![lhs, rhs]))),
     XorExpr,
 }
 
 XorExpr: Expression = {
-    <lhs: XorExpr> <op: "XOR"> <rhs: BitAndExpr> => Expression::operator(Box::new(OperatorExpression::new(op, vec![lhs, rhs]))),
+    <lhs: XorExpr> <op: "XOR"> <rhs: BitAndExpr> => Expression::operator(Box::new(OperatorExpression::new(op.into(), vec![lhs, rhs]))),
     BitAndExpr,
 }
 
 BitAndExpr: Expression = {
-    <lhs: BitAndExpr> <op: "&"> <rhs: EquExpr> => OperatorExpression::new(op, vec![lhs, rhs]).into_expression(),
+    <lhs: BitAndExpr> <op: "&"> <rhs: EquExpr> => OperatorExpression::new(op.into(), vec![lhs, rhs]).into_expression(),
     EquExpr,
 }
 
@@ -151,7 +151,7 @@ EquOp: Tok = {
 }
 
 EquExpr: Expression = {
-    <lhs: EquExpr> <op: EquOp> <rhs: CmpExpr> => Expression::operator(Box::new(OperatorExpression::new(op, vec![lhs, rhs]))),
+    <lhs: EquExpr> <op: EquOp> <rhs: CmpExpr> => Expression::operator(Box::new(OperatorExpression::new(op.into(), vec![lhs, rhs]))),
     CmpExpr,
 }
 
@@ -163,7 +163,7 @@ CmpOp: Tok = {
 }
 
 CmpExpr: Expression = {
-    <lhs: CmpExpr> <op: CmpOp> <rhs: OpExpr> => Expression::operator(Box::new(OperatorExpression::new(op, vec![lhs, rhs]))),
+    <lhs: CmpExpr> <op: CmpOp> <rhs: OpExpr> => Expression::operator(Box::new(OperatorExpression::new(op.into(), vec![lhs, rhs]))),
     OpExpr,
 }
 
@@ -175,7 +175,7 @@ ExprOp: Tok = {
 
 /// Low-priority op expression
 OpExpr: Expression = {
-    <e1: OpExpr> <op: ExprOp> <e2: Factor> => Expression::operator(Box::new(OperatorExpression::new(op, vec![e1, e2]))),
+    <e1: OpExpr> <op: ExprOp> <e2: Factor> => Expression::operator(Box::new(OperatorExpression::new(op.into(), vec![e1, e2]))),
     Factor,
 }
 
@@ -188,12 +188,12 @@ FactorOp: Tok = {
 
 /// High-priority factor
 Factor: Expression = {
-    <e1: Factor> <op: FactorOp> <e2: PowerExpr> => Expression::operator(Box::new(OperatorExpression::new(op, vec![e1, e2]))),
+    <e1: Factor> <op: FactorOp> <e2: PowerExpr> => Expression::operator(Box::new(OperatorExpression::new(op.into(), vec![e1, e2]))),
     PowerExpr,
 };
 
 PowerExpr: Expression = {
-    <e1: PowerExpr> <op: "**"> <e2: UnaryFactor> => Expression::operator(Box::new(OperatorExpression::new(op, vec![e1, e2]))),
+    <e1: PowerExpr> <op: "**"> <e2: UnaryFactor> => Expression::operator(Box::new(OperatorExpression::new(op.into(), vec![e1, e2]))),
     UnaryFactor,
 }
 
@@ -205,7 +205,7 @@ UnaryOp: Tok = {
 
 /// Top priority unary factor
 UnaryFactor: Expression = {
-    <op: UnaryOp> <e: CompoFactor> => Expression::operator(Box::new(OperatorExpression::new(op, vec![e]))),
+    <op: UnaryOp> <e: CompoFactor> => Expression::operator(Box::new(OperatorExpression::new(op.into(), vec![e]))),
     CompoFactor,
 }
 

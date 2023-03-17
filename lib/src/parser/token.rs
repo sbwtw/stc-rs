@@ -3,6 +3,8 @@ use std::fmt::{self, Display, Formatter};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Tok {
+    /// ' ' or '\n', etc.
+    Whitespace,
     /// '.'
     Access,
     /// '+'
@@ -149,63 +151,31 @@ pub enum Tok {
 
 impl Tok {
     pub fn is_type(&self) -> bool {
-        match self {
-            Tok::Int | Tok::Bool => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_unary_operator(&self) -> bool {
-        match self {
-            Tok::Minus | Tok::Not => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_binary_operator(&self) -> bool {
-        match self {
-            Tok::LessEqual
-            | Tok::Less
-            | Tok::GreaterEqual
-            | Tok::Equal
-            | Tok::Plus
-            | Tok::Minus
-            | Tok::Division
-            | Tok::Multiply
-            | Tok::BitOr
-            | Tok::BitAnd
-            | Tok::Mod
-            | Tok::Power
-            | Tok::Xor => true,
-            _ => false,
-        }
+        matches!(self, Tok::Int | Tok::Bool)
     }
 
     pub fn is_operator(&self) -> bool {
-        match self {
+        matches!(
+            self,
             Tok::LessEqual
-            | Tok::Less
-            | Tok::GreaterEqual
-            | Tok::Equal
-            | Tok::Plus
-            | Tok::Minus
-            | Tok::Division
-            | Tok::Multiply
-            | Tok::BitOr
-            | Tok::BitAnd
-            | Tok::Mod
-            | Tok::Power
-            | Tok::Not
-            | Tok::Xor => true,
-            _ => false,
-        }
+                | Tok::Less
+                | Tok::GreaterEqual
+                | Tok::Equal
+                | Tok::Plus
+                | Tok::Minus
+                | Tok::Division
+                | Tok::Multiply
+                | Tok::BitOr
+                | Tok::BitAnd
+                | Tok::Mod
+                | Tok::Power
+                | Tok::Not
+                | Tok::Xor
+        )
     }
 
     pub fn is_literal(&self) -> bool {
-        match self {
-            Tok::Literal(_) => true,
-            _ => false,
-        }
+        matches!(self, Tok::Literal(_))
     }
 }
 
@@ -214,6 +184,7 @@ impl Into<String> for &Tok {
         let tmp_string;
 
         let s = match self {
+            Tok::Whitespace => " ",
             Tok::Access => ".",
             Tok::Plus => "+",
             Tok::Minus => "-",

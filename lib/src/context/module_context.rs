@@ -1,6 +1,6 @@
 use crate::ast::*;
 use crate::context::ModuleContextScope;
-use crate::parser::{StString, Tok};
+use crate::parser::StString;
 use once_cell::sync::Lazy;
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
@@ -133,27 +133,25 @@ impl Display for PrototypeImpl {
             DeclKind::Fun(fun) => f.write_fmt(format_args!(
                 "{} ({})",
                 proto_name_string(fun.name()),
-                Tok::Function
+                "FUN"
             )),
             DeclKind::Alias(alias) => f.write_fmt(format_args!(
                 "{} ({})",
                 proto_name_string(alias.name()),
-                Tok::Type
+                "TYPE"
             )),
             DeclKind::Struct(s) => f.write_fmt(format_args!(
                 "{} ({})",
                 proto_name_string(s.name()),
-                Tok::Struct
+                "STRUCT"
             )),
-            DeclKind::Enum(e) => f.write_fmt(format_args!(
-                "{} ({})",
-                proto_name_string(e.name()),
-                Tok::Struct
-            )),
+            DeclKind::Enum(e) => {
+                f.write_fmt(format_args!("{} ({})", proto_name_string(e.name()), "ENUM"))
+            }
             DeclKind::GlobalVar(g) => f.write_fmt(format_args!(
                 "{} ({})",
                 proto_name_string(g.name()),
-                Tok::VarGlobal
+                "VAR_GLOBAL"
             )),
         }
     }

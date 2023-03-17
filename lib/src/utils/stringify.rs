@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::parser::{BitValue, LiteralValue, Tok};
+use crate::parser::{BitValue, LiteralValue, Operator, Tok};
 use std::fmt::Arguments;
 use std::io::Write;
 
@@ -222,8 +222,8 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
 
         if operands.len() == 1 {
             match op {
-                Tok::Not => self.write(format_args!("{} ", Tok::Not)),
-                Tok::Minus => self.write(format_args!("{}", Tok::Minus)),
+                Operator::Not => self.write(format_args!("{} ", Tok::Not)),
+                Operator::Minus => self.write(format_args!("{}", Tok::Minus)),
                 _ => panic!("invalid unary operator!"),
             };
 
