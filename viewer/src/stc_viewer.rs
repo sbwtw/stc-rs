@@ -2,7 +2,10 @@ use gtk::builders::TextBufferBuilder;
 use gtk::glib::Type;
 use gtk::prelude::*;
 use gtk::{Button, SearchEntry, TextBuffer, TextView, TreeStore, TreeView, TreeViewColumn};
-use stc::context::UnitsManager;
+use log::info;
+use stc::analysis::TypeAnalyzer;
+use stc::context::{Scope, UnitsManager};
+use stc::utils::write_ast_to_file;
 
 pub const STC_VIEWER_COLUMN_NAME: u32 = 0;
 
@@ -94,5 +97,33 @@ impl StcViewerApp {
                 );
             }
         }
+    }
+
+    pub fn compile(&self) {
+        let app = self.mgr.read().active_application().unwrap();
+        let app_read = app.read();
+        let app_id = app_read.id();
+
+        let mut type_analyzer = TypeAnalyzer::new();
+        for proto in app_read.declarations() {
+            let proto_read = proto.read().unwrap();
+            let proto_id = proto_read.id();
+            let fun = app_read.get_function(proto_read.id());
+
+            if let Some(f) = fun {
+                let mut f = f.write().unwrap();
+
+                let scope = Scope::new(Some(self.mgr.clone()), Some(app_id), Some(proto_id));
+                type_analyzer.analyze_statement(f.body_mut(), scope);
+
+                write_ast_to_file(f.body(), proto_read.name().origin_string());
+
+                info!("{}\n{}", proto_read, f.body());
+            }
+        }
+
+        //
+        // let mut code_gen = CodeGenerator::new(mgr_gen, app.id()).unwrap();
+        // println!("CodeGen: {:?}", code_gen.build_application());
     }
 }

@@ -1,59 +1,27 @@
 mod stc_viewer;
 
 use crate::stc_viewer::{StcViewerApp, STC_VIEWER_COLUMN_NAME};
-use std::cell::RefCell;
 
-use stc::analysis::TypeAnalyzer;
-use stc::ast::Statement;
-use stc::context::{ModuleContext, ModuleContextScope, Scope, UnitsManager};
+use stc::context::{ModuleContext, ModuleContextScope, UnitsManager};
 use stc::parser::{StDeclarationParser, StFunctionParser, StLexer};
-use stc::utils;
 
 use gtk::prelude::*;
 use gtk::{
     Adjustment, Application, ApplicationWindow, CellRendererText, Orientation, Paned,
     ScrolledWindow, WindowPosition, WrapMode,
 };
-use stc::codegen::CodeGenerator;
-use std::fs::OpenOptions;
-use std::process::Command;
 use std::rc::Rc;
-
-fn write_ast_to_file(statement: &Statement, name: &str) {
-    let dot_file_name = format!("{}.dot", name);
-
-    // graphviz
-    // dump dot file
-    {
-        let mut out = OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .open(&dot_file_name)
-            .unwrap();
-
-        let mut graphviz = utils::GraphvizExporter::new(&mut out);
-        graphviz.plot_statement(statement);
-    }
-
-    // convert to svg
-    {
-        Command::new("dot")
-            .args(["-Tsvg", &dot_file_name, "-o", &format!("{}.svg", name)])
-            .status()
-            .expect("write ast to file failed.");
-    }
-}
+use std::sync::Mutex;
 
 fn main() {
     pretty_env_logger::init();
 
     let mgr = UnitsManager::new();
-    let mgr_gen = mgr.clone();
     let mgr_ui_app = mgr.clone();
     let app = ModuleContext::new(ModuleContextScope::Application);
     let app_id = app.read().id();
     mgr.write().add_context(app);
+    mgr.write().set_active_application(Some(app_id));
 
     let app_ctx = mgr.write().get_context(app_id).unwrap();
     let decl = StLexer::new("function test: int VAR a: INT; b: INT; END_VAR end_function");
@@ -71,29 +39,6 @@ fn main() {
     let body = StLexer::new("if a < 全局变量1 then prg.a := 1; else b := 2; end_if");
     let body = StFunctionParser::new().parse(body).unwrap();
     app_ctx.write().add_function(decl_id, body);
-
-    let app = app_ctx.read();
-    let fun = app.get_function(decl_id);
-
-    let mut type_analyzer = TypeAnalyzer::new();
-
-    // analysis declarations
-    // for decl in app.get_declaration_by_id()
-
-    // analysis function
-    if let Some(f) = fun {
-        let mut f = f.write().unwrap();
-
-        let scope = Scope::new(Some(mgr), Some(app_id), Some(decl_id));
-        type_analyzer.analyze_statement(f.body_mut(), scope);
-
-        write_ast_to_file(f.body(), "test");
-
-        println!("{}", f.body());
-    }
-
-    let mut code_gen = CodeGenerator::new(mgr_gen, app.id()).unwrap();
-    println!("CodeGen: {:?}", code_gen.build_application());
 
     let gtk_app = Application::new(None, Default::default());
     gtk_app.connect_activate(move |app| build_ui(app, mgr_ui_app.clone()));
@@ -144,16 +89,22 @@ fn build_ui(app: &Application, mgr: UnitsManager) {
     paned.add(&left_layout);
     paned.add(&right_layout);
 
-    let stc_app = Rc::new(RefCell::new(stc_app));
-    let app = stc_app.clone();
-    stc_app.borrow().refresh_button.connect_clicked(move |_| {
-        let _ = app.try_borrow_mut().map(|x| x.refresh());
-    });
+    let stc_app = Rc::new(Mutex::new(stc_app));
+    let app_copy = stc_app.clone();
+    let app_lock = stc_app.lock().unwrap();
+    app_lock
+        .refresh_button
+        .connect_clicked(move |_| app_copy.lock().unwrap().refresh());
 
-    let app = stc_app.clone();
-    stc_app.borrow().tree_view.connect_cursor_changed(move |_| {
-        let _ = app.try_borrow_mut().map(|x| x.on_cursor_changed());
-    });
+    let app_copy = stc_app.clone();
+    app_lock
+        .compile_button
+        .connect_clicked(move |_| app_copy.lock().unwrap().compile());
+
+    let app_copy = stc_app.clone();
+    app_lock
+        .compile_button
+        .connect_clicked(move |_| app_copy.lock().unwrap().on_cursor_changed());
 
     window.add(&paned);
     window.show_all();
