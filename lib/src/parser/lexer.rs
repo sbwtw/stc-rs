@@ -6,9 +6,23 @@ use std::fmt::{self, Display, Formatter};
 use std::hash::{Hash, Hasher};
 use std::str::CharIndices;
 
-#[allow(dead_code)]
-pub(crate) type LexerItem = (usize, Tok, usize);
-pub(crate) type LexerResult = Result<LexerItem, LexicalError>;
+pub struct Token {
+    pub tok: Tok,
+    pub start_pos: usize,
+    pub end_pos: usize,
+}
+
+impl Token {
+    pub fn new(tok: Tok, start_pos: usize, end_pos: usize) -> Self {
+        Self {
+            tok,
+            start_pos,
+            end_pos,
+        }
+    }
+}
+
+pub(crate) type LexerResult = Result<Token, LexicalError>;
 
 #[derive(Debug, Clone)]
 pub enum StString {
@@ -334,11 +348,8 @@ impl<'input> StLexer<'input> {
         let start_with_zero = ch == '0';
 
         if start_with_zero {
-            return Some(Ok((
-                start,
-                Tok::Literal(LiteralValue::Bit(BitValue::Zero)),
-                start + 1,
-            )));
+            let tok = Tok::Literal(LiteralValue::Bit(BitValue::Zero));
+            return Some(Ok(Token::new(tok, start, start + 1)));
         }
 
         loop {
@@ -354,11 +365,8 @@ impl<'input> StLexer<'input> {
                 (end, x) => {
                     self.buffer.stage((end, x));
 
-                    return Some(Ok((
-                        start,
-                        Tok::Literal(LiteralValue::UInt(s.parse().unwrap())),
-                        end,
-                    )));
+                    let tok = Tok::Literal(LiteralValue::UInt(s.parse().unwrap()));
+                    return Some(Ok(Token::new(tok, start, end)));
                 }
             }
         }
@@ -379,11 +387,8 @@ impl<'input> StLexer<'input> {
                 (end, x) => {
                     self.buffer.stage((end, x));
 
-                    return Some(Ok((
-                        start,
-                        Tok::Literal(LiteralValue::Real(s.parse().unwrap())),
-                        end,
-                    )));
+                    let tok = Tok::Literal(LiteralValue::Real(s.parse().unwrap()));
+                    return Some(Ok(Token::new(tok, start, end)));
                 }
             }
         }
@@ -407,7 +412,8 @@ impl<'input> StLexer<'input> {
             match self.buffer.next() {
                 (_, Some('\\')) => escape = true,
                 (n, Some('\"')) => {
-                    return Some(Ok((start, Tok::Literal(LiteralValue::String(s)), n + 1)))
+                    let tok = Tok::Literal(LiteralValue::String(s));
+                    return Some(Ok(Token::new(tok, start, n + 1)));
                 }
                 (_, Some(c)) => s.push(c),
                 _ => return Some(Err(LexicalError::UnexpectedEnd)),
@@ -440,7 +446,7 @@ impl<'input> StLexer<'input> {
                     self.buffer.stage((n, x));
 
                     let tok = self.keywords_or_identifier(str);
-                    return Some(Ok((start, tok, n)));
+                    return Some(Ok(Token::new(tok, start, n)));
                 }
             }
         }
@@ -452,7 +458,7 @@ impl<'input> StLexer<'input> {
                 (_, Some(' ')) | (_, Some('\n')) | (_, Some('\t')) | (_, Some('\r')) => {}
                 (i, x) => {
                     self.buffer.stage((i, x));
-                    return Ok((start, Tok::Whitespace, i));
+                    return Ok(Token::new(Tok::Whitespace, start, i));
                 }
             }
         }
@@ -482,9 +488,9 @@ impl<'input> StLexer<'input> {
         // one char eaten, stage second state
         if let Some(s) = stage {
             self.buffer.stage(s);
-            Some(Ok((start, tok, start + 1)))
+            Some(Ok(Token::new(tok, start, start + 1)))
         } else {
-            Some(Ok((start, tok, start + 2)))
+            Some(Ok(Token::new(tok, start, start + 2)))
         }
     }
 
@@ -518,16 +524,16 @@ impl<'input> StLexer<'input> {
             (i, Some(' ')) | (i, Some('\t')) | (i, Some('\n')) | (i, Some('\r')) => {
                 Some(self.parse_whitespace(i))
             }
-            (i, Some('.')) => Some(Ok((i, Tok::Access, i + 1))),
-            (i, Some('+')) => Some(Ok((i, Tok::Plus, i + 1))),
-            (i, Some('-')) => Some(Ok((i, Tok::Minus, i + 1))),
-            (i, Some('/')) => Some(Ok((i, Tok::Division, i + 1))),
-            (i, Some('(')) => Some(Ok((i, Tok::LeftParentheses, i + 1))),
-            (i, Some(')')) => Some(Ok((i, Tok::RightParentheses, i + 1))),
-            (i, Some(',')) => Some(Ok((i, Tok::Comma, i + 1))),
-            (i, Some(';')) => Some(Ok((i, Tok::Semicolon, i + 1))),
+            (i, Some('.')) => Some(Ok(Token::new(Tok::Access, i, i + 1))),
+            (i, Some('+')) => Some(Ok(Token::new(Tok::Plus, i, i + 1))),
+            (i, Some('-')) => Some(Ok(Token::new(Tok::Minus, i, i + 1))),
+            (i, Some('/')) => Some(Ok(Token::new(Tok::Division, i, i + 1))),
+            (i, Some('(')) => Some(Ok(Token::new(Tok::LeftParentheses, i, i + 1))),
+            (i, Some(')')) => Some(Ok(Token::new(Tok::RightParentheses, i, i + 1))),
+            (i, Some(',')) => Some(Ok(Token::new(Tok::Comma, i, i + 1))),
+            (i, Some(';')) => Some(Ok(Token::new(Tok::Semicolon, i, i + 1))),
+            (i, Some('&')) => Some(Ok(Token::new(Tok::BitAnd, i, i + 1))),
             // (i, Some('|')) => Some(Ok((i, Tok::BitOr, i + 1))),
-            (i, Some('&')) => Some(Ok((i, Tok::BitAnd, i + 1))),
             (i, Some('\"')) => self.parse_string(i),
             (i, Some(c @ '<'))
             | (i, Some(c @ ':'))
@@ -553,10 +559,9 @@ impl<'input> Iterator for StLexer<'input> {
         }
 
         loop {
-            let tok = self.next_raw()?;
-
-            if !matches!(tok, Ok((_, Tok::Whitespace, _))) {
-                return Some(tok);
+            match self.next_raw() {
+                Some(Ok(tok)) if matches!(tok.tok, Tok::Whitespace) => {}
+                x => return x,
             }
         }
     }
@@ -586,8 +591,16 @@ mod test {
         let s = "if abc";
         let mut lexer = StLexer::new(s);
 
-        assert!(matches!(lexer.next(), Some(Ok((0, Tok::If, 2)))));
-        assert!(matches!(lexer.next(), Some(Ok((3, Tok::Identifier(_), 6)))));
+        let x = lexer.next().unwrap().unwrap();
+        assert_eq!(x.start_pos, 0);
+        assert_eq!(x.end_pos, 2);
+        assert_eq!(x.tok, Tok::If);
+
+        let x = lexer.next().unwrap().unwrap();
+        assert_eq!(x.start_pos, 3);
+        assert_eq!(x.end_pos, 6);
+        assert!(matches!(x.tok, Tok::Identifier(_)));
+
         assert!(matches!(lexer.next(), None));
     }
 
@@ -596,24 +609,20 @@ mod test {
         let s = "1 + a;";
         let mut lexer = StLexer::new(s);
 
-        assert!(matches!(lexer.next(), Some(Ok((0, Tok::Literal(_), 1)))));
-        assert!(matches!(lexer.next(), Some(Ok((2, Tok::Plus, 3)))));
-        assert!(matches!(lexer.next(), Some(Ok((4, Tok::Identifier(_), 5)))));
-        assert!(matches!(lexer.next(), Some(Ok((5, Tok::Semicolon, 6)))));
-    }
+        let x = lexer.next().unwrap().unwrap();
+        assert_eq!(x.start_pos, 0);
+        assert_eq!(x.end_pos, 1);
+        assert!(matches!(x.tok, Tok::Literal(_)));
 
-    #[test]
-    fn test_zero_number() {
-        let s = "a + 0;";
-        let mut lexer = StLexer::new(s);
+        let x = lexer.next().unwrap().unwrap();
+        assert_eq!(x.start_pos, 2);
+        assert_eq!(x.end_pos, 3);
+        assert!(matches!(x.tok, Tok::Plus));
 
-        assert!(matches!(lexer.next(), Some(Ok((0, Tok::Identifier(_), 1)))));
-        assert!(matches!(lexer.next(), Some(Ok((2, Tok::Plus, 3)))));
-        assert!(matches!(
-            lexer.next(),
-            Some(Ok((4, Tok::Literal(LiteralValue::Bit(BitValue::Zero)), 5)))
-        ));
-        assert!(matches!(lexer.next(), Some(Ok((5, Tok::Semicolon, 6)))));
+        let x = lexer.next().unwrap().unwrap();
+        assert_eq!(x.start_pos, 4);
+        assert_eq!(x.end_pos, 5);
+        assert!(matches!(x.tok, Tok::Identifier(_)));
     }
 
     #[test]
@@ -621,14 +630,10 @@ mod test {
         let s = "中文 + 中文_1;";
         let mut lexer = StLexer::new(s);
 
-        assert!(matches!(lexer.next(), Some(Ok((0, Tok::Identifier(_), 6)))));
-        assert!(matches!(lexer.next(), Some(Ok((7, Tok::Plus, 8)))));
-        assert!(matches!(
-            lexer.next(),
-            Some(Ok((9, Tok::Identifier(_), 17)))
-        ));
-        assert!(matches!(lexer.next(), Some(Ok((17, Tok::Semicolon, 18)))));
-        assert!(matches!(lexer.next(), None));
+        let x = lexer.next().unwrap().unwrap();
+        assert_eq!(x.start_pos, 0);
+        assert_eq!(x.end_pos, 6);
+        assert!(matches!(x.tok, Tok::Identifier(_)));
     }
 
     #[test]

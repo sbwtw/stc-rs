@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::parser::{LiteralValue, Tok};
+use crate::parser::LiteralValue;
 use crc::{Crc, Digest, CRC_32_ISO_HDLC};
 use std::cell::RefCell;
 use std::hash::{Hash, Hasher};
@@ -59,12 +59,6 @@ impl MyHash for Box<dyn Type> {
     }
 }
 
-impl MyHash for Tok {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        format!("{}", self).hash(state)
-    }
-}
-
 #[allow(dead_code)]
 pub struct AstHasher<H: Hasher> {
     hasher: H,
@@ -89,24 +83,31 @@ impl<H: Hasher> AstHasher<H> {
 
 #[allow(dead_code)]
 pub struct Crc32Hasher<'a> {
-    digest: RefCell<Option<Digest<'a, u32>>>,
+    digest: RefCell<Digest<'a, u32>>,
 }
 
 impl Crc32Hasher<'_> {
     pub fn new() -> Self {
+        Default::default()
+    }
+}
+
+impl Default for Crc32Hasher<'_> {
+    fn default() -> Self {
         Self {
-            digest: RefCell::new(Some(CRC32.digest())),
+            digest: RefCell::new(CRC32.digest()),
         }
     }
 }
 
 impl Hasher for Crc32Hasher<'_> {
     fn finish(&self) -> u64 {
-        self.digest.take().unwrap().finalize() as u64
+        let digest = self.digest.replace(CRC32.digest());
+        digest.finalize() as u64
     }
 
     fn write(&mut self, bytes: &[u8]) {
-        self.digest.get_mut().as_mut().unwrap().update(bytes)
+        self.digest.get_mut().update(bytes)
     }
 }
 
