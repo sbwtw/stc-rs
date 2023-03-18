@@ -18,7 +18,7 @@ pub struct LuaCode {}
 
 impl Display for LuaCode {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        unimplemented!()
     }
 }
 
@@ -164,7 +164,7 @@ impl AstVisitorMut for LuaBackend {
     fn visit_operator_expression_mut(&mut self, operator: &mut OperatorExpression) {
         trace!("LuaGen: operator expression: {}", operator);
 
-        let op = operator.op().clone();
+        let op = *operator.op();
         let operands = operator.operands_mut();
 
         match op {

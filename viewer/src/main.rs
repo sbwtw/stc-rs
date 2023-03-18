@@ -58,7 +58,12 @@ fn build_ui(app: &Application, mgr: UnitsManager) {
 
     let cell = CellRendererText::new();
     CellLayoutExt::pack_start(&stc_app.tree_column_name, &cell, true);
-    TreeViewColumnExt::add_attribute(&stc_app.tree_column_name, &cell, "text", STC_VIEWER_COLUMN_NAME as i32);
+    TreeViewColumnExt::add_attribute(
+        &stc_app.tree_column_name,
+        &cell,
+        "text",
+        STC_VIEWER_COLUMN_NAME as i32,
+    );
 
     stc_app.tree_view.append_column(&stc_app.tree_column_name);
     stc_app.tree_view.append_column(&stc_app.tree_column_data);
@@ -101,9 +106,11 @@ fn build_ui(app: &Application, mgr: UnitsManager) {
         .connect_clicked(move |_| app_copy.lock().unwrap().compile());
 
     let app_copy = stc_app.clone();
-    app_lock
-        .tree_view
-        .connect_cursor_changed(move |_| app_copy.lock().unwrap().on_cursor_changed());
+    app_lock.tree_view.connect_cursor_changed(move |_| {
+        if let Ok(app) = app_copy.try_lock() {
+            app.on_cursor_changed()
+        }
+    });
 
     window.add(&paned);
     window.show_all();

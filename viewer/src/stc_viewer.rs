@@ -3,7 +3,7 @@ use gtk::prelude::*;
 use gtk::{Button, SearchEntry, TextBuffer, TextView, TreeStore, TreeView, TreeViewColumn};
 use log::info;
 use stc::analysis::TypeAnalyzer;
-use stc::context::{Scope, UnitsManager};
+use stc::context::{Prototype, Scope, UnitsManager};
 use stc::utils::write_ast_to_file;
 
 pub const STC_VIEWER_COLUMN_NAME: u32 = 0;
@@ -126,3 +126,7 @@ impl StcViewerApp {
         // println!("CodeGen: {:?}", code_gen.build_application());
     }
 }
+
+// struct TreeProtoNode {
+//     proto: Prototype,
+// }
