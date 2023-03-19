@@ -111,6 +111,13 @@ impl PrototypeImpl {
         &self.ty
     }
 
+    pub fn is_type_declaration(&self) -> bool {
+        matches!(
+            self.decl.kind,
+            DeclKind::GlobalVar(_) | DeclKind::Alias(_) | DeclKind::Enum(_)
+        )
+    }
+
     #[allow(dead_code)]
     pub fn set_ty(&mut self, ty: Option<Rc<Box<dyn Type>>>) {
         self.ty = ty

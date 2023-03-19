@@ -84,18 +84,21 @@ where
     B: CodeGenBackend,
 {
     pub fn build_application(&mut self) -> Result<(), CodeGenError> {
-        let mut fun_info: Vec<(_, _)> = self
+        let mut decl_info: Vec<(_, _)> = self
             .app
             .read()
             .declarations()
-            .map(|x| x.read().unwrap())
-            .map(|x| (x.id(), format!("{}", x)))
+            .map(|x| (x.read().unwrap().id(), x.clone()))
             .collect();
-        fun_info.sort();
+        decl_info.sort_by_key(|(x, _)| *x);
 
-        for (id, display) in fun_info {
-            info!("generating code for function {} {}", id, display);
-            self.backcend.gen_function(id)?;
+        for (decl_id, proto) in decl_info {
+            let proto = proto.read().unwrap();
+            info!("generating code for function {} {}", decl_id, proto);
+
+            if !proto.is_type_declaration() {
+                self.backcend.gen_function(decl_id)?;
+            }
         }
 
         Ok(())

@@ -28,17 +28,21 @@ fn main() {
     let decl = StDeclarationParser::new().parse(decl).unwrap();
     let decl_id = app_ctx.write().add_declaration(decl);
 
+    let body = StLexer::new("if a < 全局变量1 then prg.a := 1; else b := 2; end_if");
+    let body = StFunctionParser::new().parse(body).unwrap();
+    app_ctx.write().add_function(decl_id, body);
+
     let prg = StLexer::new("program prg: int VAR a: BYTE; END_VAR end_program");
     let prg = StDeclarationParser::new().parse(prg).unwrap();
-    let _prg_id = app_ctx.write().add_declaration(prg);
+    let prg_id = app_ctx.write().add_declaration(prg);
+
+    let body = StLexer::new("if a < 全局变量1 then a := 1; else b := 2; end_if");
+    let body = StFunctionParser::new().parse(body).unwrap();
+    app_ctx.write().add_function(prg_id, body);
 
     let global = StLexer::new("VAR_GLOBAL END_VAR VAR_GLOBAL 全局变量1: REAL; END_VAR");
     let global = StDeclarationParser::new().parse(global).unwrap();
     let _global_id = app_ctx.write().add_declaration(global);
-
-    let body = StLexer::new("if a < 全局变量1 then prg.a := 1; else b := 2; end_if");
-    let body = StFunctionParser::new().parse(body).unwrap();
-    app_ctx.write().add_function(decl_id, body);
 
     let gtk_app = Application::new(None, Default::default());
     gtk_app.connect_activate(move |app| build_ui(app, mgr_ui_app.clone()));

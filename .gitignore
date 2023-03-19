@@ -1,4 +1,5 @@
 /target
 .idea/
 *.h
-test.*
+*.dot
+*.svg

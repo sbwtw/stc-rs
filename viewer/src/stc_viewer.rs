@@ -3,7 +3,8 @@ use gtk::prelude::*;
 use gtk::{Button, SearchEntry, TextBuffer, TextView, TreeStore, TreeView, TreeViewColumn};
 use log::info;
 use stc::analysis::TypeAnalyzer;
-use stc::context::{Prototype, Scope, UnitsManager};
+use stc::codegen::CodeGenerator;
+use stc::context::{Scope, UnitsManager};
 use stc::utils::write_ast_to_file;
 
 pub const STC_VIEWER_COLUMN_NAME: u32 = 0;
@@ -121,9 +122,8 @@ impl StcViewerApp {
             }
         }
 
-        //
-        // let mut code_gen = CodeGenerator::new(mgr_gen, app.id()).unwrap();
-        // println!("CodeGen: {:?}", code_gen.build_application());
+        let mut code_gen = CodeGenerator::new(self.mgr.clone(), app_id).unwrap();
+        println!("CodeGen: {:?}", code_gen.build_application());
     }
 }
 
