@@ -1,3 +1,3 @@
 [workspace]
-members = ["lib", "viewer"]
+members = ["lib", "viewer", "lsp"]
 resolver = "2"

@@ -138,7 +138,7 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
 
         // variable declarations
         let variables = fun.parameters();
-        if variables.len() > 0 {
+        if !variables.is_empty() {
             let mut current_scope = None;
             for v in variables {
                 // new group
@@ -217,7 +217,7 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
             self.write(format_args!("("));
         }
 
-        let op = expr.op().clone();
+        let op = *expr.op();
         let operands = expr.operands();
 
         if operands.len() == 1 {
@@ -277,7 +277,7 @@ mod test {
     use crate::utils::*;
 
     fn parse_string<S: AsRef<str>>(s: S) -> String {
-        let lexer = StLexer::new(s.as_ref());
+        let lexer = StLexerBuilder::new().build(s.as_ref());
         let r = StFunctionParser::new().parse(lexer).unwrap();
 
         let mut buf = vec![];

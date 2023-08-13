@@ -1,10 +1,39 @@
 use crate::ast::*;
-use crate::parser::Tok;
+use crate::parser::{Buffer, StringBuffer, Tok};
 use smallmap::Map;
 use std::cmp::Ordering;
 use std::fmt::{self, Display, Formatter};
 use std::hash::{Hash, Hasher};
-use std::str::CharIndices;
+
+#[derive(Clone)]
+pub struct CaseIgnoredChar(char);
+
+impl PartialEq for CaseIgnoredChar {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.eq_ignore_ascii_case(&other.0)
+    }
+}
+
+impl PartialOrd for CaseIgnoredChar {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if self.0.is_ascii_alphabetic() && self.0.is_ascii_alphabetic() {
+            let x = self.0.to_lowercase();
+            let y = self.0.to_lowercase();
+
+            x.partial_cmp(y)
+        } else {
+            self.0.partial_cmp(&other.0)
+        }
+    }
+}
+
+impl Eq for CaseIgnoredChar {}
+
+impl Ord for CaseIgnoredChar {
+    fn cmp(&self, other: &Self) -> Ordering {
+        todo!()
+    }
+}
 
 pub struct Token {
     pub tok: Tok,
@@ -63,6 +92,17 @@ impl StString {
             Self::Converted(_, converted) => converted,
         }
     }
+
+    pub fn len(&self) -> usize {
+        match &self {
+            Self::Origin(s) => s.len(),
+            Self::Converted(orig, _) => orig.len(),
+        }
+    }
+
+    pub fn chars(&self) -> impl Iterator<Item = CaseIgnoredChar> + '_ {
+        self.string().chars().map(CaseIgnoredChar)
+    }
 }
 
 impl From<&str> for StString {
@@ -87,7 +127,11 @@ impl Eq for StString {}
 
 impl PartialEq<str> for StString {
     fn eq(&self, other: &str) -> bool {
-        other.to_ascii_uppercase().eq(self.string())
+        if self.len() != other.len() {
+            return false;
+        }
+
+        return self.string().eq_ignore_ascii_case(other);
     }
 }
 
@@ -185,37 +229,6 @@ pub enum LexicalError {
     UnexpectedEnd,
 }
 
-struct LexerBuffer<'input> {
-    chars: CharIndices<'input>,
-    len: usize,
-    stage: Option<(usize, Option<char>)>,
-}
-
-impl<'input> LexerBuffer<'input> {
-    pub fn new(input: &'input str) -> Self {
-        Self {
-            chars: input.char_indices(),
-            len: input.len(),
-            stage: None,
-        }
-    }
-
-    pub fn next(&mut self) -> (usize, Option<char>) {
-        if let Some(r) = self.stage.take() {
-            return r;
-        }
-
-        match self.chars.next() {
-            Some((index, ch)) => (index, Some(ch)),
-            _ => (self.len, None),
-        }
-    }
-
-    pub fn stage(&mut self, stage: (usize, Option<char>)) {
-        self.stage = Some(stage);
-    }
-}
-
 #[allow(unused)]
 pub struct StLexerOptions {
     allow_unicode_identifier: bool,
@@ -256,15 +269,10 @@ impl StLexerOptions {
 
         self
     }
-
-    #[allow(unused)]
-    pub fn build(self, input: &str) -> StLexer {
-        StLexer::from_options(self, input)
-    }
 }
 
-pub struct StLexer<'input> {
-    buffer: LexerBuffer<'input>,
+pub struct StLexer<'a> {
+    buffer: Box<dyn Buffer + 'a>,
     keywords: Map<StString, Tok>,
     options: StLexerOptions,
 }
@@ -273,39 +281,37 @@ macro_rules! keywords {
     ($($tok:expr),*) => {{
         let mut keywords = Map::new();
         $(
-            keywords.insert($tok.into(), $tok);
+            let s: StString = $tok.into();
+            keywords.insert(s.clone(), $tok);
         )*
 
         keywords
     }};
 }
 
-impl<'input> StLexer<'input> {
-    fn from_options(options: StLexerOptions, input: &'input str) -> Self {
-        let mut s = Self {
-            buffer: LexerBuffer::new(input),
+pub struct StLexerBuilder {
+    options: StLexerOptions,
+    keywords: Map<StString, Tok>,
+}
+
+impl StLexerBuilder {
+    pub fn new() -> Self {
+        Self {
+            options: StLexerOptions::default(),
             keywords: Map::new(),
-            options,
-        };
-
-        s.initialize();
-
-        s
+        }
+        .init()
     }
 
-    pub fn new(input: &'input str) -> Self {
-        let mut s = Self {
-            buffer: LexerBuffer::new(input),
+    pub fn from_options(opt: StLexerOptions) -> Self {
+        Self {
+            options: opt,
             keywords: Map::new(),
-            options: Default::default(),
-        };
-
-        s.initialize();
-
-        s
+        }
+        .init()
     }
 
-    fn initialize(&mut self) {
+    fn init(mut self) -> Self {
         let keywords = keywords![
             Tok::BitAnd,
             Tok::BitOr,
@@ -341,8 +347,19 @@ impl<'input> StLexer<'input> {
         ];
 
         self.keywords = keywords;
+        self
     }
 
+    pub fn build(self, input: &str) -> StLexer {
+        StLexer {
+            buffer: Box::new(StringBuffer::new(input)),
+            keywords: self.keywords,
+            options: self.options,
+        }
+    }
+}
+
+impl<'input> StLexer<'input> {
     fn parse_number(&mut self, start: usize, ch: char) -> Option<LexerResult> {
         let mut s = String::from(ch);
         let start_with_zero = ch == '0';
@@ -496,6 +513,7 @@ impl<'input> StLexer<'input> {
 
     fn keywords_or_identifier(&mut self, s: String) -> Tok {
         let st_str = s.into();
+
         if let Some(keyword) = self.keywords.get(&st_str) {
             return keyword.clone();
         }
@@ -550,7 +568,7 @@ impl<'input> StLexer<'input> {
     }
 }
 
-impl<'input> Iterator for StLexer<'input> {
+impl Iterator for StLexer<'_> {
     type Item = LexerResult;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -589,7 +607,7 @@ mod test {
     #[test]
     fn test_st_keywords() {
         let s = "if abc";
-        let mut lexer = StLexer::new(s);
+        let mut lexer = StLexerBuilder::new().build(s);
 
         let x = lexer.next().unwrap().unwrap();
         assert_eq!(x.start_pos, 0);
@@ -607,7 +625,7 @@ mod test {
     #[test]
     fn test_identifier_semicolon() {
         let s = "1 + a;";
-        let mut lexer = StLexer::new(s);
+        let mut lexer = StLexerBuilder::new().build(s);
 
         let x = lexer.next().unwrap().unwrap();
         assert_eq!(x.start_pos, 0);
@@ -628,7 +646,7 @@ mod test {
     #[test]
     fn test_unicode_identifier() {
         let s = "中文 + 中文_1;";
-        let mut lexer = StLexer::new(s);
+        let mut lexer = StLexerBuilder::new().build(s);
 
         let x = lexer.next().unwrap().unwrap();
         assert_eq!(x.start_pos, 0);
@@ -639,14 +657,13 @@ mod test {
     #[test]
     fn test_multiple_underline() {
         let s = "a__b";
-        let mut lexer = StLexer::new(s);
+        let mut lexer = StLexerBuilder::new().build(s);
 
         assert!(matches!(lexer.next(), Some(Err(_))));
 
         let s = "a__b";
-        let mut lexer = StLexerOptions::default()
-            .allow_multiple_underline(true)
-            .build(s);
+        let lexer_opt = StLexerOptions::default().allow_multiple_underline(true);
+        lexer = StLexerBuilder::from_options(lexer_opt).build(s);
 
         assert!(matches!(lexer.next(), Some(Ok(_))));
     }

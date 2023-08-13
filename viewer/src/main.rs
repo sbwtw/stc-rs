@@ -3,7 +3,7 @@ mod stc_viewer;
 use crate::stc_viewer::{StcViewerApp, STC_VIEWER_COLUMN_NAME};
 
 use stc::context::{ModuleContext, ModuleContextScope, UnitsManager};
-use stc::parser::{StDeclarationParser, StFunctionParser, StLexer};
+use stc::parser::{StDeclarationParser, StFunctionParser, StLexerBuilder};
 
 use gtk::prelude::*;
 use gtk::{
@@ -24,23 +24,25 @@ fn main() {
     mgr.write().set_active_application(Some(app_id));
 
     let app_ctx = mgr.write().get_context(app_id).unwrap();
-    let decl = StLexer::new("function test: int VAR a: INT; b: INT; END_VAR end_function");
+    let decl =
+        StLexerBuilder::new().build("function test: int VAR a: INT; b: INT; END_VAR end_function");
     let decl = StDeclarationParser::new().parse(decl).unwrap();
     let decl_id = app_ctx.write().add_declaration(decl);
 
-    let body = StLexer::new("if a < 全局变量1 then prg.a := 1; else b := 2; end_if");
+    let body = StLexerBuilder::new().build("if a < 全局变量1 then prg.a := 1; else b := 2; end_if");
     let body = StFunctionParser::new().parse(body).unwrap();
     app_ctx.write().add_function(decl_id, body);
 
-    let prg = StLexer::new("program prg: int VAR a: BYTE; END_VAR end_program");
+    let prg = StLexerBuilder::new().build("program prg: int VAR a: BYTE; END_VAR end_program");
     let prg = StDeclarationParser::new().parse(prg).unwrap();
     let prg_id = app_ctx.write().add_declaration(prg);
 
-    let body = StLexer::new("if a < 全局变量1 then a := 1; else b := 2; end_if");
+    let body = StLexerBuilder::new().build("if a < 全局变量1 then a := 1; else b := 2; end_if");
     let body = StFunctionParser::new().parse(body).unwrap();
     app_ctx.write().add_function(prg_id, body);
 
-    let global = StLexer::new("VAR_GLOBAL END_VAR VAR_GLOBAL 全局变量1: REAL; END_VAR");
+    let global =
+        StLexerBuilder::new().build("VAR_GLOBAL END_VAR VAR_GLOBAL 全局变量1: REAL; END_VAR");
     let global = StDeclarationParser::new().parse(global).unwrap();
     let _global_id = app_ctx.write().add_declaration(global);
 

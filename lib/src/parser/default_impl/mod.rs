@@ -109,9 +109,14 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     /// parse a declaration
     #[allow(unused)]
     fn parse_declaration(&mut self) -> Result<Declaration, ParseError> {
-        match self.except_one_of(&[Tok::Type, Tok::Function, Tok::Program, Tok::VarGlobal])? {
+        match self.except_one_of(&[
+            TokenType::Type,
+            TokenType::Function,
+            TokenType::Program,
+            TokenType::VarGlobal,
+        ])? {
             // pure global variables declare
-            Tok::VarGlobal => {
+            TokenType::VarGlobal => {
                 let global_vars = self
                     .parse_global_variable_declare_factor()?
                     .unwrap_or(smallvec![]);
@@ -121,21 +126,21 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             }
 
             // type declare
-            Tok::Type => {
+            TokenType::Type => {
                 let type_decl = self.parse_type_declaration()?;
                 if type_decl.is_none() {
                     todo!()
                 }
 
-                let _ = self.except_one_of(&[Tok::EndType])?;
+                let _ = self.except_one_of(&[TokenType::EndType])?;
                 Ok(type_decl.unwrap())
             }
 
             // functions declare
-            tok @ Tok::Function | tok @ Tok::Program => {
+            tok @ TokenType::Function | tok @ TokenType::Program => {
                 // name ':'
                 let name = self.except_identifier()?;
-                let _ = self.except_one_of(&[Tok::Colon])?;
+                let _ = self.except_one_of(&[TokenType::Colon])?;
 
                 // match possible return type
                 let ret_type = self.parse_type()?;
@@ -144,11 +149,11 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
                 let vars = self.parse_variable_declare_factor()?;
 
                 // type class
-                let class = if matches!(tok, &Tok::Function) {
-                    let _ = self.except_one_of(&[Tok::EndFunction])?;
+                let class = if matches!(tok, &TokenType::Function) {
+                    let _ = self.except_one_of(&[TokenType::EndFunction])?;
                     DeclareClass::Function
                 } else {
-                    let _ = self.except_one_of(&[Tok::EndProgram])?;
+                    let _ = self.except_one_of(&[TokenType::EndProgram])?;
                     DeclareClass::Program
                 };
 
@@ -165,12 +170,12 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
     fn except_identifier(&mut self) -> Result<StString, ParseError> {
         match &*self.next_token()? {
-            (_, Tok::Identifier(ident), _) => Ok(ident.clone()),
+            (_, TokenType::Identifier(ident), _) => Ok(ident.clone()),
             (pos, _, _) => Err(ParseError::InvalidToken(*pos)),
         }
     }
 
-    fn except_one_of<'a>(&mut self, tokens: &'a [Tok]) -> Result<&'a Tok, ParseError> {
+    fn except_one_of<'a>(&mut self, tokens: &'a [TokenType]) -> Result<&'a TokenType, ParseError> {
         let (pos, token, _) = &*self.next_token()?;
         for tok in tokens {
             if tok == token {
@@ -185,9 +190,9 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let pos = self.next;
 
         match &*self.next_token()? {
-            (_, Tok::Int, _) => Ok(Some(Rc::new(Box::new(IntType::new())))),
-            (_, Tok::Bool, _) => Ok(Some(Rc::new(Box::new(BoolType::new())))),
-            (_, Tok::Identifier(name), _) => {
+            (_, TokenType::Int, _) => Ok(Some(Rc::new(Box::new(IntType::new())))),
+            (_, TokenType::Bool, _) => Ok(Some(Rc::new(Box::new(BoolType::new())))),
+            (_, TokenType::Identifier(name), _) => {
                 Ok(Some(Rc::new(Box::new(UserType::from_name(name.clone())))))
             }
             _ => {
@@ -200,13 +205,13 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     /// TypeDeclaration: Enum/Alias/Struct
     fn parse_type_declaration(&mut self) -> ParseResult<Declaration> {
         let name = self.except_identifier()?;
-        let _ = self.except_one_of(&[Tok::Colon])?;
+        let _ = self.except_one_of(&[TokenType::Colon])?;
 
         let pos = self.next;
         // alias decl
         if let Some(alias) = self.parse_type()? {
             // ';'
-            let _ = self.except_one_of(&[Tok::Semicolon])?;
+            let _ = self.except_one_of(&[TokenType::Semicolon])?;
 
             return Ok(Some(Declaration::alias(Box::new(AliasDeclare::new(
                 name, alias,
@@ -217,7 +222,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         // enum decl
         let tok = self.next_token()?;
-        if matches!(&*tok, (_, Tok::LeftParentheses, _)) {
+        if matches!(&*tok, (_, TokenType::LeftParentheses, _)) {
             let mut fields = smallvec![];
 
             // first field
@@ -227,7 +232,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
                 // possible ',' and next field
                 loop {
                     let pos = self.next;
-                    if !matches!(&*self.next_token()?, (_, Tok::Comma, _)) {
+                    if !matches!(&*self.next_token()?, (_, TokenType::Comma, _)) {
                         self.next = pos;
                         break;
                     }
@@ -241,11 +246,11 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             }
 
             // ')'
-            let _ = self.except_one_of(&[Tok::RightParentheses])?;
+            let _ = self.except_one_of(&[TokenType::RightParentheses])?;
             // possible enum type
             let enum_ty = self.parse_type()?;
             // ';'
-            let _ = self.except_one_of(&[Tok::Semicolon])?;
+            let _ = self.except_one_of(&[TokenType::Semicolon])?;
 
             return Ok(Some(Declaration::enum_(Box::new(EnumDeclare::new(
                 name, enum_ty, fields,
@@ -253,9 +258,9 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         }
 
         // struct decl
-        if matches!(&*tok, (_, Tok::Struct, _)) {
+        if matches!(&*tok, (_, TokenType::Struct, _)) {
             let fields = self.except_variable_declare_list()?;
-            let _ = self.except_one_of(&[Tok::EndStruct])?;
+            let _ = self.except_one_of(&[TokenType::EndStruct])?;
 
             return Ok(Some(Declaration::struct_(Box::new(StructDeclare::new(
                 name, fields,
@@ -269,9 +274,9 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let field_name = self.except_identifier()?;
         let pos = self.next;
 
-        if matches!(&*self.next_token()?, (_, Tok::Assign, _)) {
+        if matches!(&*self.next_token()?, (_, TokenType::Assign, _)) {
             match &*self.next_token()? {
-                (_, Tok::Literal(literal), _) => {
+                (_, TokenType::Literal(literal), _) => {
                     return Ok(Some(Rc::new(Variable::with_initial(
                         field_name,
                         Some(Box::new(Expression::literal(Box::new(
@@ -300,14 +305,14 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let pos = self.next;
         let tok = self.next()?;
 
-        if !matches!(tok.as_deref(), Some((_, Tok::VarGlobal, _))) {
+        if !matches!(tok.as_deref(), Some((_, TokenType::VarGlobal, _))) {
             self.next = pos;
             return Ok(None);
         }
 
         let annotation = self.parse_variable_declare_group_annotation()?;
         let var_list = self.except_variable_declare_list()?;
-        let _ = self.except_one_of(&[Tok::EndVar])?;
+        let _ = self.except_one_of(&[TokenType::EndVar])?;
 
         Ok(Some(VariableDeclareGroup::from_variables(
             VariableFlags::GLOBAL | annotation.unwrap_or(VariableFlags::NONE),
@@ -335,7 +340,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         };
         let annotation = self.parse_variable_declare_group_annotation()?;
         let var_list = self.except_variable_declare_list()?;
-        let _ = self.except_one_of(&[Tok::EndVar])?;
+        let _ = self.except_one_of(&[TokenType::EndVar])?;
 
         Ok(Some(VariableDeclareGroup::from_variables(
             group_type | annotation.unwrap_or(VariableFlags::NONE),
@@ -345,13 +350,13 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
     fn parse_variable_group_start(&mut self) -> ParseResult<VariableFlags> {
         let x = match &*self.next_token()? {
-            (_, Tok::Var, _) => VariableFlags::NONE,
+            (_, TokenType::Var, _) => VariableFlags::NONE,
             // (_, Tok::VarGlobal, _) => VariableFlags::GLOBAL,
-            (_, Tok::VarInput, _) => VariableFlags::INPUT,
-            (_, Tok::VarInOut, _) => VariableFlags::INOUT,
-            (_, Tok::VarOutput, _) => VariableFlags::OUTPUT,
-            (_, Tok::VarTemp, _) => VariableFlags::TEMP,
-            (_, Tok::VarStat, _) => VariableFlags::STATIC,
+            (_, TokenType::VarInput, _) => VariableFlags::INPUT,
+            (_, TokenType::VarInOut, _) => VariableFlags::INOUT,
+            (_, TokenType::VarOutput, _) => VariableFlags::OUTPUT,
+            (_, TokenType::VarTemp, _) => VariableFlags::TEMP,
+            (_, TokenType::VarStat, _) => VariableFlags::STATIC,
             _ => return Ok(None),
         };
 
@@ -361,8 +366,8 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     fn parse_variable_declare_group_annotation(&mut self) -> ParseResult<VariableFlags> {
         let pos = self.next;
         let x = match (&*self.next_token()?).1 {
-            Tok::Retain => VariableFlags::RETAIN,
-            Tok::Persistent => VariableFlags::PERSISTENT,
+            TokenType::Retain => VariableFlags::RETAIN,
+            TokenType::Persistent => VariableFlags::PERSISTENT,
             _ => {
                 self.next = pos;
                 return Ok(None);
@@ -371,8 +376,10 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         let pos = self.next;
         let y = match (x, &*self.next_token()?) {
-            (VariableFlags::RETAIN, (_, Tok::Persistent, _))
-            | (VariableFlags::PERSISTENT, (_, Tok::Retain, _)) => VariableFlags::RETAINPERSISTENT,
+            (VariableFlags::RETAIN, (_, TokenType::Persistent, _))
+            | (VariableFlags::PERSISTENT, (_, TokenType::Retain, _)) => {
+                VariableFlags::RETAINPERSISTENT
+            }
             _ => {
                 self.next = pos;
                 x
@@ -395,7 +402,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     fn expect_single_line_variable_declare(&mut self) -> ParseResult<SmallVec8<Rc<Variable>>> {
         let pos = self.next;
         let mut name_list = match &*self.next_token()? {
-            (_, Tok::Identifier(s), _) => smallvec![s.to_owned()],
+            (_, TokenType::Identifier(s), _) => smallvec![s.to_owned()],
             _ => {
                 self.next = pos;
                 return Ok(None);
@@ -404,7 +411,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         loop {
             let pos = self.next;
-            if !matches!(&*self.next_token()?, (_, Tok::Comma, _)) {
+            if !matches!(&*self.next_token()?, (_, TokenType::Comma, _)) {
                 self.next = pos;
                 break;
             }
@@ -412,13 +419,13 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             name_list.push(self.except_identifier()?);
         }
 
-        let _ = self.except_one_of(&[Tok::Colon])?;
+        let _ = self.except_one_of(&[TokenType::Colon])?;
         let ty = match self.parse_type()? {
             Some(ty) => ty,
             // TODO: expect type
             _ => return Err(ParseError::UnexpectedEnd),
         };
-        let _ = self.except_one_of(&[Tok::Semicolon])?;
+        let _ = self.except_one_of(&[TokenType::Semicolon])?;
 
         Ok(Some(Variable::multiple_variable_with_type(name_list, ty)))
     }
@@ -447,7 +454,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let tok = self.next()?;
 
         // IF statement
-        if matches!(tok.as_deref(), Some((_, Tok::If, _))) {
+        if matches!(tok.as_deref(), Some((_, TokenType::If, _))) {
             let if_stmt = self.expect_if_statement()?;
             return Ok(Some(if_stmt));
         }
@@ -490,7 +497,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             _ => return Err(ParseError::UnexpectedEnd),
         };
 
-        let _ = self.except_one_of(&[Tok::Then])?;
+        let _ = self.except_one_of(&[TokenType::Then])?;
 
         let then_ctrl = match self.parse_statement_list()? {
             Some(stmts) => stmts,
@@ -501,19 +508,19 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let pos = self.next;
         match &*self.next_token()? {
             // IF .. THEN .. END_IF
-            (_, Tok::EndIf, _) => {
+            (_, TokenType::EndIf, _) => {
                 return Ok(Statement::if_stmt(Box::new(IfStatement::from_then(
                     cond, then_ctrl,
                 ))));
             }
             // IF .. THEN .. ELSE .. END_IF
-            (_, Tok::Else, _) => {
+            (_, TokenType::Else, _) => {
                 let else_ctrl = match self.parse_statement_list()? {
                     Some(stmts) => stmts,
                     // TODO: error type
                     _ => return Err(ParseError::UnexpectedEnd),
                 };
-                let _ = self.except_one_of(&[Tok::EndIf])?;
+                let _ = self.except_one_of(&[TokenType::EndIf])?;
 
                 return Ok(Statement::if_stmt(Box::new(IfStatement::from_then_else(
                     cond, then_ctrl, else_ctrl,
@@ -542,7 +549,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             }
         };
 
-        if !matches!(self.next()?.as_deref(), Some((_, Tok::Semicolon, _))) {
+        if !matches!(self.next()?.as_deref(), Some((_, TokenType::Semicolon, _))) {
             self.next = pos;
             return Ok(None);
         }
@@ -576,7 +583,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     /// expr': ":=" BitOrExpr expr' | ε
     fn parse_expression_fix(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
-        if !matches!(self.next()?.as_deref(), Some((_, Tok::Assign, _))) {
+        if !matches!(self.next()?.as_deref(), Some((_, TokenType::Assign, _))) {
             self.next = pos;
             return Ok(None);
         }
@@ -605,7 +612,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         if let Some(bitor) = self.parse_xor_expression()? {
             if let Some(fix) = self.parse_bitor_expression_fix()? {
                 Ok(Some(Expression::operator(Box::new(
-                    OperatorExpression::new(Tok::BitOr, vec![bitor, fix]),
+                    OperatorExpression::new(TokenType::BitOr, vec![bitor, fix]),
                 ))))
             } else {
                 Ok(Some(bitor))
@@ -618,7 +625,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
     fn parse_bitor_expression_fix(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
-        if !matches!(self.next()?.as_deref(), Some((_, Tok::BitOr, _))) {
+        if !matches!(self.next()?.as_deref(), Some((_, TokenType::BitOr, _))) {
             self.next = pos;
             return Ok(None);
         }
@@ -637,7 +644,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         match self.parse_bitand_expression()? {
             Some(bitand) => match self.parse_xor_expression_fix()? {
                 Some(fix) => Ok(Some(Expression::operator(Box::new(
-                    OperatorExpression::new(Tok::Xor, vec![bitand, fix]),
+                    OperatorExpression::new(TokenType::Xor, vec![bitand, fix]),
                 )))),
                 None => Ok(Some(bitand)),
             },
@@ -650,7 +657,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
     fn parse_xor_expression_fix(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
-        if !matches!(self.next()?.as_deref(), Some((_, Tok::Xor, _))) {
+        if !matches!(self.next()?.as_deref(), Some((_, TokenType::Xor, _))) {
             self.next = pos;
             return Ok(None);
         }
@@ -669,7 +676,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         match self.parse_equ_expr()? {
             Some(equ) => match self.parse_bitand_expression_fix()? {
                 Some(fix) => Ok(Some(Expression::operator(Box::new(
-                    OperatorExpression::new(Tok::BitAnd, vec![equ, fix]),
+                    OperatorExpression::new(TokenType::BitAnd, vec![equ, fix]),
                 )))),
                 None => Ok(Some(equ)),
             },
@@ -682,7 +689,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
     fn parse_bitand_expression_fix(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
-        if !matches!(self.next()?.as_deref(), Some((_, Tok::BitAnd, _))) {
+        if !matches!(self.next()?.as_deref(), Some((_, TokenType::BitAnd, _))) {
             self.next = pos;
             return Ok(None);
         }
@@ -712,7 +719,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     /// equexpr': EquOp CmpExpr equexpr' | ε
-    fn parse_equ_expr_fix(&mut self) -> ParseResult<(Tok, Expression)> {
+    fn parse_equ_expr_fix(&mut self) -> ParseResult<(TokenType, Expression)> {
         let pos = self.next;
 
         let current_tok = match self.parse_equ_op()? {
@@ -747,11 +754,11 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         }
     }
 
-    fn parse_equ_op(&mut self) -> ParseResult<Tok> {
+    fn parse_equ_op(&mut self) -> ParseResult<TokenType> {
         let pos = self.next;
 
         match self.next()?.as_deref() {
-            Some((_, tok @ Tok::Equal, _)) | Some((_, tok @ Tok::NotEqual, _)) => {
+            Some((_, tok @ TokenType::Equal, _)) | Some((_, tok @ TokenType::NotEqual, _)) => {
                 Ok(Some(tok.clone()))
             }
             _ => {
@@ -783,7 +790,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     /// cmpexpr': CmpOp OpExpr cmpexpr' | ε
-    fn parse_cmp_expr_fix(&mut self) -> ParseResult<(Tok, Expression)> {
+    fn parse_cmp_expr_fix(&mut self) -> ParseResult<(TokenType, Expression)> {
         let pos = self.next;
 
         let current_tok = match self.parse_cmp_op()? {
@@ -818,14 +825,14 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         }
     }
 
-    fn parse_cmp_op(&mut self) -> ParseResult<Tok> {
+    fn parse_cmp_op(&mut self) -> ParseResult<TokenType> {
         let pos = self.next;
 
         match self.next()?.as_deref() {
-            Some((_, tok @ Tok::Greater, _))
-            | Some((_, tok @ Tok::GreaterEqual, _))
-            | Some((_, tok @ Tok::Less, _))
-            | Some((_, tok @ Tok::LessEqual, _)) => Ok(Some(tok.clone())),
+            Some((_, tok @ TokenType::Greater, _))
+            | Some((_, tok @ TokenType::GreaterEqual, _))
+            | Some((_, tok @ TokenType::Less, _))
+            | Some((_, tok @ TokenType::LessEqual, _)) => Ok(Some(tok.clone())),
             _ => {
                 self.next = pos;
                 Ok(None)
@@ -855,7 +862,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     /// opexpr': ExprOp Factor opexpr' | ε
-    fn parse_op_expr_fix(&mut self) -> ParseResult<(Tok, Expression)> {
+    fn parse_op_expr_fix(&mut self) -> ParseResult<(TokenType, Expression)> {
         let pos = self.next;
 
         let current_tok = match self.parse_expr_op()? {
@@ -886,11 +893,13 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     // + / -
-    fn parse_expr_op(&mut self) -> ParseResult<Tok> {
+    fn parse_expr_op(&mut self) -> ParseResult<TokenType> {
         let pos = self.next;
 
         match self.next()?.as_deref() {
-            Some((_, tok @ Tok::Plus, _)) | Some((_, tok @ Tok::Minus, _)) => Ok(Some(tok.clone())),
+            Some((_, tok @ TokenType::Plus, _)) | Some((_, tok @ TokenType::Minus, _)) => {
+                Ok(Some(tok.clone()))
+            }
             _ => {
                 self.next = pos;
                 Ok(None)
@@ -920,7 +929,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     /// factor': FactorOp PowerExpr factor' | ε
-    fn parse_factor_fix(&mut self) -> ParseResult<(Tok, Expression)> {
+    fn parse_factor_fix(&mut self) -> ParseResult<(TokenType, Expression)> {
         let pos = self.next;
 
         let current_tok = match self.parse_factor_op()? {
@@ -951,13 +960,13 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     // '*' '/' 'MOD'
-    fn parse_factor_op(&mut self) -> ParseResult<Tok> {
+    fn parse_factor_op(&mut self) -> ParseResult<TokenType> {
         let pos = self.next;
 
         match self.next()?.as_deref() {
-            Some((_, tok @ Tok::Multiply, _))
-            | Some((_, tok @ Tok::Division, _))
-            | Some((_, tok @ Tok::Mod, _)) => Ok(Some(tok.clone())),
+            Some((_, tok @ TokenType::Multiply, _))
+            | Some((_, tok @ TokenType::Division, _))
+            | Some((_, tok @ TokenType::Mod, _)) => Ok(Some(tok.clone())),
             _ => {
                 self.next = pos;
                 Ok(None)
@@ -975,7 +984,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         match self.parse_unary_factor()? {
             Some(unary) => match self.parse_power_expr_fix()? {
                 Some(fix) => Ok(Some(Expression::operator(Box::new(
-                    OperatorExpression::new(Tok::Power, vec![unary, fix]),
+                    OperatorExpression::new(TokenType::Power, vec![unary, fix]),
                 )))),
                 None => Ok(Some(unary)),
             },
@@ -990,7 +999,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     fn parse_power_expr_fix(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
 
-        if !matches!(self.next()?.as_deref(), Some((_, Tok::Power, _))) {
+        if !matches!(self.next()?.as_deref(), Some((_, TokenType::Power, _))) {
             self.next = pos;
             return Ok(None);
         }
@@ -1006,7 +1015,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let pos = self.next;
         if let Some(fix) = self.parse_power_expr_fix()? {
             let tail = Expression::operator(Box::new(OperatorExpression::new(
-                Tok::Power,
+                TokenType::Power,
                 vec![unary, fix],
             )));
             Ok(Some(tail))
@@ -1036,11 +1045,13 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     // '-' 'NOT'
-    fn parse_unary_op(&mut self) -> ParseResult<Tok> {
+    fn parse_unary_op(&mut self) -> ParseResult<TokenType> {
         let pos = self.next;
 
         match self.next()?.as_deref() {
-            Some((_, tok @ Tok::Not, _)) | Some((_, tok @ Tok::Minus, _)) => Ok(Some(tok.clone())),
+            Some((_, tok @ TokenType::Not, _)) | Some((_, tok @ TokenType::Minus, _)) => {
+                Ok(Some(tok.clone()))
+            }
             _ => {
                 self.next = pos;
                 Ok(None)
@@ -1073,7 +1084,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     fn parse_compo_factor_fix(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
 
-        if !matches!(self.next()?.as_deref(), Some((_, Tok::Access, _))) {
+        if !matches!(self.next()?.as_deref(), Some((_, TokenType::Access, _))) {
             self.next = pos;
             return Ok(None);
         }
@@ -1091,9 +1102,12 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         }
 
         let pos = self.next;
-        if matches!(self.next()?.as_deref(), Some((_, Tok::LeftParentheses, _))) {
+        if matches!(
+            self.next()?.as_deref(),
+            Some((_, TokenType::LeftParentheses, _))
+        ) {
             if let Some(expr) = self.parse_expression()? {
-                let _ = self.except_one_of(&[Tok::RightParentheses])?;
+                let _ = self.except_one_of(&[TokenType::RightParentheses])?;
                 return Ok(Some(expr));
             }
         }
@@ -1106,7 +1120,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let pos = self.next;
 
         match self.next()?.as_deref() {
-            Some((_, Tok::Literal(val), _)) => {
+            Some((_, TokenType::Literal(val), _)) => {
                 return Ok(Some(Expression::literal(Box::new(LiteralExpression::new(
                     val.clone(),
                 )))))
@@ -1122,7 +1136,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let pos = self.next;
 
         let ident = match self.next()?.as_deref() {
-            Some((_, Tok::Identifier(ident), _)) => ident.clone(),
+            Some((_, TokenType::Identifier(ident), _)) => ident.clone(),
             _ => {
                 self.next = pos;
                 return Ok(None);

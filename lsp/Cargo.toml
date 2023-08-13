@@ -1,0 +1,9 @@
+[package]
+name = "lsp"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+stc-rs = { path = "../lib" }
+pretty_env_logger = "*"
+log = "*"

@@ -1,3 +1,6 @@
+mod buffer;
+pub use buffer::*;
+
 mod lexer;
 pub use lexer::*;
 
@@ -32,7 +35,7 @@ impl From<lalrpop_util::ParseError<usize, Tok, LexicalError>> for ParseError {
             lalrpop_util::ParseError::InvalidToken { location: loc } => {
                 ParseError::InvalidToken(loc)
             }
-            lalrpop_util::ParseError::UnrecognizedEOF {
+            lalrpop_util::ParseError::UnrecognizedEof {
                 location: _,
                 expected: _,
             } => ParseError::UnexpectedEnd,

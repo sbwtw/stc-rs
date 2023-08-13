@@ -1,4 +1,4 @@
-use crate::parser::{self, StLexer};
+use crate::parser::{self, StLexerBuilder};
 use std::fs;
 
 #[test]
@@ -9,7 +9,7 @@ fn test_decl_parse() {
         let f = entry.unwrap().path();
         let code = fs::read_to_string(&f).unwrap();
 
-        let lexer = StLexer::new(&code);
+        let lexer = StLexerBuilder::new().build(&code);
         match parser.parse(lexer) {
             Ok(_) => {}
             Err(e) => panic!("{}: {:?}", f.display(), e),
