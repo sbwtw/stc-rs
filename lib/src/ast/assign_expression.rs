@@ -3,9 +3,22 @@ use crate::{impl_ast_display, impl_into_expression};
 use std::rc::Rc;
 
 #[derive(Debug)]
+pub enum AssignType {
+    /// :=
+    Assign,
+    /// =>
+    AssignRight,
+    /// S=
+    Set,
+    /// R=
+    Reset,
+}
+
+#[derive(Debug)]
 pub struct AssignExpression {
     left: Expression,
     right: Expression,
+    assign_type: AssignType,
     ty: Option<Rc<Box<dyn Type>>>,
 }
 
@@ -17,6 +30,16 @@ impl AssignExpression {
         Self {
             left: lhs,
             right: rhs,
+            assign_type: AssignType::Assign,
+            ty: None,
+        }
+    }
+
+    pub fn with_type(lhs: Expression, rhs: Expression, aty: AssignType) -> Self {
+        Self {
+            left: lhs,
+            right: rhs,
+            assign_type: aty,
             ty: None,
         }
     }

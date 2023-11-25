@@ -667,4 +667,15 @@ mod test {
 
         assert!(matches!(lexer.next(), Some(Ok(_))));
     }
+
+    #[test]
+    fn test_out_assign() {
+        let s = "=>";
+        let mut lexer = StLexerBuilder::new().build(s);
+
+        assert!(matches!(
+            lexer.next().unwrap().unwrap().tok,
+            Tok::AssignRight
+        ));
+    }
 }

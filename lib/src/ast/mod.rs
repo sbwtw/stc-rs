@@ -35,7 +35,7 @@ mod variable;
 pub use variable::{Variable, VariableDeclareGroup};
 
 mod assign_expression;
-pub use assign_expression::AssignExpression;
+pub use assign_expression::{AssignExpression, AssignType};
 
 mod compo_access_expression;
 pub use compo_access_expression::CompoAccessExpression;

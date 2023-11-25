@@ -21,6 +21,7 @@ extern {
         "," => Tok::Comma,
         ";" => Tok::Semicolon,
         ":=" => Tok::Assign,
+        "=>" => Tok::AssignRight,
         ":" => Tok::Colon,
         "=" => Tok::Equal,
         "<>" => Tok::NotEqual,
@@ -133,6 +134,7 @@ VarExpr: Expression = {
 
 AssignExpr: AssignExpression = {
     <lhs: Expr> ":=" <rhs: BitOrExpr> => AssignExpression::new(<>),
+    <lhs: Expr> "=>" <rhs: BitOrExpr> => AssignExpression::with_type(<>, AssignType::AssignRight),
 }
 
 CallExpr: CallExpression = {

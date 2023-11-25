@@ -60,4 +60,11 @@ impl Expression {
             kind: ExprKind::Compo(compo),
         }
     }
+
+    pub fn get_variable_expression(&self) -> Option<&VariableExpression> {
+        match &self.kind {
+            ExprKind::Variable(var) => Some(var),
+            _ => None,
+        }
+    }
 }

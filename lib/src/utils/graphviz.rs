@@ -214,7 +214,7 @@ impl<W: Write> GraphvizExporter<W> {
 }
 
 fn display_type(ty: Option<Rc<Box<dyn Type>>>) -> String {
-    ty.map(|x| x.to_string()).unwrap_or(String::new())
+    ty.map(|x| x.to_string()).unwrap_or_default()
 }
 
 impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
@@ -242,6 +242,14 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
 
         if let Some(top) = self.top_mut() {
             top.node_name = name;
+        }
+    }
+
+    fn visit_call_expression(&mut self, call: &'_ CallExpression) {
+        let callee = call.callee().to_string();
+
+        if let Some(top) = self.top_mut() {
+            top.node_name = callee;
         }
     }
 
@@ -278,7 +286,7 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
         self.write_node(
             &name,
             GraphvizLabelGroup::from_name("ExprStatement").append_group(
-                GraphvizLabelGroup::from_name(graphviz_escape(&stmt.to_string())),
+                GraphvizLabelGroup::from_name(graphviz_escape(&stmt.expr().to_string())),
             ),
         );
         self.connect(&name, attr.node_name);
