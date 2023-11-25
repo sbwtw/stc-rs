@@ -1,15 +1,13 @@
 mod stc_viewer;
 
 use crate::stc_viewer::{StcViewerApp, STC_VIEWER_COLUMN_NAME};
-
-use stc::context::{ModuleContext, ModuleContextScope, UnitsManager};
-use stc::parser::{StDeclarationParser, StFunctionParser, StLexerBuilder};
-
 use gtk::prelude::*;
 use gtk::{
     Adjustment, Application, ApplicationWindow, CellRendererText, Orientation, Paned,
     ScrolledWindow, WindowPosition, WrapMode,
 };
+use stc::parser::{StDeclarationParser, StFunctionParser, StLexerBuilder};
+use stc::prelude::*;
 use std::rc::Rc;
 use std::sync::Mutex;
 

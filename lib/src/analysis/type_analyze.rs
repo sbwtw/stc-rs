@@ -16,6 +16,7 @@ struct TypeAnalyzerAttribute {
     derived_type: Option<Rc<Box<dyn Type>>>,
 }
 
+#[derive(Default)]
 pub struct TypeAnalyzer {
     local_scope: Scope,
     attribute_stack: Vec<TypeAnalyzerAttribute>,
@@ -23,10 +24,7 @@ pub struct TypeAnalyzer {
 
 impl TypeAnalyzer {
     pub fn new() -> Self {
-        Self {
-            local_scope: Scope::default(),
-            attribute_stack: vec![],
-        }
+        Default::default()
     }
 
     pub fn analyze_statement(&mut self, stmt: &mut Statement, scope: Scope) {

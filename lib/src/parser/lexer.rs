@@ -6,32 +6,32 @@ use std::fmt::{self, Display, Formatter};
 use std::hash::{Hash, Hasher};
 
 #[derive(Clone)]
-pub struct CaseIgnoredChar(char);
+pub struct StChar(char);
 
-impl PartialEq for CaseIgnoredChar {
+impl PartialEq for StChar {
     fn eq(&self, other: &Self) -> bool {
         self.0.eq_ignore_ascii_case(&other.0)
     }
 }
 
-impl PartialOrd for CaseIgnoredChar {
+impl PartialOrd for StChar {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        if self.0.is_ascii_alphabetic() && self.0.is_ascii_alphabetic() {
-            let x = self.0.to_lowercase();
-            let y = self.0.to_lowercase();
-
-            x.partial_cmp(y)
-        } else {
-            self.0.partial_cmp(&other.0)
-        }
+        Some(self.cmp(other))
     }
 }
 
-impl Eq for CaseIgnoredChar {}
+impl Eq for StChar {}
 
-impl Ord for CaseIgnoredChar {
+impl Ord for StChar {
     fn cmp(&self, other: &Self) -> Ordering {
-        todo!()
+        if self.0.is_ascii_alphabetic() && other.0.is_ascii_alphabetic() {
+            let x = self.0.to_lowercase();
+            let y = self.0.to_lowercase();
+
+            x.cmp(y)
+        } else {
+            self.0.cmp(&other.0)
+        }
     }
 }
 
@@ -86,7 +86,7 @@ impl StString {
         }
     }
 
-    pub fn string(&self) -> &String {
+    fn string(&self) -> &String {
         match &self {
             Self::Origin(s) => s,
             Self::Converted(_, converted) => converted,
@@ -100,8 +100,14 @@ impl StString {
         }
     }
 
-    pub fn chars(&self) -> impl Iterator<Item = CaseIgnoredChar> + '_ {
-        self.string().chars().map(CaseIgnoredChar)
+    pub fn chars(&self) -> impl Iterator<Item = StChar> + '_ {
+        self.string().chars().map(StChar)
+    }
+}
+
+impl From<Tok> for StString {
+    fn from(value: Tok) -> Self {
+        StString::Origin(Into::<String>::into(&value))
     }
 }
 
@@ -143,13 +149,13 @@ impl Hash for StString {
 
 impl PartialOrd for StString {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.string().partial_cmp(other.string())
+        Some(self.cmp(other))
     }
 }
 
 impl Ord for StString {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap()
+        self.string().cmp(other.string())
     }
 }
 
@@ -294,13 +300,19 @@ pub struct StLexerBuilder {
     keywords: Map<StString, Tok>,
 }
 
-impl StLexerBuilder {
-    pub fn new() -> Self {
+impl Default for StLexerBuilder {
+    fn default() -> Self {
         Self {
             options: StLexerOptions::default(),
             keywords: Map::new(),
         }
         .init()
+    }
+}
+
+impl StLexerBuilder {
+    pub fn new() -> Self {
+        Default::default()
     }
 
     pub fn from_options(opt: StLexerOptions) -> Self {
@@ -588,6 +600,7 @@ impl Iterator for StLexer<'_> {
 #[cfg(test)]
 mod test {
     use crate::parser::*;
+    use std::cmp::Ordering;
 
     #[test]
     fn test_st_string() {
@@ -605,6 +618,27 @@ mod test {
     }
 
     #[test]
+    fn test_st_string_order() {
+        let s1: StString = "abc".into();
+        let s2: StString = "AbC".into();
+        assert_eq!(s1.cmp(&s2), Ordering::Equal);
+        assert_eq!(s2.cmp(&s1), Ordering::Equal);
+
+        let s1: StString = "abD".into();
+        let s2: StString = "AbC".into();
+        assert_eq!(s1.cmp(&s2), Ordering::Greater);
+        assert_eq!(s2.cmp(&s1), Ordering::Less);
+
+        let s1: StString = "abc".into();
+        let s1_chars = s1.chars();
+        let s2: StString = "AbC".into();
+        let s2_chars = s2.chars();
+        assert!(s1_chars
+            .zip(s2_chars)
+            .all(|(x, y)| x.cmp(&y) == Ordering::Equal && y.cmp(&x) == Ordering::Equal))
+    }
+
+    #[test]
     fn test_st_keywords() {
         let s = "if abc";
         let mut lexer = StLexerBuilder::new().build(s);
@@ -619,7 +653,7 @@ mod test {
         assert_eq!(x.end_pos, 6);
         assert!(matches!(x.tok, Tok::Identifier(_)));
 
-        assert!(matches!(lexer.next(), None));
+        assert!(lexer.next().is_none());
     }
 
     #[test]

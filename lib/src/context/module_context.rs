@@ -11,7 +11,7 @@ use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 static CONTEXT_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
 static DECLARATION_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
@@ -26,7 +26,7 @@ fn get_next_declaration_id() -> usize {
 
 #[derive(Clone)]
 pub struct Prototype {
-    inner: Arc<RwLock<PrototypeImpl>>,
+    inner: Rc<RwLock<PrototypeImpl>>,
 }
 
 impl PartialEq for Prototype {
@@ -44,7 +44,7 @@ impl Hash for Prototype {
 }
 
 impl Deref for Prototype {
-    type Target = Arc<RwLock<PrototypeImpl>>;
+    type Target = Rc<RwLock<PrototypeImpl>>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
@@ -54,7 +54,7 @@ impl Deref for Prototype {
 impl Prototype {
     fn new(decl: Declaration) -> Self {
         Self {
-            inner: Arc::new(RwLock::new(PrototypeImpl::new(decl))),
+            inner: Rc::new(RwLock::new(PrototypeImpl::new(decl))),
         }
     }
 }

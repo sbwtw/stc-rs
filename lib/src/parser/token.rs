@@ -179,11 +179,11 @@ impl Tok {
     }
 }
 
-impl Into<String> for &Tok {
-    fn into(self) -> String {
+impl From<&Tok> for String {
+    fn from(value: &Tok) -> Self {
         let tmp_string;
 
-        let s = match self {
+        let s = match value {
             Tok::Whitespace => " ",
             Tok::Access => ".",
             Tok::Plus => "+",
@@ -262,14 +262,6 @@ impl Into<String> for &Tok {
         };
 
         s.to_owned()
-    }
-}
-
-impl Into<StString> for Tok {
-    fn into(self) -> StString {
-        let s: String = (&self).into();
-
-        s.into()
     }
 }
 

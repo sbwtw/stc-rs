@@ -4,7 +4,7 @@ use gtk::{Button, SearchEntry, TextBuffer, TextView, TreeStore, TreeView, TreeVi
 use log::info;
 use stc::analysis::TypeAnalyzer;
 use stc::backend::{CodeGenerator, LuaBackend};
-use stc::context::{Scope, UnitsManager};
+use stc::prelude::*;
 use stc::utils::write_ast_to_file;
 
 pub const STC_VIEWER_COLUMN_NAME: u32 = 0;

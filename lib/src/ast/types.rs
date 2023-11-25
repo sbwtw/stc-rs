@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 macro_rules! builtin_type_impl {
     (struct $name:ident, $class:expr) => {
-        #[derive(Debug, Clone)]
+        #[derive(Debug, Clone, Default)]
         pub struct $name;
 
         impl $name {

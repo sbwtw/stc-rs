@@ -8,5 +8,10 @@ pub mod context;
 pub mod parser;
 pub mod utils;
 
+pub mod prelude {
+    pub use crate::ast::*;
+    pub use crate::context::*;
+}
+
 #[cfg(test)]
 mod test;

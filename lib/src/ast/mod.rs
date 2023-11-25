@@ -53,7 +53,6 @@ mod call_expression;
 pub use call_expression::CallExpression;
 
 mod global_variable_declaration;
-
 pub use global_variable_declaration::GlobalVariableDeclare;
 
 pub type SmallVec8<T> = SmallVec<[T; 8]>;
@@ -91,7 +90,7 @@ macro_rules! impl_ast_display {
         impl std::fmt::Display for $ty {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 let mut buf = vec![];
-                let mut stringify = crate::utils::StringifyVisitor::new(&mut buf);
+                let mut stringify = $crate::utils::StringifyVisitor::new(&mut buf);
                 stringify.$fun(self);
 
                 write!(f, "{}", String::from_utf8_lossy(&buf))

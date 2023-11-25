@@ -19,7 +19,6 @@ pub enum ParseError {
     UnexpectedToken(usize, Vec<String>),
 }
 
-#[cfg(not(feature = "use_lalrpop"))]
 impl ParseError {
     pub fn expect_tokens(pos: usize, tokens: &[Tok]) -> Self {
         let tokens: Vec<_> = tokens.iter().map(|x| x.into()).collect();

@@ -62,9 +62,9 @@ fn graphviz_escape<S: AsRef<str>>(s: &S) -> Cow<str> {
 }
 
 /// Labels group to string
-impl Into<String> for GraphvizLabelGroup {
-    fn into(self) -> String {
-        match self {
+impl From<GraphvizLabelGroup> for String {
+    fn from(value: GraphvizLabelGroup) -> Self {
+        match value {
             GraphvizLabelGroup::Labels(labels) => labels.join(" | "),
             // sub group
             GraphvizLabelGroup::Groups(group) => {
