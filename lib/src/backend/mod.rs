@@ -1,13 +1,14 @@
 mod lua_backend;
+pub use lua_backend::LuaBackend;
 
 use crate::ast::{OperatorExpression, Variable};
-use crate::codegen::lua_backend::LuaBackend;
 use crate::context::{ModuleContext, UnitsManager};
 
 use bitflags::bitflags;
 use log::info;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
+use std::marker::PhantomData;
 
 bitflags! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -22,9 +23,9 @@ bitflags! {
 pub trait CodeGenBackend {
     type Label;
 
-    fn take_code(&mut self) -> Box<dyn TargetCode>;
+    fn new(mgr: UnitsManager, app: ModuleContext) -> Self;
+    fn gen_function(self, func: usize) -> Result<Box<dyn TargetCode>, CodeGenError>;
     fn define_label<S: AsRef<str>>(&mut self, label: Option<S>) -> Self::Label;
-    fn gen_function(&mut self, func: usize) -> Result<(), CodeGenError>;
     fn gen_variable_load(&mut self, variable: &mut Variable);
     fn gen_operator(&mut self, operator: &mut OperatorExpression);
 }
@@ -61,10 +62,13 @@ where
 {
     mgr: UnitsManager,
     app: ModuleContext,
-    backend: B,
+    _backend: PhantomData<B>,
 }
 
-impl CodeGenerator<LuaBackend> {
+impl<B> CodeGenerator<B>
+where
+    B: CodeGenBackend,
+{
     pub fn new(mgr: UnitsManager, app_id: usize) -> Result<Self, CodeGenError> {
         let app = mgr
             .read()
@@ -74,7 +78,7 @@ impl CodeGenerator<LuaBackend> {
         Ok(Self {
             mgr: mgr.clone(),
             app: app.clone(),
-            backend: LuaBackend::new(mgr, app),
+            _backend: PhantomData,
         })
     }
 }
@@ -96,7 +100,18 @@ where
             let proto = proto.read().unwrap();
             if !proto.is_type_declaration() {
                 info!("generating code for function {} {}", decl_id, proto);
-                self.backend.gen_function(decl_id)?;
+
+                let f = self
+                    .app
+                    .read()
+                    .get_function(decl_id)
+                    .ok_or(CodeGenError::FunctionNotDefined(decl_id))?
+                    .clone();
+
+                let backend = B::new(self.mgr.clone(), self.app.clone());
+                let target_code = backend.gen_function(decl_id)?;
+                println!("{}", target_code);
+                f.write().unwrap().set_compiled_code(target_code);
             }
         }
 

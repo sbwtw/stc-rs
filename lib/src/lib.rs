@@ -3,7 +3,7 @@
 
 pub mod analysis;
 pub mod ast;
-pub mod codegen;
+pub mod backend;
 pub mod context;
 pub mod parser;
 pub mod utils;

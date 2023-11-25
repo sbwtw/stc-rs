@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::backend::TargetCode;
 use crate::context::ModuleContextScope;
 use crate::parser::StString;
 use once_cell::sync::Lazy;
@@ -167,24 +168,33 @@ impl Display for PrototypeImpl {
 pub struct FunctionImpl {
     #[allow(dead_code)]
     decl_id: usize,
-    function: Statement,
+    parse_tree: Statement,
+    compiled_code: Option<Box<dyn TargetCode>>,
 }
 
 impl FunctionImpl {
     fn new(decl_id: usize, function: Statement) -> Self {
-        Self { decl_id, function }
+        Self {
+            decl_id,
+            parse_tree: function,
+            compiled_code: None,
+        }
     }
 
     pub fn decl_id(&self) -> usize {
         self.decl_id
     }
 
-    pub fn body(&self) -> &Statement {
-        &self.function
+    pub fn parse_tree(&self) -> &Statement {
+        &self.parse_tree
     }
 
-    pub fn body_mut(&mut self) -> &mut Statement {
-        &mut self.function
+    pub fn parse_tree_mut(&mut self) -> &mut Statement {
+        &mut self.parse_tree
+    }
+
+    pub fn set_compiled_code(&mut self, compiled_code: Box<dyn TargetCode>) {
+        self.compiled_code = Some(compiled_code)
     }
 }
 

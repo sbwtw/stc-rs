@@ -2,7 +2,7 @@ use crate::ast::{
     AssignExpression, AstVisitorMut, CallExpression, IfStatement, OperatorExpression, Variable,
     VariableExpression,
 };
-use crate::codegen::{AccessModeFlags, CodeGenBackend, CodeGenError, TargetCode};
+use crate::backend::{AccessModeFlags, CodeGenBackend, CodeGenError, TargetCode};
 use crate::context::{Function, ModuleContext, Scope, UnitsManager};
 use crate::parser::Operator;
 
@@ -15,14 +15,20 @@ type RegisterId = usize;
 
 pub struct LuaExecState {}
 
+#[derive(PartialEq, Debug)]
 pub enum LuaConstants {
     Nil,
     String(String),
     Function(fn(&mut LuaExecState) -> i32),
 }
 
-pub enum LuaByteCode {}
+#[derive(Debug)]
+pub enum LuaByteCode {
+    /// Call k, v: k is callee symbol position, v is argument count, return value not included
+    Call(u8, u8),
+}
 
+#[derive(Debug)]
 pub struct LuaCode {
     byte_codes: Vec<LuaByteCode>,
     constants: Vec<LuaConstants>,
@@ -30,7 +36,17 @@ pub struct LuaCode {
 
 impl Display for LuaCode {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        unimplemented!()
+        // constants
+        for constant in self.constants.iter() {
+            f.write_fmt(format_args!("{:?}\n", constant))?
+        }
+
+        // constants
+        for bc in self.byte_codes.iter() {
+            f.write_fmt(format_args!("{:?}\n", bc))?
+        }
+
+        Ok(())
     }
 }
 
@@ -177,24 +193,13 @@ impl Default for LuaBackendAttribute {
 pub struct LuaBackend {
     mgr: UnitsManager,
     app: ModuleContext,
-    instructions: Vec<LuaByteCode>,
+    byte_codes: Vec<LuaByteCode>,
     attributes: SmallVec<[LuaBackendAttribute; 32]>,
     local_function: Option<Function>,
     constants: Vec<LuaConstants>,
 }
 
 impl LuaBackend {
-    pub fn new(mgr: UnitsManager, app: ModuleContext) -> Self {
-        Self {
-            mgr,
-            app,
-            instructions: vec![],
-            attributes: smallvec![],
-            local_function: None,
-            constants: vec![],
-        }
-    }
-
     fn push_attribute_with_scope(&mut self, scope: Scope) {
         let attr = LuaBackendAttribute {
             scope: Some(scope),
@@ -230,23 +235,35 @@ impl LuaBackend {
     fn top_attribute(&mut self) -> &mut LuaBackendAttribute {
         self.attributes.last_mut().unwrap()
     }
+
+    // TODO: optimize implementation
+    fn add_string_constant<S: AsRef<str>>(&mut self, s: S) -> usize {
+        let constant = LuaConstants::String(s.as_ref().to_string());
+
+        if !self.constants.contains(&constant) {
+            self.constants.push(constant);
+            return self.constants.len() - 1;
+        }
+
+        return self.constants.iter().position(|x| x == &constant).unwrap();
+    }
 }
 
 impl CodeGenBackend for LuaBackend {
     type Label = usize;
 
-    fn take_code(&mut self) -> Box<dyn TargetCode> {
-        Box::new(LuaCode {
+    fn new(mgr: UnitsManager, app: ModuleContext) -> Self {
+        Self {
+            mgr,
+            app,
             byte_codes: vec![],
+            attributes: smallvec![],
+            local_function: None,
             constants: vec![],
-        })
+        }
     }
 
-    fn define_label<S: AsRef<str>>(&mut self, label: Option<S>) -> Self::Label {
-        0
-    }
-
-    fn gen_function(&mut self, func: usize) -> Result<(), CodeGenError> {
+    fn gen_function(mut self, func: usize) -> Result<Box<dyn TargetCode>, CodeGenError> {
         let f = self
             .app
             .read()
@@ -261,10 +278,17 @@ impl CodeGenBackend for LuaBackend {
 
         let mut fun = f.write().unwrap();
         self.push_attribute_with_scope(fun_scope);
-        self.visit_statement_mut(fun.body_mut());
+        self.visit_statement_mut(fun.parse_tree_mut());
         self.pop_attribute();
 
-        Ok(())
+        Ok(Box::new(LuaCode {
+            byte_codes: self.byte_codes,
+            constants: self.constants,
+        }))
+    }
+
+    fn define_label<S: AsRef<str>>(&mut self, label: Option<S>) -> Self::Label {
+        0
     }
 
     fn gen_variable_load(&mut self, variable: &mut Variable) {
@@ -284,6 +308,16 @@ impl AstVisitorMut for LuaBackend {
 
         let scope = self.top_attribute().scope.as_ref().unwrap();
         self.top_attribute().variable = scope.find_variable(variable.name());
+    }
+
+    fn visit_call_expression_mut(&mut self, call: &mut CallExpression) {
+        trace!("LuaGen: call expression: {}", call);
+
+        let callee_name = call.callee().to_string();
+        let callee_up_k = self.add_string_constant(&callee_name);
+
+        self.byte_codes
+            .push(LuaByteCode::Call(callee_up_k as u8, 1))
     }
 
     fn visit_if_statement_mut(&mut self, ifst: &mut IfStatement) {
@@ -327,9 +361,5 @@ impl AstVisitorMut for LuaBackend {
 
     fn visit_assign_expression_mut(&mut self, assign: &mut AssignExpression) {
         trace!("LuaGen: assignment expression: {}", assign);
-    }
-
-    fn visit_call_expression_mut(&mut self, call: &mut CallExpression) {
-        trace!("LuaGen: call expression: {}", call);
     }
 }

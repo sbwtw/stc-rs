@@ -3,7 +3,7 @@ use gtk::prelude::*;
 use gtk::{Button, SearchEntry, TextBuffer, TextView, TreeStore, TreeView, TreeViewColumn};
 use log::info;
 use stc::analysis::TypeAnalyzer;
-use stc::codegen::CodeGenerator;
+use stc::backend::{CodeGenerator, LuaBackend};
 use stc::context::{Scope, UnitsManager};
 use stc::utils::write_ast_to_file;
 
@@ -114,15 +114,16 @@ impl StcViewerApp {
                 let mut f = f.write().unwrap();
 
                 let scope = Scope::new(Some(self.mgr.clone()), Some(app_id), Some(proto_id));
-                type_analyzer.analyze_statement(f.body_mut(), scope);
+                type_analyzer.analyze_statement(f.parse_tree_mut(), scope);
 
-                write_ast_to_file(f.body(), proto_read.name().origin_string());
+                write_ast_to_file(f.parse_tree(), proto_read.name().origin_string());
 
-                info!("{}\n{}", proto_read, f.body());
+                info!("{}\n{}", proto_read, f.parse_tree());
             }
         }
 
-        let mut code_gen = CodeGenerator::new(self.mgr.clone(), app_id).unwrap();
+        let mut code_gen: CodeGenerator<LuaBackend> =
+            CodeGenerator::new(self.mgr.clone(), app_id).unwrap();
         println!("CodeGen: {:?}", code_gen.build_application());
     }
 }
