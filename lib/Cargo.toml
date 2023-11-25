@@ -24,6 +24,7 @@ chrono = "*"
 smallvec = { version = "*", features = ["write", "union"] }
 smallmap = "*"
 log = "*"
+indexmap = "*"
 
 [build-dependencies]
 cbindgen = "*"

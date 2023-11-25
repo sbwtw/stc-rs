@@ -1195,6 +1195,7 @@ dependencies = [
  "cbindgen",
  "chrono",
  "crc",
+ "indexmap 2.1.0",
  "lalrpop",
  "lalrpop-util",
  "log",

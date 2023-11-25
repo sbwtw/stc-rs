@@ -6,6 +6,7 @@ use crate::backend::{AccessModeFlags, CodeGenBackend, CodeGenError, TargetCode};
 use crate::context::{Function, ModuleContext, Scope, UnitsManager};
 use crate::parser::Operator;
 
+use indexmap::IndexSet;
 use log::*;
 use smallvec::{smallvec, SmallVec};
 use std::fmt::{Display, Formatter};
@@ -15,7 +16,7 @@ type RegisterId = usize;
 
 pub struct LuaExecState {}
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Hash, Eq)]
 pub enum LuaConstants {
     Nil,
     String(String),
@@ -31,7 +32,7 @@ pub enum LuaByteCode {
 #[derive(Debug)]
 pub struct LuaCode {
     byte_codes: Vec<LuaByteCode>,
-    constants: Vec<LuaConstants>,
+    constants: IndexSet<LuaConstants>,
 }
 
 impl Display for LuaCode {
@@ -196,7 +197,7 @@ pub struct LuaBackend {
     byte_codes: Vec<LuaByteCode>,
     attributes: SmallVec<[LuaBackendAttribute; 32]>,
     local_function: Option<Function>,
-    constants: Vec<LuaConstants>,
+    constants: IndexSet<LuaConstants>,
 }
 
 impl LuaBackend {
@@ -236,16 +237,10 @@ impl LuaBackend {
         self.attributes.last_mut().unwrap()
     }
 
-    // TODO: optimize implementation
     fn add_string_constant<S: AsRef<str>>(&mut self, s: S) -> usize {
-        let constant = LuaConstants::String(s.as_ref().to_string());
-
-        if !self.constants.contains(&constant) {
-            self.constants.push(constant);
-            return self.constants.len() - 1;
-        }
-
-        return self.constants.iter().position(|x| x == &constant).unwrap();
+        let constant = LuaConstants::String(s.as_ref().to_owned());
+        let (idx, _inserted) = self.constants.insert_full(constant);
+        idx
     }
 }
 
@@ -259,7 +254,7 @@ impl CodeGenBackend for LuaBackend {
             byte_codes: vec![],
             attributes: smallvec![],
             local_function: None,
-            constants: vec![],
+            constants: IndexSet::new(),
         }
     }
 

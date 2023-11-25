@@ -2,6 +2,7 @@ use crate::ast::*;
 use crate::backend::TargetCode;
 use crate::context::ModuleContextScope;
 use crate::parser::StString;
+use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
@@ -60,11 +61,11 @@ impl Prototype {
 
 #[derive(Clone)]
 pub struct Function {
-    inner: Arc<RwLock<FunctionImpl>>,
+    inner: Rc<RwLock<FunctionImpl>>,
 }
 
 impl Deref for Function {
-    type Target = Arc<RwLock<FunctionImpl>>;
+    type Target = Rc<RwLock<FunctionImpl>>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
@@ -74,7 +75,7 @@ impl Deref for Function {
 impl Function {
     fn new(decl_id: usize, function: Statement) -> Self {
         Self {
-            inner: Arc::new(RwLock::new(FunctionImpl::new(decl_id, function))),
+            inner: Rc::new(RwLock::new(FunctionImpl::new(decl_id, function))),
         }
     }
 }
@@ -200,7 +201,7 @@ impl FunctionImpl {
 
 #[derive(Clone)]
 pub struct ModuleContext {
-    inner: Arc<RwLock<ModuleContextImpl>>,
+    inner: Rc<RwLock<ModuleContextImpl>>,
 }
 
 impl PartialEq for ModuleContext {
@@ -214,12 +215,12 @@ impl Eq for ModuleContext {}
 impl ModuleContext {
     pub fn new(scope: ModuleContextScope) -> Self {
         Self {
-            inner: Arc::new(RwLock::new(ModuleContextImpl {
+            inner: Rc::new(RwLock::new(ModuleContextImpl {
                 id: get_next_context_id(),
                 scope,
-                declaration_id_map: HashMap::new(),
+                declaration_id_map: IndexMap::new(),
                 declaration_name_map: HashMap::new(),
-                function_id_map: HashMap::new(),
+                function_id_map: IndexMap::new(),
                 toplevel_global_variable_declarations: HashSet::new(),
             })),
         }
@@ -237,9 +238,9 @@ impl ModuleContext {
 pub struct ModuleContextImpl {
     id: usize,
     scope: ModuleContextScope,
-    declaration_id_map: HashMap<usize, Prototype>,
+    declaration_id_map: IndexMap<usize, Prototype>,
     declaration_name_map: HashMap<StString, Prototype>,
-    function_id_map: HashMap<usize, Function>,
+    function_id_map: IndexMap<usize, Function>,
     toplevel_global_variable_declarations: HashSet<Prototype>,
 }
 

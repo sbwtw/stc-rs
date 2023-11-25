@@ -8,6 +8,7 @@ use stc::context::{Scope, UnitsManager};
 use stc::utils::write_ast_to_file;
 
 pub const STC_VIEWER_COLUMN_NAME: u32 = 0;
+pub const STC_VIEWER_COLUMN_ID: u32 = 1;
 
 pub struct StcViewerApp {
     pub mgr: UnitsManager,
@@ -28,7 +29,7 @@ impl StcViewerApp {
         let content_buffer = TextBuffer::builder().build();
         let content_view = TextView::with_buffer(&content_buffer);
 
-        let tree_store = TreeStore::new(&[Type::STRING]);
+        let tree_store = TreeStore::new(&[Type::STRING, Type::I64]);
         let tree_view = TreeView::with_model(&tree_store);
 
         Self {
@@ -65,7 +66,10 @@ impl StcViewerApp {
             let ctx_iter = self.tree_store.insert_with_values(
                 None,
                 None,
-                &[(STC_VIEWER_COLUMN_NAME, &format!("{}", ctx.read()))],
+                &[
+                    (STC_VIEWER_COLUMN_NAME, &format!("{}", ctx.read())),
+                    (STC_VIEWER_COLUMN_ID, &(ctx.read().id() as i64)),
+                ],
             );
 
             // Declarations
@@ -87,12 +91,20 @@ impl StcViewerApp {
                 self.tree_store
                     .insert_with_values(Some(&ctx_iter), None, &[(0, &"Functions")]);
             for fun in ctx.read().functions() {
+                let fun_id = fun.read().unwrap().decl_id();
+                let decl_name = ctx
+                    .read()
+                    .get_declaration_by_id(fun_id)
+                    .map(|x| x.read().unwrap().to_string());
+
                 self.tree_store.insert_with_values(
                     Some(&function_iter),
                     None,
                     &[(
                         STC_VIEWER_COLUMN_NAME,
-                        &format!("{}", fun.read().unwrap().decl_id()),
+                        &decl_name
+                            .unwrap_or(format!("No Name({})", fun_id))
+                            .to_string(),
                     )],
                 );
             }

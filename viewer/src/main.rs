@@ -93,6 +93,7 @@ fn build_ui(app: &Application, mgr: UnitsManager) {
     let left_layout = gtk::Box::new(Orientation::Vertical, 0);
     left_layout.add(&stc_app.search_entry);
     left_layout.add(&tree_scroll);
+    left_layout.set_width_request(250);
 
     let content_scroll = ScrolledWindow::new(Adjustment::NONE, Adjustment::NONE);
     content_scroll.add(&stc_app.content_view);

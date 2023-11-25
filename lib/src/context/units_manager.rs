@@ -1,12 +1,13 @@
 use crate::context::ModuleContext;
-use smallmap::Map;
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use indexmap::IndexMap;
+use std::rc::Rc;
+use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 /// Program Organization Units Manager
 #[allow(dead_code)]
 #[derive(Clone)]
 pub struct UnitsManager {
-    inner: Arc<RwLock<UnitsManagerImpl>>,
+    inner: Rc<RwLock<UnitsManagerImpl>>,
 }
 
 impl UnitsManager {
@@ -28,7 +29,7 @@ impl Default for UnitsManager {
         let mgr = UnitsManagerImpl::new();
 
         Self {
-            inner: Arc::new(RwLock::new(mgr)),
+            inner: Rc::new(RwLock::new(mgr)),
         }
     }
 }
@@ -36,7 +37,7 @@ impl Default for UnitsManager {
 #[allow(dead_code)]
 pub struct UnitsManagerImpl {
     active_application: Option<usize>,
-    contexts: Map<usize, ModuleContext>,
+    contexts: IndexMap<usize, ModuleContext>,
 }
 
 #[allow(dead_code)]
@@ -44,7 +45,7 @@ impl UnitsManagerImpl {
     fn new() -> Self {
         Self {
             active_application: None,
-            contexts: Map::new(),
+            contexts: IndexMap::new(),
         }
     }
 
