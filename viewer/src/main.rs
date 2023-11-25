@@ -24,27 +24,38 @@ fn main() {
     mgr.write().set_active_application(Some(app_id));
 
     let app_ctx = mgr.write().get_context(app_id).unwrap();
-    let decl =
-        StLexerBuilder::new().build("function test: int VAR a: INT; b: INT; END_VAR end_function");
-    let decl = StDeclarationParser::new().parse(decl).unwrap();
-    let decl_id = app_ctx.write().add_declaration(decl);
+    // let decl =
+    //     StLexerBuilder::new().build("function test: int VAR a: INT; b: INT; END_VAR end_function");
+    // let decl = StDeclarationParser::new().parse(decl).unwrap();
+    // let decl_id = app_ctx.write().add_declaration(decl);
+    //
+    // let body = StLexerBuilder::new().build("if a < 全局变量1 then prg.a := 1; else b := 2; end_if");
+    // let body = StFunctionParser::new().parse(body).unwrap();
+    // app_ctx.write().add_function(decl_id, body);
 
-    let body = StLexerBuilder::new().build("if a < 全局变量1 then prg.a := 1; else b := 2; end_if");
-    let body = StFunctionParser::new().parse(body).unwrap();
-    app_ctx.write().add_function(decl_id, body);
-
-    let prg = StLexerBuilder::new().build("program prg: int VAR a: BYTE; END_VAR end_program");
-    let prg = StDeclarationParser::new().parse(prg).unwrap();
-    let prg_id = app_ctx.write().add_declaration(prg);
-
-    let body = StLexerBuilder::new().build("if a < 全局变量1 then a := 1; else b := 2; end_if");
-    let body = StFunctionParser::new().parse(body).unwrap();
-    app_ctx.write().add_function(prg_id, body);
+    // let prg = StLexerBuilder::new().build("program prg: int VAR a: BYTE; END_VAR end_program");
+    // let prg = StDeclarationParser::new().parse(prg).unwrap();
+    // let prg_id = app_ctx.write().add_declaration(prg);
+    //
+    // let body = StLexerBuilder::new().build("if a < 全局变量1 then a := 1; else b := 2; end_if");
+    // let body = StFunctionParser::new().parse(body).unwrap();
+    // app_ctx.write().add_function(prg_id, body);
 
     let global =
         StLexerBuilder::new().build("VAR_GLOBAL END_VAR VAR_GLOBAL 全局变量1: REAL; END_VAR");
     let global = StDeclarationParser::new().parse(global).unwrap();
     let _global_id = app_ctx.write().add_declaration(global);
+
+    let test_func =
+        StLexerBuilder::new().build("program prg: int VAR a: BYTE; END_VAR end_program");
+    let test_fun_decl = StDeclarationParser::new().parse(test_func).unwrap();
+    let test_fun_decl_id = app_ctx.write().add_declaration(test_fun_decl);
+
+    let test_func = StLexerBuilder::new().build("print(\"hello, world!\");");
+    let test_fun_body = StFunctionParser::new().parse(test_func).unwrap();
+    app_ctx
+        .write()
+        .add_function(test_fun_decl_id, test_fun_body);
 
     let gtk_app = Application::new(None, Default::default());
     gtk_app.connect_activate(move |app| build_ui(app, mgr_ui_app.clone()));

@@ -124,10 +124,21 @@ ElseIfStatement: ElseIfStatement = {
 Expr: Expression = {
     BitOrExpr,
     AssignExpr => <>.into_expression(),
+    CallExpr => <>.into_expression(),
 };
+
+VarExpr: Expression = {
+    "IDENTIFIER" => Expression::variable(Box::new(VariableExpression::new(<>))),
+}
 
 AssignExpr: AssignExpression = {
     <lhs: Expr> ":=" <rhs: BitOrExpr> => AssignExpression::new(<>),
+}
+
+CallExpr: CallExpression = {
+    <callee: CompoFactor> "(" ")" => CallExpression::new(<>),
+    <callee: CompoFactor> "(" <arg: Expr> ")" => CallExpression::with_arguments(callee, smallvec![arg]),
+    <callee: CompoFactor> "(" <args: SmallComma<Expr>> ")" => CallExpression::with_arguments(<>),
 }
 
 BitOrExpr: Expression = {
@@ -218,8 +229,8 @@ CompoFactor: Expression = {
 /// terminals in expression
 Term: Expression = {
     "LITERAL" => <>.into_expression(),
-    "IDENTIFIER" => Expression::variable(Box::new(VariableExpression::new(<>))),
     "(" <Expr> ")",
+    VarExpr,
 };
 
 

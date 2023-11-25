@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use crate::ast::call_expression::CallExpression;
 use crate::ast::{
     AliasDeclare, AssignExpression, CompoAccessExpression, DeclKind, Declaration, EnumDeclare,
     ExprKind, ExprStatement, Expression, FunctionDeclare, GlobalVariableDeclare, IfStatement,
@@ -15,6 +16,10 @@ pub trait AstVisitorMut: Sized {
 
     fn visit_variable_expression_mut(&mut self, variable: &mut VariableExpression) {
         walk_variable_expression_mut(self, variable)
+    }
+
+    fn visit_call_expression_mut(&mut self, call: &mut CallExpression) {
+        walk_call_expression_mut(self, call)
     }
 
     fn visit_expression_mut(&mut self, expr: &mut Expression) {
@@ -78,10 +83,16 @@ pub trait AstVisitorMut: Sized {
     }
 }
 
+#[inline]
 fn walk_literal_mut<V: AstVisitorMut>(_: &mut V, _: &mut LiteralExpression) {}
 
+#[inline]
 fn walk_variable_expression_mut<V: AstVisitorMut>(_: &mut V, _: &mut VariableExpression) {}
 
+#[inline]
+fn walk_call_expression_mut<V: AstVisitorMut>(_: &mut V, _: &mut CallExpression) {}
+
+#[inline]
 fn walk_expression_mut<V: AstVisitorMut>(vis: &mut V, expr: &mut Expression) {
     match expr.kind {
         ExprKind::Assign(ref mut assign) => vis.visit_assign_expression_mut(assign),
@@ -89,9 +100,11 @@ fn walk_expression_mut<V: AstVisitorMut>(vis: &mut V, expr: &mut Expression) {
         ExprKind::Compo(ref mut compo) => vis.visit_compo_access_expression_mut(compo),
         ExprKind::Variable(ref mut variable) => vis.visit_variable_expression_mut(variable),
         ExprKind::Literal(ref mut literal) => vis.visit_literal_mut(literal),
+        ExprKind::Call(ref mut call) => vis.visit_call_expression_mut(call),
     }
 }
 
+#[inline]
 fn walk_statement_mut<V: AstVisitorMut>(vis: &mut V, stmt: &mut Statement) {
     match stmt.kind {
         StmtKind::Expr(ref mut expr) => vis.visit_expr_statement_mut(expr),
@@ -100,16 +113,19 @@ fn walk_statement_mut<V: AstVisitorMut>(vis: &mut V, stmt: &mut Statement) {
     }
 }
 
+#[inline]
 fn walk_statement_list_mut<V: AstVisitorMut>(vis: &mut V, stmts: &mut Vec<Statement>) {
     for stmt in stmts {
         vis.visit_statement_mut(stmt)
     }
 }
 
+#[inline]
 fn walk_expr_statement_mut<V: AstVisitorMut>(vis: &mut V, expr: &mut ExprStatement) {
     vis.visit_expression_mut(expr.expr_mut())
 }
 
+#[inline]
 fn walk_if_statement_mut<V: AstVisitorMut>(vis: &mut V, ifst: &mut IfStatement) {
     vis.visit_expression_mut(ifst.condition_mut());
     if let Some(ctrl) = ifst.then_controlled_mut() {
@@ -128,6 +144,7 @@ fn walk_if_statement_mut<V: AstVisitorMut>(vis: &mut V, ifst: &mut IfStatement) 
     }
 }
 
+#[inline]
 fn walk_declaration_mut<V: AstVisitorMut>(vis: &mut V, decl: &mut Declaration) {
     match decl.kind {
         DeclKind::Struct(ref mut struct_) => vis.visit_struct_declaration_mut(struct_),
@@ -138,33 +155,42 @@ fn walk_declaration_mut<V: AstVisitorMut>(vis: &mut V, decl: &mut Declaration) {
     }
 }
 
+#[inline]
 fn walk_struct_declaration_mut<V: AstVisitorMut>(_: &mut V, _: &mut StructDeclare) {}
 
+#[inline]
 fn walk_global_variable_declaration_mut<V: AstVisitorMut>(
     _: &mut V,
     _: &mut GlobalVariableDeclare,
 ) {
 }
 
+#[inline]
 fn walk_enum_declaration_mut<V: AstVisitorMut>(_: &mut V, _: &mut EnumDeclare) {}
 
+#[inline]
 fn walk_alias_declaration_mut<V: AstVisitorMut>(_: &mut V, _: &mut AliasDeclare) {}
 
+#[inline]
 fn walk_function_declaration_mut<V: AstVisitorMut>(_: &mut V, _: &mut FunctionDeclare) {}
 
+#[inline]
 fn walk_variable_declaration_mut<V: AstVisitorMut>(_: &mut V, _: &mut Variable) {}
 
+#[inline]
 fn walk_operator_expression_mut<V: AstVisitorMut>(vis: &mut V, operator: &mut OperatorExpression) {
     for operand in operator.operands_mut() {
         vis.visit_expression_mut(operand)
     }
 }
 
+#[inline]
 fn walk_assign_expression_mut<V: AstVisitorMut>(vis: &mut V, assign: &mut AssignExpression) {
     vis.visit_expression_mut(assign.right_mut());
     vis.visit_expression_mut(assign.left_mut());
 }
 
+#[inline]
 fn walk_compo_access_expression_mut<V: AstVisitorMut>(
     vis: &mut V,
     compo: &mut CompoAccessExpression,
@@ -181,6 +207,10 @@ pub trait AstVisitor<'ast>: Sized {
 
     fn visit_variable_expression(&mut self, variable: &'ast VariableExpression) {
         walk_variable_expression(self, variable)
+    }
+
+    fn visit_call_expression(&mut self, call: &'ast CallExpression) {
+        walk_call_expression(self, call)
     }
 
     fn visit_expression(&mut self, expr: &'ast Expression) {
@@ -244,10 +274,16 @@ pub trait AstVisitor<'ast>: Sized {
     }
 }
 
+#[inline]
 fn walk_literal<'a, V: AstVisitor<'a>>(_: &mut V, _: &'a LiteralExpression) {}
 
+#[inline]
 fn walk_variable_expression<'a, V: AstVisitor<'a>>(_: &mut V, _: &'a VariableExpression) {}
 
+#[inline]
+fn walk_call_expression<'a, V: AstVisitor<'a>>(_: &mut V, _: &'a CallExpression) {}
+
+#[inline]
 fn walk_expression<'a, V: AstVisitor<'a>>(vis: &mut V, expr: &'a Expression) {
     match expr.kind {
         ExprKind::Assign(ref assign) => vis.visit_assign_expression(assign),
@@ -255,9 +291,11 @@ fn walk_expression<'a, V: AstVisitor<'a>>(vis: &mut V, expr: &'a Expression) {
         ExprKind::Compo(ref compo) => vis.visit_compo_access_expression(compo),
         ExprKind::Variable(ref variable) => vis.visit_variable_expression(variable),
         ExprKind::Literal(ref literal) => vis.visit_literal(literal),
+        ExprKind::Call(ref call) => vis.visit_call_expression(call),
     }
 }
 
+#[inline]
 fn walk_statement<'a, V: AstVisitor<'a>>(vis: &mut V, stmt: &'a Statement) {
     match stmt.kind {
         StmtKind::Expr(ref expr) => vis.visit_expr_statement(expr),
@@ -266,16 +304,19 @@ fn walk_statement<'a, V: AstVisitor<'a>>(vis: &mut V, stmt: &'a Statement) {
     }
 }
 
+#[inline]
 fn walk_statement_list<'a, V: AstVisitor<'a>>(vis: &mut V, stmts: &'a Vec<Statement>) {
     for stmt in stmts {
         vis.visit_statement(stmt)
     }
 }
 
+#[inline]
 fn walk_expr_statement<'a, V: AstVisitor<'a>>(vis: &mut V, expr: &'a ExprStatement) {
     vis.visit_expression(expr.expr())
 }
 
+#[inline]
 fn walk_if_statement<'a, V: AstVisitor<'a>>(vis: &mut V, ifst: &'a IfStatement) {
     vis.visit_expression(ifst.condition());
     if let Some(ctrl) = ifst.then_controlled() {
@@ -294,6 +335,7 @@ fn walk_if_statement<'a, V: AstVisitor<'a>>(vis: &mut V, ifst: &'a IfStatement) 
     }
 }
 
+#[inline]
 fn walk_declaration<'a, V: AstVisitor<'a>>(vis: &mut V, decl: &'a Declaration) {
     match decl.kind {
         DeclKind::Struct(ref struct_) => vis.visit_struct_declaration(struct_),
@@ -304,33 +346,42 @@ fn walk_declaration<'a, V: AstVisitor<'a>>(vis: &mut V, decl: &'a Declaration) {
     }
 }
 
+#[inline]
 fn walk_struct_declaration<'a, V: AstVisitor<'a>>(_: &mut V, _: &'a StructDeclare) {}
 
+#[inline]
 fn walk_enum_declaration<'a, V: AstVisitor<'a>>(_: &mut V, _: &'a EnumDeclare) {}
 
+#[inline]
 fn walk_alias_declaration<'a, V: AstVisitor<'a>>(_: &mut V, _: &'a AliasDeclare) {}
 
+#[inline]
 fn walk_function_declaration<'a, V: AstVisitor<'a>>(_: &mut V, _: &'a FunctionDeclare) {}
 
+#[inline]
 fn walk_global_variable_declaration<'a, V: AstVisitor<'a>>(
     _: &mut V,
     _: &'a GlobalVariableDeclare,
 ) {
 }
 
+#[inline]
 fn walk_variable_declaration<'a, V: AstVisitor<'a>>(_: &mut V, _: &'a Variable) {}
 
+#[inline]
 fn walk_operator_expression<'a, V: AstVisitor<'a>>(vis: &mut V, operator: &'a OperatorExpression) {
     for operand in operator.operands() {
         vis.visit_expression(operand);
     }
 }
 
+#[inline]
 fn walk_assign_expression<'a, V: AstVisitor<'a>>(vis: &mut V, assign: &'a AssignExpression) {
     vis.visit_expression(assign.right());
     vis.visit_expression(assign.left());
 }
 
+#[inline]
 fn walk_compo_access_expression<'a, V: AstVisitor<'a>>(
     vis: &mut V,
     compo: &'a CompoAccessExpression,

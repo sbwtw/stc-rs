@@ -88,6 +88,26 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
         self.write(format_args!("{}", variable.name().origin_string()));
     }
 
+    fn visit_call_expression(&mut self, call: &'_ CallExpression) {
+        self.visit_expression(call.callee());
+
+        self.write(format_args!("{}", Tok::LeftParentheses));
+        let mut first = true;
+        for arg in call.arguments() {
+            if !first {
+                self.write(format_args!("{} ", Tok::Comma));
+            }
+
+            self.visit_expression(arg);
+
+            if first {
+                first = false;
+            }
+        }
+
+        self.write(format_args!("{}", Tok::RightParentheses));
+    }
+
     fn visit_expr_statement(&mut self, stmt: &ExprStatement) {
         self.write_indent();
         self.visit_expression(stmt.expr());
@@ -321,5 +341,12 @@ mod test {
         let buf_str = parse_string("a * (a + 1);");
 
         assert_eq!(buf_str, "a * (a + 1);\n");
+    }
+
+    #[test]
+    fn test_call_expression() {
+        let buf_str = parse_string("f(\"a, b\", c);");
+
+        assert_eq!(buf_str, "f(\"a, b\", c);\n");
     }
 }

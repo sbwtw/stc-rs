@@ -61,7 +61,7 @@ where
 {
     mgr: UnitsManager,
     app: ModuleContext,
-    backcend: B,
+    backend: B,
 }
 
 impl CodeGenerator<LuaBackend> {
@@ -74,7 +74,7 @@ impl CodeGenerator<LuaBackend> {
         Ok(Self {
             mgr: mgr.clone(),
             app: app.clone(),
-            backcend: LuaBackend::new(mgr, app),
+            backend: LuaBackend::new(mgr, app),
         })
     }
 }
@@ -94,10 +94,9 @@ where
 
         for (decl_id, proto) in decl_info {
             let proto = proto.read().unwrap();
-            info!("generating code for function {} {}", decl_id, proto);
-
             if !proto.is_type_declaration() {
-                self.backcend.gen_function(decl_id)?;
+                info!("generating code for function {} {}", decl_id, proto);
+                self.backend.gen_function(decl_id)?;
             }
         }
 

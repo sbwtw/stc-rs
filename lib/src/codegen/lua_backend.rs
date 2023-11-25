@@ -1,10 +1,11 @@
 use crate::ast::{
-    AssignExpression, AstVisitorMut, IfStatement, OperatorExpression, Variable, VariableExpression,
+    AssignExpression, AstVisitorMut, CallExpression, IfStatement, OperatorExpression, Variable,
+    VariableExpression,
 };
 use crate::codegen::{AccessModeFlags, CodeGenBackend, CodeGenError, TargetCode};
 use crate::context::{Function, ModuleContext, Scope, UnitsManager};
-
 use crate::parser::Operator;
+
 use log::*;
 use smallvec::{smallvec, SmallVec};
 use std::fmt::{Display, Formatter};
@@ -12,9 +13,20 @@ use std::rc::Rc;
 
 type RegisterId = usize;
 
-trait LuaInstruction {}
+pub struct LuaExecState {}
 
-pub struct LuaCode {}
+pub enum LuaConstants {
+    Nil,
+    String(String),
+    Function(fn(&mut LuaExecState) -> i32),
+}
+
+pub enum LuaByteCode {}
+
+pub struct LuaCode {
+    byte_codes: Vec<LuaByteCode>,
+    constants: Vec<LuaConstants>,
+}
 
 impl Display for LuaCode {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -165,9 +177,10 @@ impl Default for LuaBackendAttribute {
 pub struct LuaBackend {
     mgr: UnitsManager,
     app: ModuleContext,
-    instructions: Vec<Box<dyn LuaInstruction>>,
-    attributes: SmallVec<[LuaBackendAttribute; 16]>,
+    instructions: Vec<LuaByteCode>,
+    attributes: SmallVec<[LuaBackendAttribute; 32]>,
     local_function: Option<Function>,
+    constants: Vec<LuaConstants>,
 }
 
 impl LuaBackend {
@@ -178,6 +191,7 @@ impl LuaBackend {
             instructions: vec![],
             attributes: smallvec![],
             local_function: None,
+            constants: vec![],
         }
     }
 
@@ -222,7 +236,10 @@ impl CodeGenBackend for LuaBackend {
     type Label = usize;
 
     fn take_code(&mut self) -> Box<dyn TargetCode> {
-        Box::new(LuaCode {})
+        Box::new(LuaCode {
+            byte_codes: vec![],
+            constants: vec![],
+        })
     }
 
     fn define_label<S: AsRef<str>>(&mut self, label: Option<S>) -> Self::Label {
@@ -310,5 +327,9 @@ impl AstVisitorMut for LuaBackend {
 
     fn visit_assign_expression_mut(&mut self, assign: &mut AssignExpression) {
         trace!("LuaGen: assignment expression: {}", assign);
+    }
+
+    fn visit_call_expression_mut(&mut self, call: &mut CallExpression) {
+        trace!("LuaGen: call expression: {}", call);
     }
 }
