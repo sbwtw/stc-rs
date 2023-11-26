@@ -128,7 +128,7 @@ impl StcViewerApp {
                 let scope = Scope::new(Some(self.mgr.clone()), Some(app_id), Some(proto_id));
                 type_analyzer.analyze_statement(f.parse_tree_mut(), scope);
 
-                write_ast_to_file(f.parse_tree(), proto_read.name().origin_string());
+                write_ast_to_file(f.parse_tree(), proto_read.name());
 
                 info!("{}\n{}", proto_read, f.parse_tree());
             }

@@ -11,8 +11,8 @@ use crate::ast::Statement;
 use std::fs::OpenOptions;
 use std::process::Command;
 
-pub fn write_ast_to_file(statement: &Statement, name: &str) {
-    let dot_file_name = format!("{}.dot", name);
+pub fn write_ast_to_file<S: AsRef<str>>(statement: &Statement, name: S) {
+    let dot_file_name = format!("{}.dot", name.as_ref());
 
     // graphviz
     // dump dot file
@@ -31,7 +31,12 @@ pub fn write_ast_to_file(statement: &Statement, name: &str) {
     // convert to svg
     {
         Command::new("dot")
-            .args(["-Tsvg", &dot_file_name, "-o", &format!("{}.svg", name)])
+            .args([
+                "-Tsvg",
+                &dot_file_name,
+                "-o",
+                &format!("{}.svg", name.as_ref()),
+            ])
             .status()
             .expect("write ast to file failed.");
     }
