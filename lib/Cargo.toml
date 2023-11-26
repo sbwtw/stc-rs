@@ -21,7 +21,7 @@ once_cell = "*"
 crc = "*"
 regex = "*"
 chrono = "*"
-smallvec = { version = "*", features = ["write", "union"] }
+smallvec = { version = "*", features = ["union", "const_generics", "const_new"] }
 smallmap = "*"
 log = "*"
 indexmap = "*"
