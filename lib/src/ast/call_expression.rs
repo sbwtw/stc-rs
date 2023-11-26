@@ -1,4 +1,4 @@
-use crate::ast::*;
+use crate::prelude::*;
 use crate::{impl_ast_display, impl_into_expression};
 use smallvec::smallvec;
 
@@ -7,6 +7,9 @@ pub struct CallExpression {
     callee: Expression,
     arguments: SmallVec8<Expression>,
 }
+
+impl_ast_display!(CallExpression, visit_call_expression);
+impl_into_expression!(CallExpression, |x| Expression::call(Box::new(x)));
 
 impl CallExpression {
     pub fn new(callee: Expression) -> Self {
@@ -28,6 +31,3 @@ impl CallExpression {
         self.arguments.as_slice()
     }
 }
-
-impl_ast_display!(CallExpression, visit_call_expression);
-impl_into_expression!(CallExpression, |x| Expression::call(Box::new(x)));

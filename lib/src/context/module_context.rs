@@ -132,7 +132,6 @@ impl PrototypeImpl {
         )
     }
 
-    #[allow(dead_code)]
     pub fn set_ty(&mut self, ty: Option<Rc<Box<dyn Type>>>) {
         self.ty = ty
     }
@@ -179,7 +178,6 @@ impl Display for PrototypeImpl {
 }
 
 pub struct FunctionImpl {
-    #[allow(dead_code)]
     decl_id: usize,
     parse_tree: Statement,
     compiled_code: Option<Box<dyn TargetCode>>,
@@ -265,7 +263,6 @@ impl ModuleContextImpl {
         self.id
     }
 
-    #[allow(dead_code)]
     pub fn scope(&self) -> &ModuleContextScope {
         &self.scope
     }
@@ -299,7 +296,6 @@ impl ModuleContextImpl {
         self.function_id_map.insert(decl_id, fun)
     }
 
-    #[allow(unused)]
     pub fn declarations(&self) -> impl Iterator<Item = &Prototype> {
         self.declaration_id_map.values()
     }
@@ -308,7 +304,6 @@ impl ModuleContextImpl {
         self.declaration_id_map.keys()
     }
 
-    #[allow(unused)]
     pub fn functions(&self) -> impl Iterator<Item = &Function> {
         self.function_id_map.values()
     }

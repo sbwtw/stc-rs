@@ -2,6 +2,7 @@ use crate::backend::{AccessModeFlags, CodeGenBackend, CodeGenError, TargetCode};
 use crate::parser::Operator;
 use crate::prelude::*;
 
+use crate::backend::lua_backend::LuaOpCode::{OP_CALL, OP_GETTABUP, OP_SETTABUP};
 use indexmap::IndexSet;
 use log::*;
 use smallvec::{smallvec, SmallVec};
@@ -22,7 +23,38 @@ pub enum LuaConstants {
 #[derive(Debug)]
 pub enum LuaByteCode {
     /// Call k, v: k is callee symbol position, v is argument count, return value not included
-    Call(u8, u8),
+    Call(u8, u8, u8),
+    GetTabUp(u8, u8, u8),
+    SetTabUp(u8, u8, u8),
+}
+
+impl LuaByteCode {
+    fn mnemonic(&self) -> &'static str {
+        match self {
+            LuaByteCode::Call(_, _, _) => "CALL",
+            LuaByteCode::GetTabUp(_, _, _) => "GETTABUP",
+            LuaByteCode::SetTabUp(_, _, _) => "SETTABUP",
+        }
+    }
+
+    fn opcode(&self) -> LuaOpCode {
+        match self {
+            LuaByteCode::Call(_, _, _) => OP_CALL,
+            LuaByteCode::GetTabUp(_, _, _) => OP_GETTABUP,
+            LuaByteCode::SetTabUp(_, _, _) => OP_SETTABUP,
+        }
+    }
+}
+
+impl Display for LuaByteCode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LuaByteCode::Call(a, b, c) | LuaByteCode::GetTabUp(a, b, c) => {
+                write!(f, "{:<10} {a} {b} {c}", self.mnemonic())
+            }
+            LuaByteCode::SetTabUp(a, b, c) => write!(f, "{:<10} {a} {b} {c}k", self.mnemonic()),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -34,13 +66,17 @@ pub struct LuaCode {
 impl Display for LuaCode {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         // constants
+        writeln!(f, "Constants:")?;
         for constant in self.constants.iter() {
-            f.write_fmt(format_args!("{:?}\n", constant))?
+            writeln!(f, "{:?}", constant)?
         }
 
+        writeln!(f)?;
+
         // constants
-        for bc in self.byte_codes.iter() {
-            f.write_fmt(format_args!("{:?}\n", bc))?
+        writeln!(f, "ByteCodes:")?;
+        for (idx, bc) in self.byte_codes.iter().enumerate() {
+            writeln!(f, "{idx:<6} {:<20}", bc)?
         }
 
         Ok(())
@@ -308,7 +344,7 @@ impl AstVisitorMut for LuaBackend {
         let callee_up_k = self.add_string_constant(&callee_name);
 
         self.byte_codes
-            .push(LuaByteCode::Call(callee_up_k as u8, 1))
+            .push(LuaByteCode::Call(callee_up_k as u8, 1, 0))
     }
 
     fn visit_if_statement_mut(&mut self, ifst: &mut IfStatement) {

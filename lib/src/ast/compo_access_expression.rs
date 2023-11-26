@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::impl_ast_display;
+use crate::{impl_ast_display, impl_into_expression};
 use std::rc::Rc;
 
 #[derive(Debug)]
@@ -10,6 +10,7 @@ pub struct CompoAccessExpression {
 }
 
 impl_ast_display!(CompoAccessExpression, visit_compo_access_expression);
+impl_into_expression!(CompoAccessExpression, |x| Expression::compo(Box::new(x)));
 
 impl CompoAccessExpression {
     pub fn new(left: Expression, right: Expression) -> Self {
@@ -36,7 +37,6 @@ impl CompoAccessExpression {
         &mut self.right
     }
 
-    #[allow(dead_code)]
     pub fn ty(&self) -> Option<Rc<Box<dyn Type>>> {
         self.ty.clone()
     }
@@ -45,19 +45,3 @@ impl CompoAccessExpression {
         self.ty = ty
     }
 }
-
-// impl AstNode for CompoAccessExpression {
-//     fn as_any(&self) -> &dyn Any {
-//         self
-//     }
-//
-//     fn accept(&self, visitor: &mut dyn AstVisitor) {
-//         visitor.visit_compo_access_expression(self)
-//     }
-//
-//     fn accept_mut(&mut self, visitor: &mut dyn AstVisitorMut) {
-//         visitor.visit_compo_access_expression_mut(self)
-//     }
-// }
-//
-// impl Expression for CompoAccessExpression {}
