@@ -267,7 +267,7 @@ impl CodeGenBackend for LuaBackend {
         let app_id = self.app.read().id();
         let fun_scope = Scope::new(Some(self.mgr.clone()), Some(app_id), Some(func));
 
-        let mut fun = f.write().unwrap();
+        let mut fun = f.write();
         self.push_attribute_with_scope(fun_scope);
         self.visit_statement_mut(fun.parse_tree_mut());
         self.pop_attribute();

@@ -78,6 +78,14 @@ impl Function {
             inner: Rc::new(RwLock::new(FunctionImpl::new(decl_id, function))),
         }
     }
+
+    pub fn read(&self) -> RwLockReadGuard<'_, FunctionImpl> {
+        self.inner.read().unwrap()
+    }
+
+    pub fn write(&self) -> RwLockWriteGuard<'_, FunctionImpl> {
+        self.inner.write().unwrap()
+    }
 }
 
 pub struct PrototypeImpl {
@@ -95,6 +103,10 @@ impl PrototypeImpl {
             decl,
             ty: Some(Rc::new(Box::new(user_ty))),
         }
+    }
+
+    pub fn decl(&self) -> &Declaration {
+        &self.decl
     }
 
     pub fn id(&self) -> usize {
@@ -192,6 +204,10 @@ impl FunctionImpl {
 
     pub fn parse_tree_mut(&mut self) -> &mut Statement {
         &mut self.parse_tree
+    }
+
+    pub fn compiled_code(&self) -> &Option<Box<dyn TargetCode>> {
+        &self.compiled_code
     }
 
     pub fn set_compiled_code(&mut self, compiled_code: Box<dyn TargetCode>) {

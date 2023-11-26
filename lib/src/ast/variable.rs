@@ -88,8 +88,8 @@ impl Variable {
 impl Default for Variable {
     fn default() -> Self {
         Self {
-            attributes: Map::new(),
-            name: StString::new(""),
+            attributes: Map::with_capacity(8),
+            name: StString::empty(),
             ty: None,
             flags: VariableFlags::NONE,
             initial: None,

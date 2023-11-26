@@ -1,3 +1,6 @@
+use crate::column_object::ColumnObject;
+use glib::subclass::prelude::ObjectSubclassIsExt;
+use glib::value::ValueTypeMismatchOrNoneError;
 use gtk::glib::Type;
 use gtk::prelude::*;
 use gtk::{Button, SearchEntry, TextBuffer, TextView, TreeStore, TreeView, TreeViewColumn};
@@ -8,7 +11,7 @@ use stc::prelude::*;
 use stc::utils::write_ast_to_file;
 
 pub const STC_VIEWER_COLUMN_NAME: u32 = 0;
-pub const STC_VIEWER_COLUMN_ID: u32 = 1;
+pub const STC_VIEWER_COLUMN_OBJECT: u32 = 1;
 
 pub struct StcViewerApp {
     pub mgr: UnitsManager,
@@ -16,7 +19,7 @@ pub struct StcViewerApp {
     pub tree_view: TreeView,
     pub tree_store: TreeStore,
     pub tree_column_name: TreeViewColumn,
-    pub tree_column_data: TreeViewColumn,
+    pub tree_column_object: TreeViewColumn,
     pub content_view: TextView,
     pub content_buffer: TextBuffer,
     pub search_entry: SearchEntry,
@@ -29,7 +32,7 @@ impl StcViewerApp {
         let content_buffer = TextBuffer::builder().build();
         let content_view = TextView::with_buffer(&content_buffer);
 
-        let tree_store = TreeStore::new(&[Type::STRING, Type::I64]);
+        let tree_store = TreeStore::new(&[Type::STRING, Type::OBJECT]);
         let tree_view = TreeView::with_model(&tree_store);
 
         Self {
@@ -38,7 +41,7 @@ impl StcViewerApp {
             tree_view,
             tree_store,
             tree_column_name: TreeViewColumn::new(),
-            tree_column_data: TreeViewColumn::new(),
+            tree_column_object: TreeViewColumn::new(),
             content_view,
             content_buffer,
             search_entry: SearchEntry::new(),
@@ -48,27 +51,38 @@ impl StcViewerApp {
     }
 
     pub fn on_cursor_changed(&self) {
-        let (path, column) = self.tree_view.cursor();
+        let (path, _col) = self.tree_view.cursor();
 
-        // if let Some(p) = path {
-        //     let iter = self.tree_store.iter(&p);
-        //     // let x = iter.unwrap().to_value().get::<PrototypeNode>();
-        //     dbg!(iter, p);
-        // }V
+        if let Some(p) = path {
+            let iter = self.tree_store.iter(&p);
+            match self
+                .tree_store
+                .value(&iter.unwrap(), 1)
+                .get::<ColumnObject>()
+            {
+                Ok(column_object) => {
+                    let s = column_object.imp().content();
+                    self.content_buffer.set_text(&s);
+                }
+                Err(ValueTypeMismatchOrNoneError::UnexpectedNone) => {}
+                Err(e) => panic!("{:?}", e),
+            }
+        }
 
-        dbg!(path.map(|x| x.to_str()), column.map(|x| x.to_string()));
+        // dbg!(path.map(|x| x.to_str()), column.map(|x| x.to_string()));
     }
 
     pub fn refresh(&self) {
         self.tree_store.clear();
 
         for ctx in self.mgr.read().contexts() {
+            let column_object = ColumnObject::from_ctx(ctx);
             let ctx_iter = self.tree_store.insert_with_values(
                 None,
                 None,
                 &[
                     (STC_VIEWER_COLUMN_NAME, &format!("{}", ctx.read())),
-                    (STC_VIEWER_COLUMN_ID, &(ctx.read().id() as i64)),
+                    (STC_VIEWER_COLUMN_OBJECT, &column_object),
                 ],
             );
 
@@ -79,10 +93,14 @@ impl StcViewerApp {
                 &[(STC_VIEWER_COLUMN_NAME, &"Declarations")],
             );
             for decl in ctx.read().declarations() {
+                let proto = ColumnObject::from_proto(decl);
                 self.tree_store.insert_with_values(
                     Some(&decl_iter),
                     None,
-                    &[(STC_VIEWER_COLUMN_NAME, &format!("{}", decl.read().unwrap()))],
+                    &[
+                        (STC_VIEWER_COLUMN_NAME, &format!("{}", decl.read().unwrap())),
+                        (STC_VIEWER_COLUMN_OBJECT, &proto),
+                    ],
                 );
             }
 
@@ -91,7 +109,8 @@ impl StcViewerApp {
                 self.tree_store
                     .insert_with_values(Some(&ctx_iter), None, &[(0, &"Functions")]);
             for fun in ctx.read().functions() {
-                let fun_id = fun.read().unwrap().decl_id();
+                let fun_object = ColumnObject::from_func(fun);
+                let fun_id = fun.read().decl_id();
                 let decl_name = ctx
                     .read()
                     .get_declaration_by_id(fun_id)
@@ -100,12 +119,15 @@ impl StcViewerApp {
                 self.tree_store.insert_with_values(
                     Some(&function_iter),
                     None,
-                    &[(
-                        STC_VIEWER_COLUMN_NAME,
-                        &decl_name
-                            .unwrap_or(format!("No Name({})", fun_id))
-                            .to_string(),
-                    )],
+                    &[
+                        (
+                            STC_VIEWER_COLUMN_NAME,
+                            &decl_name
+                                .unwrap_or(format!("No Name({})", fun_id))
+                                .to_string(),
+                        ),
+                        (STC_VIEWER_COLUMN_OBJECT, &fun_object),
+                    ],
                 );
             }
         }
@@ -123,7 +145,7 @@ impl StcViewerApp {
             let fun = app_read.get_function(proto_read.id());
 
             if let Some(f) = fun {
-                let mut f = f.write().unwrap();
+                let mut f = f.write();
 
                 let scope = Scope::new(Some(self.mgr.clone()), Some(app_id), Some(proto_id));
                 type_analyzer.analyze_statement(f.parse_tree_mut(), scope);

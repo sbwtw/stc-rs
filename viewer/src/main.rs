@@ -1,3 +1,4 @@
+mod column_object;
 mod stc_viewer;
 
 use crate::stc_viewer::{StcViewerApp, STC_VIEWER_COLUMN_NAME};
@@ -80,8 +81,17 @@ fn build_ui(app: &Application, mgr: UnitsManager) {
         STC_VIEWER_COLUMN_NAME as i32,
     );
 
+    // let cell = CellRendererText::new();
+    // CellLayoutExt::pack_start(&stc_app.tree_column_object, &cell, true);
+    // TreeViewColumnExt::add_attribute(
+    //     &stc_app.tree_column_object,
+    //     &cell,
+    //     "text",
+    //     STC_VIEWER_COLUMN_OBJECT as i32,
+    // );
+
     stc_app.tree_view.append_column(&stc_app.tree_column_name);
-    stc_app.tree_view.append_column(&stc_app.tree_column_data);
+    stc_app.tree_view.append_column(&stc_app.tree_column_object);
     stc_app.tree_view.set_headers_visible(false);
 
     let tree_scroll = ScrolledWindow::new(Adjustment::NONE, Adjustment::NONE);

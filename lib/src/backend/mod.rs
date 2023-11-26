@@ -111,7 +111,7 @@ where
                 let backend = B::new(self.mgr.clone(), self.app.clone());
                 let target_code = backend.gen_function(decl_id)?;
                 println!("{}", target_code);
-                f.write().unwrap().set_compiled_code(target_code);
+                f.write().set_compiled_code(target_code);
             }
         }
 
