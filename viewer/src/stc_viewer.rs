@@ -6,7 +6,8 @@ use gtk::prelude::*;
 use gtk::{Button, SearchEntry, TextBuffer, TextView, TreeStore, TreeView, TreeViewColumn};
 use log::info;
 use stc::analysis::TypeAnalyzer;
-use stc::backend::{CodeGenerator, LuaBackend};
+use stc::backend::lua::LuaBackend;
+use stc::backend::CodeGenerator;
 use stc::prelude::*;
 use stc::utils::write_ast_to_file;
 

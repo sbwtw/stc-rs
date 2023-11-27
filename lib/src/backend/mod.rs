@@ -1,5 +1,4 @@
-mod lua_backend;
-pub use lua_backend::LuaBackend;
+pub mod lua;
 
 use crate::ast::{OperatorExpression, Variable};
 use crate::context::{ModuleContext, UnitsManager};
