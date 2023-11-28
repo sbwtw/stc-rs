@@ -30,4 +30,8 @@ impl CallExpression {
     pub fn arguments(&self) -> &[Expression] {
         self.arguments.as_slice()
     }
+
+    pub fn arguments_mut(&mut self) -> &mut [Expression] {
+        self.arguments.as_mut_slice()
+    }
 }

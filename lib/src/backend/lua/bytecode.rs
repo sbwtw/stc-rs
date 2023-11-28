@@ -10,6 +10,7 @@ pub struct LuaExecState {}
 pub enum LuaConstants {
     Nil,
     String(String),
+    Integer(i64),
     Function(fn(&mut LuaExecState) -> i32),
 }
 

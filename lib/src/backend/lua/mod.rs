@@ -1,11 +1,12 @@
 /// Lua ByteCode object wrapper
 mod bytecode;
+use bytecode::{LuaByteCode, LuaCode, LuaConstants};
+
 /// 32-bits Lua instruction bytecode encoding/decoding
 mod encoding;
 
-use crate::backend::lua::bytecode::{LuaByteCode, LuaCode, LuaConstants};
-use crate::backend::{AccessModeFlags, CodeGenBackend, CodeGenError, TargetCode};
-use crate::parser::Operator;
+use crate::backend::*;
+use crate::parser::{LiteralValue, Operator};
 use crate::prelude::*;
 
 use indexmap::IndexSet;
@@ -19,6 +20,7 @@ type RegisterId = usize;
 pub struct LuaBackendAttribute {
     variable: Option<Rc<Variable>>,
     register: Option<RegisterId>,
+    constant_index: Option<usize>,
     scope: Option<Scope>,
     error: bool,
     access_mode: AccessModeFlags,
@@ -32,6 +34,7 @@ impl Default for LuaBackendAttribute {
             scope: None,
             error: false,
             access_mode: AccessModeFlags::NONE,
+            constant_index: None,
         }
     }
 }
@@ -84,6 +87,12 @@ impl LuaBackend {
 
     fn add_string_constant<S: AsRef<str>>(&mut self, s: S) -> usize {
         let constant = LuaConstants::String(s.as_ref().to_owned());
+        let (idx, _inserted) = self.constants.insert_full(constant);
+        idx
+    }
+
+    fn add_integer_constant(&mut self, i: i64) -> usize {
+        let constant = LuaConstants::Integer(i);
         let (idx, _inserted) = self.constants.insert_full(constant);
         idx
     }
@@ -143,6 +152,22 @@ impl CodeGenBackend for LuaBackend {
 }
 
 impl AstVisitorMut for LuaBackend {
+    fn visit_literal_mut(&mut self, literal: &mut LiteralExpression) {
+        trace!("LuaGen: literal expression: {:?}", literal);
+
+        match literal.literal() {
+            LiteralValue::String(s) => {
+                let constant_index = self.add_string_constant(s);
+                self.top_attribute().constant_index = Some(constant_index);
+            }
+            LiteralValue::DInt(i) => {
+                let constant_index = self.add_integer_constant(*i as i64);
+                self.top_attribute().constant_index = Some(constant_index);
+            }
+            _ => {}
+        }
+    }
+
     fn visit_variable_expression_mut(&mut self, variable: &mut VariableExpression) {
         trace!("LuaGen: variable expression: {}", variable);
 
@@ -153,11 +178,28 @@ impl AstVisitorMut for LuaBackend {
     fn visit_call_expression_mut(&mut self, call: &mut CallExpression) {
         trace!("LuaGen: call expression: {}", call);
 
+        // visit all arguments
+        for arg in call.arguments_mut() {
+            self.push_access_attribute(AccessModeFlags::PARAMETER);
+            self.visit_expression_mut(arg);
+            let arg_value_index = self.top_attribute().constant_index;
+            self.pop_attribute();
+
+            if let Some(idx) = arg_value_index {
+                let load = LuaByteCode::GetTabUp(0, idx as u8, 0);
+                self.byte_codes.push(load);
+            }
+        }
+
         let callee_name = call.callee().to_string();
+        // the index of callee name
         let callee_up_k = self.add_string_constant(&callee_name);
 
-        self.byte_codes
-            .push(LuaByteCode::Call(callee_up_k as u8, 1, 0))
+        self.byte_codes.push(LuaByteCode::Call(
+            callee_up_k as u8,
+            call.arguments().len() as u8,
+            0,
+        ))
     }
 
     fn visit_if_statement_mut(&mut self, ifst: &mut IfStatement) {
