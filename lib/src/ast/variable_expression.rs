@@ -19,14 +19,23 @@ impl VariableExpression {
         }
     }
 
+    #[inline]
     pub fn name(&self) -> &StString {
         &self.name
     }
 
+    /// Origin name of the variable
+    #[inline]
+    pub fn org_name(&self) -> &String {
+        self.name().origin_string()
+    }
+
+    #[inline]
     pub fn ty(&self) -> Option<Rc<Box<dyn Type>>> {
         self.ty.clone()
     }
 
+    #[inline]
     pub fn set_ty(&mut self, ty: Option<Rc<Box<dyn Type>>>) {
         self.ty = ty
     }

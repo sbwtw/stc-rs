@@ -2,6 +2,7 @@ mod column_object;
 mod stc_viewer;
 
 use crate::stc_viewer::{StcViewerApp, STC_VIEWER_COLUMN_NAME};
+use glib::{ControlFlow, MainContext};
 use gtk::prelude::*;
 use gtk::{
     Adjustment, Application, ApplicationWindow, CellRendererText, Orientation, Paned,
@@ -11,6 +12,11 @@ use stc::parser::{StDeclarationParser, StFunctionParser, StLexerBuilder};
 use stc::prelude::*;
 use std::rc::Rc;
 use std::sync::Mutex;
+
+/// Send UI operations from other threads
+enum UIMessages {
+    Refresh,
+}
 
 fn main() {
     pretty_env_logger::init();
@@ -136,6 +142,27 @@ fn build_ui(app: &Application, mgr: UnitsManager) {
         if let Ok(app) = app_copy.try_lock() {
             app.on_cursor_changed()
         }
+    });
+
+    let (tx, rx) = MainContext::channel::<UIMessages>(glib::Priority::DEFAULT);
+
+    // refresh UI when the window is shown
+    window.connect_show(move |_| {
+        let tx = tx.clone();
+        glib::idle_add(move || {
+            tx.send(UIMessages::Refresh).unwrap();
+            ControlFlow::Break
+        });
+    });
+
+    // handle UI messages from other threads
+    let app_copy = stc_app.clone();
+    rx.attach(None, move |msg| {
+        match msg {
+            UIMessages::Refresh => app_copy.lock().unwrap().refresh(),
+        };
+
+        ControlFlow::Continue
     });
 
     window.add(&paned);

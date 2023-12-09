@@ -85,7 +85,7 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
     }
 
     fn visit_variable_expression(&mut self, variable: &'_ VariableExpression) {
-        self.write(format_args!("{}", variable.name().origin_string()));
+        self.write(format_args!("{}", variable.org_name()));
     }
 
     fn visit_call_expression(&mut self, call: &'_ CallExpression) {
