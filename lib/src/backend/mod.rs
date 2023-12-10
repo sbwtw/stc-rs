@@ -17,6 +17,7 @@ bitflags! {
         const READ              = 0b0000_0000_0000_0001;
         const WRITE             = 0b0000_0000_0000_0010;
         const PARAMETER         = 0b0000_0000_0000_0100;
+        const CALL              = 0b0000_0000_0000_1000;
     }
 }
 

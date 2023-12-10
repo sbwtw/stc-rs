@@ -31,6 +31,10 @@ pub enum Tok {
     Assign,
     /// '=>'
     AssignRight,
+    /// 'R='
+    AssignReset,
+    /// 'S='
+    AssignSet,
     /// '='
     Equal,
     /// '<>'
@@ -198,6 +202,8 @@ impl From<&Tok> for String {
             Tok::Colon => ":",
             Tok::Assign => ":=",
             Tok::AssignRight => "=>",
+            Tok::AssignSet => "S=",
+            Tok::AssignReset => "R=",
             Tok::Equal => "=",
             Tok::NotEqual => "<>",
             Tok::Greater => ">",

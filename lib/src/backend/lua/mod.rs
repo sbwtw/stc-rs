@@ -171,12 +171,23 @@ impl AstVisitorMut for LuaBackend {
     fn visit_variable_expression_mut(&mut self, variable: &mut VariableExpression) {
         trace!("LuaGen: variable expression: {}", variable);
 
-        let scope = self.top_attribute().scope.as_ref().unwrap();
-        self.top_attribute().variable = scope.find_variable(variable.name());
+        if self.top_attribute().access_mode == AccessModeFlags::CALL {
+            self.top_attribute().constant_index =
+                Some(self.add_string_constant(variable.org_name()));
+        } else {
+            let scope = self.top_attribute().scope.as_ref().unwrap();
+            self.top_attribute().variable = scope.find_variable(variable.name());
+        }
     }
 
     fn visit_call_expression_mut(&mut self, call: &mut CallExpression) {
         trace!("LuaGen: call expression: {}", call);
+
+        self.push_access_attribute(AccessModeFlags::CALL);
+        self.visit_expression_mut(call.callee_mut());
+        let callee_index = self.top_attribute().constant_index;
+        self.pop_attribute();
+        self.byte_codes.push(LuaByteCode::GetTabUp(0, 0, 0));
 
         // visit all arguments
         for arg in call.arguments_mut() {
@@ -185,18 +196,15 @@ impl AstVisitorMut for LuaBackend {
             let arg_value_index = self.top_attribute().constant_index;
             self.pop_attribute();
 
+            // Load argument
             if let Some(idx) = arg_value_index {
-                let load = LuaByteCode::GetTabUp(0, idx as u8, 0);
+                let load = LuaByteCode::LoadK(0, idx as u32);
                 self.byte_codes.push(load);
             }
         }
 
-        let callee_name = call.callee().to_string();
-        // the index of callee name
-        let callee_up_k = self.add_string_constant(&callee_name);
-
         self.byte_codes.push(LuaByteCode::Call(
-            callee_up_k as u8,
+            callee_index.unwrap() as u8,
             call.arguments().len() as u8,
             0,
         ))

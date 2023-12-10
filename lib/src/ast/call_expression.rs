@@ -27,6 +27,10 @@ impl CallExpression {
         &self.callee
     }
 
+    pub fn callee_mut(&mut self) -> &mut Expression {
+        &mut self.callee
+    }
+
     pub fn arguments(&self) -> &[Expression] {
         self.arguments.as_slice()
     }
