@@ -1,8 +1,8 @@
 mod column_object;
 mod stc_viewer;
 
-use crate::stc_viewer::{StcViewerApp, STC_VIEWER_COLUMN_NAME};
-use glib::{ControlFlow, MainContext};
+use crate::stc_viewer::{StcViewerApp, UIMessages, STC_VIEWER_COLUMN_NAME};
+use glib::ControlFlow;
 use gtk::prelude::*;
 use gtk::{
     Adjustment, Application, ApplicationWindow, CellRendererText, Orientation, Paned,
@@ -12,11 +12,6 @@ use stc::parser::{StDeclarationParser, StFunctionParser, StLexerBuilder};
 use stc::prelude::*;
 use std::rc::Rc;
 use std::sync::Mutex;
-
-/// Send UI operations from other threads
-enum UIMessages {
-    Refresh,
-}
 
 fn main() {
     pretty_env_logger::init();
@@ -68,7 +63,7 @@ fn main() {
 }
 
 fn build_ui(app: &Application, mgr: UnitsManager) {
-    let stc_app = StcViewerApp::new(mgr);
+    let (stc_app, rx) = StcViewerApp::new(mgr);
     let window = ApplicationWindow::new(app);
 
     window.set_title("STC compilation units viewer");
@@ -144,9 +139,8 @@ fn build_ui(app: &Application, mgr: UnitsManager) {
         }
     });
 
-    let (tx, rx) = MainContext::channel::<UIMessages>(glib::Priority::DEFAULT);
-
     // refresh UI when the window is shown
+    let tx = app_lock.ui_tx.clone();
     window.connect_show(move |_| {
         let tx = tx.clone();
         glib::idle_add(move || {

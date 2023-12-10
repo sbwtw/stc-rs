@@ -1,6 +1,7 @@
 use crate::column_object::ColumnObject;
 use glib::subclass::prelude::ObjectSubclassIsExt;
 use glib::value::ValueTypeMismatchOrNoneError;
+use glib::{MainContext, Receiver, Sender};
 use gtk::glib::Type;
 use gtk::prelude::*;
 use gtk::{Button, SearchEntry, TextBuffer, TextView, TreeStore, TreeView, TreeViewColumn};
@@ -13,8 +14,14 @@ use stc::utils::write_ast_to_file;
 pub const STC_VIEWER_COLUMN_NAME: u32 = 0;
 pub const STC_VIEWER_COLUMN_OBJECT: u32 = 1;
 
+/// Send UI operations from other threads
+pub enum UIMessages {
+    Refresh,
+}
+
 pub struct StcViewerApp {
     pub mgr: UnitsManager,
+    pub ui_tx: Sender<UIMessages>,
 
     pub tree_view: TreeView,
     pub tree_store: TreeStore,
@@ -28,15 +35,18 @@ pub struct StcViewerApp {
 }
 
 impl StcViewerApp {
-    pub fn new(mgr: UnitsManager) -> Self {
+    pub fn new(mgr: UnitsManager) -> (Self, Receiver<UIMessages>) {
+        let (tx, rx) = MainContext::channel::<UIMessages>(glib::Priority::DEFAULT);
+
         let content_buffer = TextBuffer::builder().build();
         let content_view = TextView::with_buffer(&content_buffer);
 
         let tree_store = TreeStore::new(&[Type::STRING, Type::OBJECT]);
         let tree_view = TreeView::with_model(&tree_store);
 
-        Self {
+        let r = Self {
             mgr,
+            ui_tx: tx,
 
             tree_view,
             tree_store,
@@ -47,7 +57,9 @@ impl StcViewerApp {
             search_entry: SearchEntry::new(),
             refresh_button: Button::with_label("Refresh"),
             compile_button: Button::with_label("Compile"),
-        }
+        };
+
+        (r, rx)
     }
 
     pub fn on_cursor_changed(&self) {
@@ -73,6 +85,8 @@ impl StcViewerApp {
     }
 
     pub fn refresh(&self) {
+        // record last selection
+        let (last_tree_path, last_tree_column) = self.tree_view.cursor();
         self.tree_store.clear();
 
         for ctx in self.mgr.read().contexts() {
@@ -131,6 +145,27 @@ impl StcViewerApp {
                 );
             }
         }
+
+        // let tx = self.ui_tx.clone();
+        // gio::spawn_blocking(move || {
+        //     let five_seconds = Duration::from_secs(5);
+        //     thread::sleep(five_seconds);
+        //
+        //     glib::idle_add(move || {
+        //         tx.send(UIMessages::ResetTreeViewPath).unwrap();
+        //         ControlFlow::Break
+        //     });
+        // });
+
+        // reset to last selected row
+        if let Some(p) = last_tree_path {
+            self.tree_view.expand_to_path(&p);
+            self.tree_view
+                .set_cursor(&p, last_tree_column.as_ref(), false);
+
+            // refresh contents
+            self.on_cursor_changed()
+        }
     }
 
     pub fn compile(&self) {
@@ -161,7 +196,3 @@ impl StcViewerApp {
         println!("CodeGen: {:?}", code_gen.build_application());
     }
 }
-
-// struct TreeProtoNode {
-//     proto: Prototype,
-// }
