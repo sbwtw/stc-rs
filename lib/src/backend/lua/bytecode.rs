@@ -3,22 +3,39 @@ use crate::backend::TargetCode;
 
 use indexmap::IndexSet;
 use std::fmt::{Display, Formatter, Write};
+use std::hash::{Hash, Hasher};
 
 pub struct LuaExecState {}
 
-#[derive(PartialEq, Debug, Clone, Hash, Eq)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum LuaConstants {
     Nil,
     String(String),
     Integer(i64),
+    Float(f64),
     Function(fn(&mut LuaExecState) -> i32),
+}
+
+impl Eq for LuaConstants {}
+
+impl Hash for LuaConstants {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            LuaConstants::Float(f) => state.write(&f.to_be_bytes()),
+            LuaConstants::Function(f) => f.hash(state),
+            LuaConstants::Nil => 0.hash(state),
+            LuaConstants::String(s) => s.hash(state),
+            LuaConstants::Integer(i) => i.hash(state),
+        }
+    }
 }
 
 impl Display for LuaConstants {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match *self {
             LuaConstants::String(ref s) => write!(f, "{s}"),
-            _ => unreachable!(),
+            LuaConstants::Float(ref v) => write!(f, "{:?}", v),
+            _ => todo!(),
         }
     }
 }

@@ -96,6 +96,12 @@ impl LuaBackend {
         let (idx, _inserted) = self.constants.insert_full(constant);
         idx
     }
+
+    fn add_float_constant(&mut self, f: f64) -> usize {
+        let constant = LuaConstants::Float(f);
+        let (idx, _inserted) = self.constants.insert_full(constant);
+        idx
+    }
 }
 
 impl CodeGenBackend for LuaBackend {
@@ -162,6 +168,11 @@ impl AstVisitorMut for LuaBackend {
             }
             LiteralValue::DInt(i) => {
                 let constant_index = self.add_integer_constant(*i as i64);
+                self.top_attribute().constant_index = Some(constant_index);
+            }
+            LiteralValue::Real(s) | LiteralValue::LReal(s) => {
+                let f: f64 = s.parse().unwrap();
+                let constant_index = self.add_float_constant(f);
                 self.top_attribute().constant_index = Some(constant_index);
             }
             _ => {}
