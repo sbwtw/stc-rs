@@ -46,12 +46,12 @@ fn main() {
     let global = StDeclarationParser::new().parse(global).unwrap();
     let _global_id = app_ctx.write().add_declaration(global);
 
-    let test_func =
-        StLexerBuilder::new().build("program prg: int VAR a: BYTE; END_VAR end_program");
+    let test_func = StLexerBuilder::new()
+        .build("program prg: int VAR a: BYTE; END_VAR VAR_TEMP b: INT; END_VAR end_program");
     let test_fun_decl = StDeclarationParser::new().parse(test_func).unwrap();
     let test_fun_decl_id = app_ctx.write().add_declaration(test_fun_decl);
 
-    let test_func = StLexerBuilder::new().build("print(\"hello, world!\", 123.456);");
+    let test_func = StLexerBuilder::new().build("print(a + b);");
     let test_fun_body = StFunctionParser::new().parse(test_func).unwrap();
     app_ctx
         .write()

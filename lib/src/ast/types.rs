@@ -55,6 +55,15 @@ impl UserType {
         }
     }
 
+    pub fn from_proto(name: StString, proto: usize) -> Self {
+        Self {
+            name,
+            decl_id: Some(proto),
+            class: None,
+            attributes: Map::new(),
+        }
+    }
+
     #[allow(unused)]
     pub fn name(&self) -> &StString {
         &self.name

@@ -91,17 +91,13 @@ impl Function {
 pub struct PrototypeImpl {
     id: usize,
     decl: Declaration,
-    ty: Option<Rc<Box<dyn Type>>>,
 }
 
 impl PrototypeImpl {
     fn new(decl: Declaration) -> Self {
-        let user_ty = UserType::from_name(decl.identifier().clone());
-
         Self {
             id: get_next_declaration_id(),
             decl,
-            ty: Some(Rc::new(Box::new(user_ty))),
         }
     }
 
@@ -121,8 +117,20 @@ impl PrototypeImpl {
         self.decl.variables()
     }
 
-    pub fn ty(&self) -> &Option<Rc<Box<dyn Type>>> {
-        &self.ty
+    pub fn create_user_type(&self) -> Option<Rc<Box<dyn Type>>> {
+        // Only Structure types can be created as UserType
+        match self.decl.kind {
+            DeclKind::Struct(_) | DeclKind::Alias(_) | DeclKind::Enum(_) => {}
+            _ => return None,
+        }
+
+        let user_ty = UserType::from_proto(self.decl.identifier().clone(), self.id);
+        Some(Rc::new(Box::new(user_ty)))
+    }
+
+    /// Get return value of prototype
+    pub fn return_value(&self) -> Option<&Rc<Variable>> {
+        self.variables().iter().find(|x| x.name() == self.name())
     }
 
     pub fn is_type_declaration(&self) -> bool {
@@ -130,10 +138,6 @@ impl PrototypeImpl {
             self.decl.kind,
             DeclKind::GlobalVar(_) | DeclKind::Alias(_) | DeclKind::Enum(_)
         )
-    }
-
-    pub fn set_ty(&mut self, ty: Option<Rc<Box<dyn Type>>>) {
-        self.ty = ty
     }
 }
 

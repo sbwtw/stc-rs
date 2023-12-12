@@ -184,6 +184,37 @@ bitflags! {
     }
 }
 
+impl Display for VariableFlags {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "VAR")?;
+
+        // scope
+        if self.contains(Self::GLOBAL) {
+            write!(f, "_GLOBAL")?;
+        } else if self.contains(Self::INPUT) {
+            write!(f, "_INPUT")?;
+        } else if self.contains(Self::OUTPUT) {
+            write!(f, "_OUTPUT")?;
+        } else if self.contains(Self::INOUT) {
+            write!(f, "_INOUT")?;
+        } else if self.contains(Self::TEMP) {
+            write!(f, "_TEMP")?;
+        } else if self.contains(Self::STATIC) {
+            write!(f, "_STAT")?;
+        }
+
+        if self.contains(Self::RETAIN) {
+            write!(f, " RETAIN")?;
+        }
+
+        if self.contains(Self::PERSISTENT) {
+            write!(f, " PERSISTENT")?;
+        }
+
+        Ok(())
+    }
+}
+
 bitflags! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub struct CompilerInternalFlags: u32 {

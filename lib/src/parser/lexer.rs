@@ -358,6 +358,7 @@ impl StLexerBuilder {
             Tok::VarInOut,
             Tok::VarOutput,
             Tok::VarGlobal,
+            Tok::VarTemp,
             Tok::EndVar,
             Tok::Retain,
             Tok::Persistent,

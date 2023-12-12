@@ -62,9 +62,16 @@ impl Display for ColumnObjectData {
             }
             Self::Prototype(proto) => {
                 let proto = proto.read().unwrap();
-                writeln!(f, "{}", proto.name())?;
+
+                // name : return_value
+                write!(f, "{}", proto.name())?;
+                if let Some(ty) = proto.return_value().and_then(|x| x.ty()) {
+                    write!(f, " : {}", ty)?;
+                }
+                writeln!(f)?;
+
                 for v in proto.variables() {
-                    writeln!(f, "VAR: {}: {:?}", v.name(), v.ty())?;
+                    writeln!(f, "{}: {}: {:?}", v.flags(), v.name(), v.ty())?;
                 }
 
                 Ok(())

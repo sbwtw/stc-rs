@@ -85,6 +85,11 @@ impl LuaBackend {
         self.attributes.last_mut().unwrap()
     }
 
+    /// Return current scope, will be panic if scope not set
+    fn current_scope(&mut self) -> Scope {
+        self.top_attribute().clone().scope.unwrap()
+    }
+
     fn add_string_constant<S: AsRef<str>>(&mut self, s: S) -> usize {
         let constant = LuaConstants::String(s.as_ref().to_owned());
         let (idx, _inserted) = self.constants.insert_full(constant);
@@ -180,7 +185,14 @@ impl AstVisitorMut for LuaBackend {
     }
 
     fn visit_variable_expression_mut(&mut self, variable: &mut VariableExpression) {
-        trace!("LuaGen: variable expression: {}", variable);
+        let scope = self.current_scope();
+        let var = scope.find_variable(variable.name());
+
+        trace!(
+            "LuaGen: variable expression: {}: {:?}",
+            variable,
+            var.and_then(|x| x.ty())
+        );
 
         if self.top_attribute().access_mode == AccessModeFlags::CALL {
             self.top_attribute().constant_index =
@@ -241,8 +253,9 @@ impl AstVisitorMut for LuaBackend {
         let operands = operator.operands_mut();
 
         match op {
-            // binary compare operators
+            // binary operators
             Operator::Less
+            | Operator::Plus
             | Operator::LessEqual
             | Operator::Equal
             | Operator::NotEqual
@@ -256,6 +269,7 @@ impl AstVisitorMut for LuaBackend {
                 self.visit_expression_mut(&mut operands[1]);
                 self.pop_attribute();
             }
+
             _ => unreachable!(),
         }
     }

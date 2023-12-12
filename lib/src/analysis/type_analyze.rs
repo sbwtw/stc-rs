@@ -87,7 +87,7 @@ impl AstVisitorMut for TypeAnalyzer {
             (None, Some(decl)) => {
                 // update scope to inner declaration
                 attr.scope = decl_scope;
-                decl.read().unwrap().ty().clone()
+                decl.read().unwrap().create_user_type().clone()
             }
 
             // TODO: Ambiguity ?
