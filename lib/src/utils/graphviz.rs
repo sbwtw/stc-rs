@@ -217,6 +217,21 @@ fn display_type(ty: Option<Rc<Box<dyn Type>>>) -> String {
     ty.map(|x| x.to_string()).unwrap_or_default()
 }
 
+impl<W: Write> DeclVisitor<'_> for GraphvizExporter<W> {
+    fn visit_declaration(&mut self, decl: &Declaration) {
+        let name = self.unique_name("declaration_statement");
+
+        let mut buf = vec![];
+        let mut stringify = StringifyVisitor::new(&mut buf);
+        stringify.visit_declaration(decl);
+
+        let s = String::from_utf8_lossy(&buf);
+        let labels = GraphvizLabelGroup::from_name("Declaration")
+            .append_group(GraphvizLabelGroup::from_name(s));
+        self.write_node(&name, labels);
+    }
+}
+
 impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
     fn visit_literal(&mut self, literal: &LiteralExpression) {
         let name = self.unique_name("literal");
@@ -367,19 +382,6 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
         if let Some(top) = self.top_mut() {
             top.node_name = name;
         }
-    }
-
-    fn visit_declaration(&mut self, decl: &Declaration) {
-        let name = self.unique_name("declaration_statement");
-
-        let mut buf = vec![];
-        let mut stringify = StringifyVisitor::new(&mut buf);
-        stringify.visit_declaration(decl);
-
-        let s = String::from_utf8_lossy(&buf);
-        let labels = GraphvizLabelGroup::from_name("Declaration")
-            .append_group(GraphvizLabelGroup::from_name(s));
-        self.write_node(&name, labels);
     }
 
     fn visit_operator_expression(&mut self, expr: &OperatorExpression) {

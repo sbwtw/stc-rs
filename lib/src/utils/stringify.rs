@@ -64,6 +64,88 @@ impl<W: Write> StringifyVisitor<W> {
     }
 }
 
+impl<W: Write> DeclVisitor<'_> for StringifyVisitor<W> {
+    fn visit_function_declaration(&mut self, fun: &FunctionDeclare) {
+        self.write(format_args!("{} : ", Tok::Function));
+        if let Some(ret_type) = fun.return_type() {
+            self.write(format_args!("{} ", ret_type))
+        }
+        self.writeln(format_args!(""));
+
+        // variable declarations
+        let variables = fun.parameters();
+        if !variables.is_empty() {
+            let mut current_scope = None;
+            for v in variables {
+                // new group
+                if current_scope != Some(v.scope()) {
+                    if current_scope.is_some() {
+                        self.writeln(format_args!("{}", Tok::EndVar));
+                    }
+
+                    self.writeln(format_args!("{}", variable_scope_start_tok(v.scope())));
+
+                    current_scope = Some(v.scope());
+                }
+
+                // dump variable
+                self.indent += 1;
+                self.write_indent();
+                self.writeln(format_args!(
+                    "{}: {};",
+                    v.name().origin_string(),
+                    v.ty().expect("Variable type not exist!")
+                ));
+                self.indent -= 1;
+            }
+
+            // last group end
+            if current_scope.is_some() {
+                self.writeln(format_args!("{}", Tok::EndVar));
+            }
+        }
+
+        self.writeln(format_args!("{}", Tok::EndFunction));
+    }
+
+    fn visit_enum_declaration(&mut self, decl: &'_ EnumDeclare) {
+        self.writeln(format_args!(
+            "{} {} {}",
+            Tok::Type,
+            decl.name().origin_string(),
+            Tok::Colon
+        ));
+        self.writeln(format_args!("{}", Tok::LeftParentheses));
+
+        // fields
+        self.indent += 1;
+        let field_count = decl.fields().len();
+        for (index, field) in decl.fields().iter().enumerate() {
+            self.write_indent();
+            self.write(format_args!("{}", field.name().origin_string()));
+            if let Some(val) = field.initial() {
+                self.write(format_args!(" {} ", Tok::Assign));
+                self.visit_expression(val);
+            }
+
+            if field_count == index + 1 {
+                self.writeln(format_args!(""));
+            } else {
+                self.writeln(format_args!("{}", Tok::Comma))
+            }
+        }
+        self.indent -= 1;
+
+        // closed type, like: ) DINT;
+        self.write(format_args!("{}", Tok::RightParentheses));
+        if let Some(ty) = decl.ty() {
+            self.write(format_args!(" {}", ty));
+        }
+        self.writeln(format_args!("{}", Tok::Semicolon));
+
+        self.writeln(format_args!("{}", Tok::EndType))
+    }
+}
 impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
     fn visit_literal(&mut self, literal: &LiteralExpression) {
         match literal.literal() {
@@ -147,87 +229,6 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
         }
 
         self.writeln(format_args!("END_IF"));
-    }
-
-    fn visit_function_declaration(&mut self, fun: &FunctionDeclare) {
-        self.write(format_args!("{} : ", Tok::Function));
-        if let Some(ret_type) = fun.return_type() {
-            self.write(format_args!("{} ", ret_type))
-        }
-        self.writeln(format_args!(""));
-
-        // variable declarations
-        let variables = fun.parameters();
-        if !variables.is_empty() {
-            let mut current_scope = None;
-            for v in variables {
-                // new group
-                if current_scope != Some(v.scope()) {
-                    if current_scope.is_some() {
-                        self.writeln(format_args!("{}", Tok::EndVar));
-                    }
-
-                    self.writeln(format_args!("{}", variable_scope_start_tok(v.scope())));
-
-                    current_scope = Some(v.scope());
-                }
-
-                // dump variable
-                self.indent += 1;
-                self.write_indent();
-                self.writeln(format_args!(
-                    "{}: {};",
-                    v.name().origin_string(),
-                    v.ty().expect("Variable type not exist!")
-                ));
-                self.indent -= 1;
-            }
-
-            // last group end
-            if current_scope.is_some() {
-                self.writeln(format_args!("{}", Tok::EndVar));
-            }
-        }
-
-        self.writeln(format_args!("{}", Tok::EndFunction));
-    }
-
-    fn visit_enum_declaration(&mut self, decl: &'_ EnumDeclare) {
-        self.writeln(format_args!(
-            "{} {} {}",
-            Tok::Type,
-            decl.name().origin_string(),
-            Tok::Colon
-        ));
-        self.writeln(format_args!("{}", Tok::LeftParentheses));
-
-        // fields
-        self.indent += 1;
-        let field_count = decl.fields().len();
-        for (index, field) in decl.fields().iter().enumerate() {
-            self.write_indent();
-            self.write(format_args!("{}", field.name().origin_string()));
-            if let Some(val) = field.initial() {
-                self.write(format_args!(" {} ", Tok::Assign));
-                self.visit_expression(val);
-            }
-
-            if field_count == index + 1 {
-                self.writeln(format_args!(""));
-            } else {
-                self.writeln(format_args!("{}", Tok::Comma))
-            }
-        }
-        self.indent -= 1;
-
-        // closed type, like: ) DINT;
-        self.write(format_args!("{}", Tok::RightParentheses));
-        if let Some(ty) = decl.ty() {
-            self.write(format_args!(" {}", ty));
-        }
-        self.writeln(format_args!("{}", Tok::Semicolon));
-
-        self.writeln(format_args!("{}", Tok::EndType))
     }
 
     fn visit_operator_expression(&mut self, expr: &OperatorExpression) {

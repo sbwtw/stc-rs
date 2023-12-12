@@ -6,6 +6,8 @@ const EMPTY_VARIABLES: &[Rc<Variable>] = &[];
 #[derive(Debug)]
 pub enum DeclKind {
     Fun(Box<FunctionDeclare>),
+    Prg(Box<FunctionDeclare>),
+    FB(Box<FunctionDeclare>),
     Alias(Box<AliasDeclare>),
     Struct(Box<StructDeclare>),
     Enum(Box<EnumDeclare>),
@@ -21,6 +23,8 @@ impl Declaration {
     pub fn identifier(&self) -> &StString {
         match self.kind {
             DeclKind::Fun(ref fun) => fun.name(),
+            DeclKind::FB(ref fun) => fun.name(),
+            DeclKind::Prg(ref fun) => fun.name(),
             DeclKind::Alias(ref alias) => alias.name(),
             DeclKind::Struct(ref struct_) => struct_.name(),
             DeclKind::Enum(ref enum_) => enum_.name(),

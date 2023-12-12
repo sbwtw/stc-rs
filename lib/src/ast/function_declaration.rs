@@ -1,6 +1,5 @@
-use crate::ast::{AstVisitor, DeclareClass, Type, Variable};
 use crate::impl_ast_display;
-use crate::parser::StString;
+use crate::prelude::*;
 use smallvec::SmallVec;
 use std::rc::Rc;
 

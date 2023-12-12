@@ -133,6 +133,7 @@ impl PrototypeImpl {
         self.variables().iter().find(|x| x.name() == self.name())
     }
 
+    /// return false if Prototype is Function, like FB or Fun or Prg
     pub fn is_type_declaration(&self) -> bool {
         matches!(
             self.decl.kind,
@@ -154,6 +155,16 @@ fn proto_name_string(name: &StString) -> Cow<String> {
 impl Display for PrototypeImpl {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self.decl.kind {
+            DeclKind::FB(fun) => f.write_fmt(format_args!(
+                "{} ({})",
+                proto_name_string(fun.name()),
+                "FUNCTION_BLOCK"
+            )),
+            DeclKind::Prg(fun) => f.write_fmt(format_args!(
+                "{} ({})",
+                proto_name_string(fun.name()),
+                "PROGRAM"
+            )),
             DeclKind::Fun(fun) => f.write_fmt(format_args!(
                 "{} ({})",
                 proto_name_string(fun.name()),

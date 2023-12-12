@@ -111,6 +111,13 @@ impl Hasher for Crc32Hasher<'_> {
     }
 }
 
+impl<H: Hasher> DeclVisitor<'_> for AstHasher<H> {
+    fn visit_declaration(&mut self, _: &Declaration) {
+        VisitType::DeclarationStatement.hash(&mut self.hasher);
+        unimplemented!()
+    }
+}
+
 impl<H: Hasher> AstVisitor<'_> for AstHasher<H> {
     fn visit_literal(&mut self, literal: &LiteralExpression) {
         VisitType::Literal.hash(&mut self.hasher);
@@ -149,11 +156,6 @@ impl<H: Hasher> AstVisitor<'_> for AstHasher<H> {
             VisitType::ElseStatement.hash(&mut self.hasher);
             self.visit_statement(else_ctrl)
         }
-    }
-
-    fn visit_declaration(&mut self, _: &Declaration) {
-        VisitType::DeclarationStatement.hash(&mut self.hasher);
-        unimplemented!()
     }
 
     fn visit_operator_expression(&mut self, op_expr: &OperatorExpression) {
