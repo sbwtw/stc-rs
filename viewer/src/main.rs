@@ -2,7 +2,7 @@ mod column_object;
 mod stc_viewer;
 
 use crate::stc_viewer::{StcViewerApp, UIMessages, STC_VIEWER_COLUMN_NAME};
-use glib::ControlFlow;
+use glib::MainContext;
 use gtk::prelude::*;
 use gtk::{
     Adjustment, Application, ApplicationWindow, CellRendererText, Orientation, Paned,
@@ -143,20 +143,21 @@ fn build_ui(app: &Application, mgr: UnitsManager) {
     let tx = app_lock.ui_tx.clone();
     window.connect_show(move |_| {
         let tx = tx.clone();
-        glib::idle_add(move || {
-            tx.send(UIMessages::Refresh).unwrap();
-            ControlFlow::Break
+
+        glib::idle_add_once(move || {
+            tx.send_blocking(UIMessages::Refresh).unwrap();
         });
     });
 
     // handle UI messages from other threads
     let app_copy = stc_app.clone();
-    rx.attach(None, move |msg| {
-        match msg {
-            UIMessages::Refresh => app_copy.lock().unwrap().refresh(),
-        };
-
-        ControlFlow::Continue
+    let ctx = MainContext::default();
+    ctx.spawn_local(async move {
+        while let Ok(r) = rx.recv().await {
+            match r {
+                UIMessages::Refresh => app_copy.lock().unwrap().refresh(),
+            }
+        }
     });
 
     window.add(&paned);

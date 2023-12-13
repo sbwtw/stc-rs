@@ -1,7 +1,8 @@
 use crate::column_object::ColumnObject;
+
+use async_channel::{Receiver, Sender};
 use glib::subclass::prelude::ObjectSubclassIsExt;
 use glib::value::ValueTypeMismatchOrNoneError;
-use glib::{MainContext, Receiver, Sender};
 use gtk::glib::Type;
 use gtk::prelude::*;
 use gtk::{Button, SearchEntry, TextBuffer, TextView, TreeStore, TreeView, TreeViewColumn};
@@ -36,7 +37,7 @@ pub struct StcViewerApp {
 
 impl StcViewerApp {
     pub fn new(mgr: UnitsManager) -> (Self, Receiver<UIMessages>) {
-        let (tx, rx) = MainContext::channel::<UIMessages>(glib::Priority::DEFAULT);
+        let (tx, rx) = async_channel::unbounded();
 
         let content_buffer = TextBuffer::builder().build();
         let content_view = TextView::with_buffer(&content_buffer);
