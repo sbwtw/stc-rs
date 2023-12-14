@@ -12,4 +12,4 @@ tokio = { version = "*", features = ["macros", "rt-multi-thread", "io-std", "io-
 tokio-util = { version = "*", features = ["codec"] }
 serde_json = "*"
 tracing = "*"
-tracing-subscriber = "*"
+tracing-subscriber = { version = "*", features = ["env-filter"] }

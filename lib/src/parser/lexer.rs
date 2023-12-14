@@ -1,9 +1,10 @@
 use crate::ast::*;
-use crate::parser::{Buffer, StringBuffer, Tok};
+use crate::parser::{Buffer, StreamBuffer, StringBuffer, Tok};
 use smallmap::Map;
 use std::cmp::Ordering;
 use std::fmt::{self, Display, Formatter};
 use std::hash::{Hash, Hasher};
+use std::io;
 
 #[derive(Clone)]
 pub struct StChar(char);
@@ -375,12 +376,20 @@ impl StLexerBuilder {
         self
     }
 
-    pub fn build(self, input: &str) -> StLexer {
+    pub fn build_str(self, input: &str) -> StLexer {
         StLexer {
             buffer: Box::new(StringBuffer::new(input)),
             keywords: self.keywords,
             options: self.options,
         }
+    }
+
+    pub fn build_file(self, file: &str) -> io::Result<StLexer> {
+        Ok(StLexer {
+            buffer: Box::new(StreamBuffer::from_file(file)?),
+            keywords: self.keywords,
+            options: self.options,
+        })
     }
 }
 
@@ -654,7 +663,7 @@ mod test {
     #[test]
     fn test_st_keywords() {
         let s = "if abc";
-        let mut lexer = StLexerBuilder::new().build(s);
+        let mut lexer = StLexerBuilder::new().build_str(s);
 
         let x = lexer.next().unwrap().unwrap();
         assert_eq!(x.start_pos, 0);
@@ -672,7 +681,7 @@ mod test {
     #[test]
     fn test_identifier_semicolon() {
         let s = "1 + a;";
-        let mut lexer = StLexerBuilder::new().build(s);
+        let mut lexer = StLexerBuilder::new().build_str(s);
 
         let x = lexer.next().unwrap().unwrap();
         assert_eq!(x.start_pos, 0);
@@ -693,7 +702,7 @@ mod test {
     #[test]
     fn test_unicode_identifier() {
         let s = "中文 + 中文_1;";
-        let mut lexer = StLexerBuilder::new().build(s);
+        let mut lexer = StLexerBuilder::new().build_str(s);
 
         let x = lexer.next().unwrap().unwrap();
         assert_eq!(x.start_pos, 0);
@@ -704,13 +713,13 @@ mod test {
     #[test]
     fn test_multiple_underline() {
         let s = "a__b";
-        let mut lexer = StLexerBuilder::new().build(s);
+        let mut lexer = StLexerBuilder::new().build_str(s);
 
         assert!(matches!(lexer.next(), Some(Err(_))));
 
         let s = "a__b";
         let lexer_opt = StLexerOptions::default().allow_multiple_underline(true);
-        lexer = StLexerBuilder::from_options(lexer_opt).build(s);
+        lexer = StLexerBuilder::from_options(lexer_opt).build_str(s);
 
         assert!(matches!(lexer.next(), Some(Ok(_))));
     }
@@ -718,7 +727,7 @@ mod test {
     #[test]
     fn test_out_assign() {
         let s = "=>";
-        let mut lexer = StLexerBuilder::new().build(s);
+        let mut lexer = StLexerBuilder::new().build_str(s);
 
         assert!(matches!(
             lexer.next().unwrap().unwrap().tok,

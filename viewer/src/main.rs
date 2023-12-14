@@ -42,16 +42,16 @@ fn main() {
     // app_ctx.write().add_function(prg_id, body);
 
     let global =
-        StLexerBuilder::new().build("VAR_GLOBAL END_VAR VAR_GLOBAL 全局变量1: REAL; END_VAR");
+        StLexerBuilder::new().build_str("VAR_GLOBAL END_VAR VAR_GLOBAL 全局变量1: REAL; END_VAR");
     let global = StDeclarationParser::new().parse(global).unwrap();
     let _global_id = app_ctx.write().add_declaration(global);
 
     let test_func = StLexerBuilder::new()
-        .build("program prg: int VAR a: BYTE; END_VAR VAR_TEMP b: INT; END_VAR end_program");
+        .build_str("program prg: int VAR a: BYTE; END_VAR VAR_TEMP b: INT; END_VAR end_program");
     let test_fun_decl = StDeclarationParser::new().parse(test_func).unwrap();
     let test_fun_decl_id = app_ctx.write().add_declaration(test_fun_decl);
 
-    let test_func = StLexerBuilder::new().build("print(a + b);");
+    let test_func = StLexerBuilder::new().build_str("print(a + b);");
     let test_fun_body = StFunctionParser::new().parse(test_func).unwrap();
     app_ctx
         .write()

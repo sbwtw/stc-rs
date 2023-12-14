@@ -10,7 +10,7 @@ fn test_decl_parse() {
         let f = entry.unwrap().path();
         let code = fs::read_to_string(&f).unwrap();
 
-        let lexer = StLexerBuilder::new().build(&code);
+        let lexer = StLexerBuilder::new().build_str(&code);
         match parser.parse(lexer) {
             Ok(_) => {}
             Err(e) => panic!("{}: {:?}", f.display(), e),
@@ -24,9 +24,10 @@ fn test_body_parse() {
 
     for entry in fs::read_dir("src/test/test_body_parse").unwrap() {
         let f = entry.unwrap().path();
-        let code = fs::read_to_string(&f).unwrap();
+        let lexer = StLexerBuilder::new()
+            .build_file(f.to_str().unwrap())
+            .unwrap();
 
-        let lexer = StLexerBuilder::new().build(&code);
         match parser.parse(lexer) {
             Ok(_) => {}
             Err(e) => panic!("{}: {:#?}", f.display(), e),
@@ -44,12 +45,12 @@ fn test_scope_lookup() {
     mgr.write().set_active_application(Some(app_id));
 
     let app_ctx = mgr.write().get_context(app_id).unwrap();
-    let global = StLexerBuilder::new().build("VAR_GLOBAL END_VAR VAR_GLOBAL g1: REAL; END_VAR");
+    let global = StLexerBuilder::new().build_str("VAR_GLOBAL END_VAR VAR_GLOBAL g1: REAL; END_VAR");
     let global = StDeclarationParser::new().parse(global).unwrap();
     let _global_id = app_ctx.write().add_declaration(global);
 
     let test_func =
-        StLexerBuilder::new().build("program prg: int VAR g1: BYTE; END_VAR end_program");
+        StLexerBuilder::new().build_str("program prg: int VAR g1: BYTE; END_VAR end_program");
     let test_fun_decl = StDeclarationParser::new().parse(test_func).unwrap();
     let test_fun_decl_id = app_ctx.write().add_declaration(test_fun_decl);
 
