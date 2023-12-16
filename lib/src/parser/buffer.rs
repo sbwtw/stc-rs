@@ -1,3 +1,4 @@
+use smallvec::{smallvec, SmallVec};
 use std::fs::{File, OpenOptions};
 use std::io;
 use std::io::{BufRead, BufReader, Read, Seek};
@@ -18,7 +19,7 @@ pub trait Buffer {
 
 pub struct StringBuffer<'input> {
     chars: Chars<'input>,
-    peek_buffer: Vec<char>,
+    peek_buffer: SmallVec<[char; 4]>,
     current_line: usize,
     current_offset: usize,
 }
@@ -55,6 +56,20 @@ impl Buffer for StringBuffer<'_> {
         };
     }
 
+    fn peek1(&mut self) -> Option<char> {
+        if !self.peek_buffer.is_empty() {
+            return Some(self.peek_buffer[0]);
+        }
+
+        match self.chars.next() {
+            Some(c) => {
+                self.peek_buffer.push(c);
+                Some(c)
+            }
+            None => None,
+        }
+    }
+
     fn peek_at(&mut self, n: usize) -> Option<char> {
         while self.peek_buffer.len() <= n {
             match self.chars.next() {
@@ -79,7 +94,7 @@ impl<'input> StringBuffer<'input> {
     pub fn new(input: &'input str) -> Self {
         Self {
             chars: input.chars(),
-            peek_buffer: Vec::with_capacity(32),
+            peek_buffer: smallvec![],
             current_line: 0,
             current_offset: 0,
         }
