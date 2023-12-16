@@ -415,7 +415,7 @@ impl<'input> StLexer<'input> {
         let mut s = String::from(ch);
         let start_with_zero = ch == '0';
 
-        if start_with_zero {
+        if start_with_zero && self.buffer.peek1() != Some('.') {
             tok.tok = Tok::Literal(LiteralValue::Bit(BitValue::Zero));
             return Some(Ok(tok));
         }
@@ -454,7 +454,7 @@ impl<'input> StLexer<'input> {
                 }
                 _ => {
                     tok.length = s.len();
-                    tok.tok = Tok::Literal(LiteralValue::Real(s.parse().unwrap()));
+                    tok.tok = Tok::Literal(LiteralValue::LReal(s));
                     return Some(Ok(tok));
                 }
             }
@@ -845,5 +845,16 @@ mod test {
             lexer.next().unwrap().unwrap().tok,
             Tok::AssignRight
         ));
+    }
+
+    #[test]
+    fn test_numbers() {
+        let s = "0.123";
+        let mut lexer = StLexerBuilder::new().build_str(s);
+
+        let x = lexer.next().unwrap().unwrap();
+        assert_eq!(x.pos.offset, 0);
+        assert_eq!(x.length, 5);
+        assert!(matches!(x.tok, Tok::Literal(LiteralValue::LReal(_))));
     }
 }
