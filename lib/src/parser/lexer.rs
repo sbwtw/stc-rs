@@ -430,6 +430,7 @@ impl<'input> StLexer<'input> {
                     return self.parse_floating(tok, s);
                 }
                 _ => {
+                    tok.length = s.len();
                     tok.tok = Tok::Literal(LiteralValue::UInt(s.parse().unwrap()));
                     return Some(Ok(tok));
                 }

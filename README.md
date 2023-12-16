@@ -1,7 +1,15 @@
 English | [简体中文](./README.zh-CN.md)
 > This project is IEC-61131-3 Compiler implementation for technologies research.
 
-![x](./screenshots/Screenshot_20231209_230838.png)
+<p align="center">
+<img src="./screenshots/Screenshot_20231216_233926.png"><br>
+LSP-based syntax highlighting
+</p>
+
+<p align="center">
+<img src="./screenshots/Screenshot_20231209_230838.png"><br>
+A compiler data viewer tools UI
+</p>
 
 ### TODO-List
 - [ ] LSP implementation

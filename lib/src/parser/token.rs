@@ -162,10 +162,12 @@ impl Tok {
     pub fn is_operator(&self) -> bool {
         matches!(
             self,
-            Tok::LessEqual
-                | Tok::Less
+            Tok::Less
+                | Tok::LessEqual
+                | Tok::Greater
                 | Tok::GreaterEqual
                 | Tok::Equal
+                | Tok::NotEqual
                 | Tok::Plus
                 | Tok::Minus
                 | Tok::Division

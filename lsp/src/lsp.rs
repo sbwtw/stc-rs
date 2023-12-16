@@ -1,5 +1,5 @@
 use serde_json::Value;
-use stc::parser::StLexerBuilder;
+use stc::parser::{StLexerBuilder, Tok};
 use tower_lsp::jsonrpc;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -25,8 +25,11 @@ impl LanguageServer for StcLsp {
                     },
                     legend: SemanticTokensLegend {
                         token_types: vec![
+                            SemanticTokenType::KEYWORD,
                             SemanticTokenType::VARIABLE,
                             SemanticTokenType::NUMBER,
+                            SemanticTokenType::STRING,
+                            SemanticTokenType::OPERATOR,
                             SemanticTokenType::FUNCTION,
                         ],
                         token_modifiers: vec![],
@@ -92,11 +95,44 @@ impl LanguageServer for StcLsp {
         let lexer = StLexerBuilder::new()
             .build_file(params.text_document.uri.path())
             .map_err(|_| jsonrpc::Error::invalid_request())?;
-        for tok in lexer {
-            info!("{:?}", tok.unwrap().tok);
+
+        let mut last_line = 0;
+        let mut last_offset = 0;
+        let mut tokens: Vec<SemanticToken> = vec![];
+        for tok in lexer.flatten() {
+            if tok.pos.line != last_line {
+                last_offset = 0;
+            }
+
+            let tok_type = match tok.tok {
+                Tok::Identifier(_) => 1,
+                Tok::Literal(_) => 2,
+                Tok::String => 3,
+                op if op.is_operator() => 4,
+                _ => 0,
+            };
+
+            let token = SemanticToken {
+                delta_line: (tok.pos.line - last_line) as u32,
+                delta_start: (tok.pos.offset - last_offset) as u32,
+                length: tok.length as u32,
+                token_type: tok_type,
+                ..Default::default()
+            };
+            tokens.push(token);
+
+            last_line = tok.pos.line;
+            last_offset = tok.pos.offset;
         }
 
-        Ok(None)
+        for x in &tokens {
+            trace!("{:?}", x);
+        }
+
+        Ok(Some(SemanticTokensResult::Tokens(SemanticTokens {
+            result_id: None,
+            data: tokens,
+        })))
     }
 
     async fn semantic_tokens_full_delta(
