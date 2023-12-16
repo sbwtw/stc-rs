@@ -3,6 +3,7 @@ use std::fmt::{self, Display, Formatter};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Tok {
+    None,
     /// ' ' or '\n', etc.
     Whitespace,
     /// '.'
@@ -188,6 +189,7 @@ impl From<&Tok> for String {
         let tmp_string;
 
         let s = match value {
+            Tok::None => "!!!NONE!!!",
             Tok::Whitespace => " ",
             Tok::Access => ".",
             Tok::Plus => "+",

@@ -9,7 +9,7 @@ type LalrPopLexerResult = Result<LalrPopLexerItem, LexicalError>;
 
 impl From<Token> for LalrPopLexerItem {
     fn from(tok: Token) -> Self {
-        (tok.start_pos, tok.tok, tok.end_pos)
+        (tok.pos.line, tok.tok, tok.pos.offset)
     }
 }
 

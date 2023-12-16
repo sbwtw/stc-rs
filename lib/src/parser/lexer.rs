@@ -36,18 +36,33 @@ impl Ord for StChar {
     }
 }
 
+pub struct TokenPosition {
+    pub line: usize,
+    pub offset: usize,
+}
+
 pub struct Token {
     pub tok: Tok,
-    pub start_pos: usize,
-    pub end_pos: usize,
+    pub length: usize,
+    pub pos: TokenPosition,
 }
 
 impl Token {
     pub fn new(tok: Tok, start_pos: usize, end_pos: usize) -> Self {
         Self {
             tok,
-            start_pos,
-            end_pos,
+            length: 0,
+            pos: TokenPosition { line: 0, offset: 0 },
+        }
+    }
+}
+
+impl Default for Token {
+    fn default() -> Self {
+        Self {
+            tok: Tok::None,
+            length: 0,
+            pos: TokenPosition { line: 0, offset: 0 },
         }
     }
 }
@@ -244,7 +259,7 @@ impl Display for LiteralValue {
 
 #[derive(Debug, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub enum LexicalError {
-    UnexpectedCharacter(usize, char),
+    UnexpectedCharacter(usize, usize, char),
     UnexpectedEnd,
 }
 
@@ -394,58 +409,58 @@ impl StLexerBuilder {
 }
 
 impl<'input> StLexer<'input> {
-    fn parse_number(&mut self, start: usize, ch: char) -> Option<LexerResult> {
+    fn parse_number(&mut self, mut tok: Token, ch: char) -> Option<LexerResult> {
+        self.buffer.consume1();
+
         let mut s = String::from(ch);
         let start_with_zero = ch == '0';
 
         if start_with_zero {
-            let tok = Tok::Literal(LiteralValue::Bit(BitValue::Zero));
-            return Some(Ok(Token::new(tok, start, start + 1)));
+            tok.tok = Tok::Literal(LiteralValue::Bit(BitValue::Zero));
+            return Some(Ok(tok));
         }
 
         loop {
-            match self.buffer.next() {
-                (_, Some(c)) if c.is_ascii_digit() => {
+            match self.buffer.peek1() {
+                Some(c) if c.is_ascii_digit() => {
+                    self.buffer.consume1();
                     s.push(c);
                 }
-                (n, Some('.')) => {
-                    self.buffer.stage((n, Some('.')));
-
-                    return self.parse_floating(start, s);
+                Some('.') => {
+                    return self.parse_floating(tok, s);
                 }
-                (end, x) => {
-                    self.buffer.stage((end, x));
-
-                    let tok = Tok::Literal(LiteralValue::UInt(s.parse().unwrap()));
-                    return Some(Ok(Token::new(tok, start, end)));
+                _ => {
+                    tok.tok = Tok::Literal(LiteralValue::UInt(s.parse().unwrap()));
+                    return Some(Ok(tok));
                 }
             }
         }
     }
 
-    fn parse_floating(&mut self, start: usize, mut s: String) -> Option<LexerResult> {
+    fn parse_floating(&mut self, mut tok: Token, mut s: String) -> Option<LexerResult> {
         let mut dot = false;
 
         loop {
-            match self.buffer.next() {
-                (_, Some('.')) if !dot => {
+            match self.buffer.peek1() {
+                Some('.') if !dot => {
+                    self.buffer.consume1();
                     dot = true;
                     s.push('.');
                 }
-                (_, Some(c)) if c.is_ascii_digit() => {
+                Some(c) if c.is_ascii_digit() => {
+                    self.buffer.consume1();
                     s.push(c);
                 }
-                (end, x) => {
-                    self.buffer.stage((end, x));
-
-                    let tok = Tok::Literal(LiteralValue::Real(s.parse().unwrap()));
-                    return Some(Ok(Token::new(tok, start, end)));
+                _ => {
+                    tok.length = s.len();
+                    tok.tok = Tok::Literal(LiteralValue::Real(s.parse().unwrap()));
+                    return Some(Ok(tok));
                 }
             }
         }
     }
 
-    fn parse_string(&mut self, start: usize) -> Option<LexerResult> {
+    fn parse_string(&mut self, mut tok: Token) -> Option<LexerResult> {
         let mut escape = false;
         let mut s = String::new();
 
@@ -453,35 +468,55 @@ impl<'input> StLexer<'input> {
             if escape {
                 escape = false;
 
-                match self.buffer.next() {
-                    (_, Some('\"')) => s.push('\"'),
-                    (n, Some(c)) => return Some(Err(LexicalError::UnexpectedCharacter(n, c))),
+                match self.buffer.peek1() {
+                    Some('\"') => {
+                        self.buffer.consume1();
+                        s.push('\"')
+                    }
+                    Some(c) => {
+                        return Some(Err(LexicalError::UnexpectedCharacter(
+                            self.buffer.current_line(),
+                            self.buffer.current_offset(),
+                            c,
+                        )))
+                    }
                     _ => return Some(Err(LexicalError::UnexpectedEnd)),
                 }
             }
 
-            match self.buffer.next() {
-                (_, Some('\\')) => escape = true,
-                (n, Some('\"')) => {
-                    let tok = Tok::Literal(LiteralValue::String(s));
-                    return Some(Ok(Token::new(tok, start, n + 1)));
+            match self.buffer.peek1() {
+                Some('\\') => {
+                    self.buffer.consume1();
+                    escape = true;
                 }
-                (_, Some(c)) => s.push(c),
+                Some('\"') => {
+                    self.buffer.consume1();
+                    tok.tok = Tok::Literal(LiteralValue::String(s));
+                    return Some(Ok(tok));
+                }
+                Some(c) => {
+                    self.buffer.consume1();
+                    s.push(c)
+                }
                 _ => return Some(Err(LexicalError::UnexpectedEnd)),
             }
         }
     }
 
-    fn parse_identifier(&mut self, start: usize, ch: char) -> Option<LexerResult> {
+    fn parse_identifier(&mut self, mut tok: Token, ch: char) -> Option<LexerResult> {
         let mut str = String::from(ch);
         let mut underline = ch == '_';
 
         loop {
-            let next = self.buffer.next();
+            let next = self.buffer.peek1();
             match next {
-                (i, Some('_')) => {
+                Some('_') => {
                     if underline && !self.options.allow_multiple_underline {
-                        return Some(Err(LexicalError::UnexpectedCharacter(i, '_')));
+                        return Some(Err(LexicalError::UnexpectedCharacter(
+                            self.buffer.current_line(),
+                            self.buffer.current_offset(),
+                            '_',
+                        )));
                     }
 
                     underline = true;
@@ -490,59 +525,78 @@ impl<'input> StLexer<'input> {
             }
 
             match next {
-                (_, Some(c)) if self.is_valid_identifier_character(c) => {
+                Some(c) if self.is_valid_identifier_character(c) => {
+                    self.buffer.consume1();
                     str.push(c);
                 }
-                (n, x) => {
-                    self.buffer.stage((n, x));
-
-                    let tok = self.keywords_or_identifier(str);
-                    return Some(Ok(Token::new(tok, start, n)));
+                x => {
+                    tok.length = str.len();
+                    tok.tok = self.keywords_or_identifier(str);
+                    return Some(Ok(tok));
                 }
             }
         }
     }
 
-    fn parse_whitespace(&mut self, start: usize) -> LexerResult {
+    fn parse_whitespace(&mut self, mut tok: Token) -> LexerResult {
+        tok.tok = Tok::Whitespace;
+
         loop {
-            match self.buffer.next() {
-                (_, Some(' ')) | (_, Some('\n')) | (_, Some('\t')) | (_, Some('\r')) => {}
-                (i, x) => {
-                    self.buffer.stage((i, x));
-                    return Ok(Token::new(Tok::Whitespace, start, i));
+            match self.buffer.peek1() {
+                Some(' ') | Some('\n') | Some('\t') | Some('\r') => {
+                    self.buffer.consume1();
+                    tok.length += 1;
+                }
+                _ => {
+                    return Ok(tok);
                 }
             }
         }
     }
 
-    fn parse_second_char(&mut self, start: usize, ch: char) -> Option<LexerResult> {
-        let (tok, stage) = match (ch, self.buffer.next()) {
-            ('<', (_, Some('='))) => (Tok::LessEqual, None),
-            ('<', (_, Some('>'))) => (Tok::NotEqual, None),
-            ('<', x) => (Tok::Less, Some(x)),
+    fn parse_second_char(&mut self, mut tok: Token, ch: char) -> Option<LexerResult> {
+        tok.length = 2;
 
-            ('>', (_, Some('='))) => (Tok::GreaterEqual, None),
-            ('>', x) => (Tok::Greater, Some(x)),
+        match (ch, self.buffer.peek1()) {
+            ('<', Some('=')) => tok.tok = Tok::LessEqual,
+            ('<', Some('>')) => tok.tok = Tok::NotEqual,
+            ('<', _) => {
+                tok.tok = Tok::Less;
+                tok.length = 1;
+            }
 
-            (':', (_, Some('='))) => (Tok::Assign, None),
-            (':', x) => (Tok::Colon, Some(x)),
+            ('>', Some('=')) => tok.tok = Tok::GreaterEqual,
+            ('>', _) => {
+                tok.tok = Tok::Greater;
+                tok.length = 1;
+            }
 
-            ('*', (_, Some('*'))) => (Tok::Power, None),
-            ('*', x) => (Tok::Multiply, Some(x)),
+            (':', Some('=')) => tok.tok = Tok::Assign,
+            (':', _) => {
+                tok.tok = Tok::Colon;
+                tok.length = 1;
+            }
 
-            ('=', (_, Some('>'))) => (Tok::AssignRight, None),
-            ('=', x) => (Tok::Equal, Some(x)),
+            ('*', Some('*')) => tok.tok = Tok::Power,
+            ('*', _) => {
+                tok.tok = Tok::Multiply;
+                tok.length = 1;
+            }
+
+            ('=', Some('>')) => tok.tok = Tok::AssignRight,
+            ('=', _) => {
+                tok.tok = Tok::Equal;
+                tok.length = 1;
+            }
 
             _ => unreachable!(),
         };
 
-        // one char eaten, stage second state
-        if let Some(s) = stage {
-            self.buffer.stage(s);
-            Some(Ok(Token::new(tok, start, start + 1)))
-        } else {
-            Some(Ok(Token::new(tok, start, start + 2)))
+        if tok.length == 2 {
+            self.buffer.consume1()
         }
+
+        Some(Ok(tok))
     }
 
     fn keywords_or_identifier(&mut self, s: String) -> Tok {
@@ -572,32 +626,87 @@ impl<'input> StLexer<'input> {
     }
 
     fn next_raw(&mut self) -> Option<<Self as Iterator>::Item> {
-        match self.buffer.next() {
-            (i, Some(' ')) | (i, Some('\t')) | (i, Some('\n')) | (i, Some('\r')) => {
-                Some(self.parse_whitespace(i))
+        let mut tok = Token {
+            length: 1,
+            pos: TokenPosition {
+                line: self.buffer.current_line(),
+                offset: self.buffer.current_offset(),
+            },
+            ..Default::default()
+        };
+
+        match self.buffer.peek1() {
+            Some(' ') | Some('\t') | Some('\n') | Some('\r') => {
+                self.buffer.consume1();
+                Some(self.parse_whitespace(tok))
             }
-            (i, Some('.')) => Some(Ok(Token::new(Tok::Access, i, i + 1))),
-            (i, Some('+')) => Some(Ok(Token::new(Tok::Plus, i, i + 1))),
-            (i, Some('-')) => Some(Ok(Token::new(Tok::Minus, i, i + 1))),
-            (i, Some('/')) => Some(Ok(Token::new(Tok::Division, i, i + 1))),
-            (i, Some('(')) => Some(Ok(Token::new(Tok::LeftParentheses, i, i + 1))),
-            (i, Some(')')) => Some(Ok(Token::new(Tok::RightParentheses, i, i + 1))),
-            (i, Some(',')) => Some(Ok(Token::new(Tok::Comma, i, i + 1))),
-            (i, Some(';')) => Some(Ok(Token::new(Tok::Semicolon, i, i + 1))),
-            (i, Some('&')) => Some(Ok(Token::new(Tok::BitAnd, i, i + 1))),
-            // (i, Some('|')) => Some(Ok((i, Tok::BitOr, i + 1))),
-            (i, Some('\"')) => self.parse_string(i),
-            (i, Some(c @ '<'))
-            | (i, Some(c @ ':'))
-            | (i, Some(c @ '>'))
-            | (i, Some(c @ '='))
-            | (i, Some(c @ '*')) => self.parse_second_char(i, c),
-            (start, Some(c)) if c.is_ascii_digit() => self.parse_number(start, c),
-            (start, Some(c)) if self.is_valid_identifier_first_character(c) => {
-                self.parse_identifier(start, c)
+            Some('.') => {
+                self.buffer.consume1();
+                tok.tok = Tok::Access;
+                Some(Ok(tok))
             }
-            (i, Some(c)) => Some(Err(LexicalError::UnexpectedCharacter(i, c))),
-            (_, None) => None,
+            Some('+') => {
+                self.buffer.consume1();
+                tok.tok = Tok::Plus;
+                Some(Ok(tok))
+            }
+            Some('-') => {
+                self.buffer.consume1();
+                tok.tok = Tok::Minus;
+                Some(Ok(tok))
+            }
+            Some('/') => {
+                self.buffer.consume1();
+                tok.tok = Tok::Division;
+                Some(Ok(tok))
+            }
+            Some('(') => {
+                self.buffer.consume1();
+                tok.tok = Tok::LeftParentheses;
+                Some(Ok(tok))
+            }
+            Some(')') => {
+                self.buffer.consume1();
+                tok.tok = Tok::RightParentheses;
+                Some(Ok(tok))
+            }
+            Some(',') => {
+                self.buffer.consume1();
+                tok.tok = Tok::Comma;
+                Some(Ok(tok))
+            }
+            Some(';') => {
+                self.buffer.consume1();
+                tok.tok = Tok::Semicolon;
+                Some(Ok(tok))
+            }
+            Some('&') => {
+                self.buffer.consume1();
+                tok.tok = Tok::BitAnd;
+                Some(Ok(tok))
+            }
+            Some('\"') => {
+                self.buffer.consume1();
+                self.parse_string(tok)
+            }
+            Some(c @ '<') | Some(c @ ':') | Some(c @ '>') | Some(c @ '=') | Some(c @ '*') => {
+                self.buffer.consume1();
+                self.parse_second_char(tok, c)
+            }
+            Some(c) if c.is_ascii_digit() => self.parse_number(tok, c),
+            Some(c) if self.is_valid_identifier_first_character(c) => {
+                self.buffer.consume1();
+                self.parse_identifier(tok, c)
+            }
+            Some(c) => {
+                self.buffer.consume1();
+                Some(Err(LexicalError::UnexpectedCharacter(
+                    self.buffer.current_line(),
+                    self.buffer.current_offset(),
+                    c,
+                )))
+            }
+            None => None,
         }
     }
 }
@@ -666,13 +775,14 @@ mod test {
         let mut lexer = StLexerBuilder::new().build_str(s);
 
         let x = lexer.next().unwrap().unwrap();
-        assert_eq!(x.start_pos, 0);
-        assert_eq!(x.end_pos, 2);
+        assert_eq!(x.pos.offset, 0);
+        assert_eq!(x.pos.line, 0);
+        assert_eq!(x.length, 2);
         assert_eq!(x.tok, Tok::If);
 
         let x = lexer.next().unwrap().unwrap();
-        assert_eq!(x.start_pos, 3);
-        assert_eq!(x.end_pos, 6);
+        assert_eq!(x.pos.offset, 3);
+        assert_eq!(x.length, 3);
         assert!(matches!(x.tok, Tok::Identifier(_)));
 
         assert!(lexer.next().is_none());
@@ -680,22 +790,23 @@ mod test {
 
     #[test]
     fn test_identifier_semicolon() {
-        let s = "1 + a;";
+        let s = "1 + \na;";
         let mut lexer = StLexerBuilder::new().build_str(s);
 
         let x = lexer.next().unwrap().unwrap();
-        assert_eq!(x.start_pos, 0);
-        assert_eq!(x.end_pos, 1);
+        assert_eq!(x.pos.offset, 0);
+        assert_eq!(x.length, 1);
         assert!(matches!(x.tok, Tok::Literal(_)));
 
         let x = lexer.next().unwrap().unwrap();
-        assert_eq!(x.start_pos, 2);
-        assert_eq!(x.end_pos, 3);
+        assert_eq!(x.pos.offset, 2);
+        assert_eq!(x.length, 1);
         assert!(matches!(x.tok, Tok::Plus));
 
         let x = lexer.next().unwrap().unwrap();
-        assert_eq!(x.start_pos, 4);
-        assert_eq!(x.end_pos, 5);
+        assert_eq!(x.pos.line, 1);
+        assert_eq!(x.pos.offset, 0);
+        assert_eq!(x.length, 1);
         assert!(matches!(x.tok, Tok::Identifier(_)));
     }
 
@@ -705,8 +816,8 @@ mod test {
         let mut lexer = StLexerBuilder::new().build_str(s);
 
         let x = lexer.next().unwrap().unwrap();
-        assert_eq!(x.start_pos, 0);
-        assert_eq!(x.end_pos, 6);
+        assert_eq!(x.pos.offset, 0);
+        assert_eq!(x.length, 6);
         assert!(matches!(x.tok, Tok::Identifier(_)));
     }
 
