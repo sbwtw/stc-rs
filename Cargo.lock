@@ -988,6 +988,7 @@ name = "lsp"
 version = "0.1.0"
 dependencies = [
  "log",
+ "once_cell",
  "pretty_env_logger",
  "serde_json",
  "stc-rs",

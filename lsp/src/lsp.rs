@@ -6,6 +6,56 @@ use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer};
 use tracing::*;
 
+const TOKEN_MODIFIERS: &[SemanticTokenModifier] = &[
+    SemanticTokenModifier::new("none"),
+    // 1, STATIC
+    SemanticTokenModifier::STATIC,
+    // 2, GLOBAL
+    SemanticTokenModifier::new("global"),
+    // 4, RETAIN
+    SemanticTokenModifier::new("retain"),
+];
+
+const TOKEN_TYPES: &[SemanticTokenType] = &[
+    // 0, NONE
+    SemanticTokenType::new("none"),
+    // 1, keywords
+    SemanticTokenType::KEYWORD,
+    // 2, identifiers
+    SemanticTokenType::VARIABLE,
+    // 3, operators
+    SemanticTokenType::OPERATOR,
+    // 4, builtin functions
+    SemanticTokenType::new("builtin-functions"),
+    // 5, number literals
+    SemanticTokenType::NUMBER,
+    // 6, string literals
+    SemanticTokenType::STRING,
+    // 7, type
+    SemanticTokenType::TYPE,
+];
+
+fn semantic_token_type_id(tok: &Tok) -> (u32, u32) {
+    match tok {
+        Tok::Identifier(_) => (2, 0),
+        Tok::Literal(_) => (5, 0),
+        Tok::String => (6, 0),
+        // operators
+        op if op.is_operator() => (3, 0),
+        // builtin-types
+        Tok::Int => (7, 0),
+        // keywords
+        Tok::If
+        | Tok::Then
+        | Tok::EndIf
+        | Tok::Var
+        | Tok::EndVar
+        | Tok::Program
+        | Tok::EndProgram => (1, 0),
+        _ => (0, 0),
+    }
+}
+
 #[derive(Debug)]
 pub struct StcLsp {
     pub client: Client,
@@ -24,18 +74,11 @@ impl LanguageServer for StcLsp {
                         work_done_progress: None,
                     },
                     legend: SemanticTokensLegend {
-                        token_types: vec![
-                            SemanticTokenType::KEYWORD,
-                            SemanticTokenType::VARIABLE,
-                            SemanticTokenType::NUMBER,
-                            SemanticTokenType::STRING,
-                            SemanticTokenType::OPERATOR,
-                            SemanticTokenType::FUNCTION,
-                        ],
-                        token_modifiers: vec![],
+                        token_types: TOKEN_TYPES.to_vec(),
+                        token_modifiers: TOKEN_MODIFIERS.to_vec(),
                     },
-                    range: None,
-                    full: Some(SemanticTokensFullOptions::Bool(true)),
+                    range: Some(true),
+                    full: Some(SemanticTokensFullOptions::Delta { delta: Some(true) }),
                 }),
             ),
             document_highlight_provider: Some(OneOf::Left(true)),
@@ -104,29 +147,18 @@ impl LanguageServer for StcLsp {
                 last_offset = 0;
             }
 
-            let tok_type = match tok.tok {
-                Tok::Identifier(_) => 1,
-                Tok::Literal(_) => 2,
-                Tok::String => 3,
-                op if op.is_operator() => 4,
-                _ => 0,
-            };
-
+            let (tt, tm) = semantic_token_type_id(&tok.tok);
             let token = SemanticToken {
                 delta_line: (tok.pos.line - last_line) as u32,
                 delta_start: (tok.pos.offset - last_offset) as u32,
                 length: tok.length as u32,
-                token_type: tok_type,
-                ..Default::default()
+                token_type: tt,
+                token_modifiers_bitset: tm,
             };
             tokens.push(token);
 
             last_line = tok.pos.line;
             last_offset = tok.pos.offset;
-        }
-
-        for x in &tokens {
-            trace!("{:?}", x);
         }
 
         Ok(Some(SemanticTokensResult::Tokens(SemanticTokens {

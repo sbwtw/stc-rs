@@ -13,3 +13,4 @@ tokio-util = { version = "*", features = ["codec"] }
 serde_json = "*"
 tracing = "*"
 tracing-subscriber = { version = "*", features = ["env-filter"] }
+once_cell = "*"
