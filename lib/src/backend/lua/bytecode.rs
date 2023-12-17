@@ -55,6 +55,8 @@ pub enum LuaByteCode {
     Move(u8, u8),
     /// A sBx: R[A] := sBx
     LoadI(u8, u32),
+    /// A B C: R[A] := R[B] + R[C]
+    Add(u8, u8, u8),
 }
 
 impl LuaByteCode {
@@ -66,6 +68,7 @@ impl LuaByteCode {
             LuaByteCode::LoadK(..) => "LOADK",
             LuaByteCode::Move(..) => "MOVE",
             LuaByteCode::LoadI(..) => "LOADI",
+            LuaByteCode::Add(..) => "ADD",
         }
     }
 
@@ -77,6 +80,7 @@ impl LuaByteCode {
             LuaByteCode::LoadK(..) => LuaOpCode::OP_LOADK,
             LuaByteCode::Move(..) => LuaOpCode::OP_MOVE,
             LuaByteCode::LoadI(..) => LuaOpCode::OP_LOADI,
+            LuaByteCode::Add(..) => LuaOpCode::OP_ADD,
         }
     }
 }
@@ -96,7 +100,8 @@ impl LuaCode {
             // ABC
             LuaByteCode::Call(a, b, c)
             | LuaByteCode::GetTabUp(a, b, c)
-            | LuaByteCode::SetTabUp(a, b, c) => {
+            | LuaByteCode::SetTabUp(a, b, c)
+            | LuaByteCode::Add(a, b, c) => {
                 write!(s, "{a} {b} {c}").unwrap();
             }
             // ABx

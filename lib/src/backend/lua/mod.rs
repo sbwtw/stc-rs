@@ -1,22 +1,34 @@
 /// Lua ByteCode object wrapper
 mod bytecode;
-use bytecode::{LuaByteCode, LuaCode, LuaConstants};
+use bytecode::*;
 
 /// 32-bits Lua instruction bytecode encoding/decoding
 mod encoding;
 mod register;
 mod utils;
 
+use crate::backend::lua::register::{RegisterId, RegisterManager};
+use crate::backend::lua::utils::try_fit_sbx;
 use crate::backend::*;
 use crate::parser::{LiteralValue, Operator};
 use crate::prelude::*;
 
-use crate::backend::lua::register::{RegisterId, RegisterManager};
-use crate::backend::lua::utils::try_fit_sbx;
 use indexmap::IndexSet;
 use log::*;
 use smallvec::{smallvec, SmallVec};
 use std::rc::Rc;
+
+bitflags! {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+    pub struct LuaAccessMode: u32 {
+        const NONE              = 0b0000_0000_0000_0000;
+        const READ              = 0b0000_0000_0000_0001;
+        const WRITE             = 0b0000_0000_0000_0010;
+        const PARAMETER         = 0b0000_0000_0000_0100;
+        const CALL              = 0b0000_0000_0000_1000;
+        const LOAD              = 0b0000_0000_0001_0000;
+    }
+}
 
 #[derive(Clone)]
 pub struct LuaBackendAttribute {
@@ -25,7 +37,7 @@ pub struct LuaBackendAttribute {
     constant_index: Option<usize>,
     scope: Option<Scope>,
     error: bool,
-    access_mode: AccessModeFlags,
+    access_mode: LuaAccessMode,
 }
 
 impl Default for LuaBackendAttribute {
@@ -35,7 +47,7 @@ impl Default for LuaBackendAttribute {
             register: None,
             scope: None,
             error: false,
-            access_mode: AccessModeFlags::NONE,
+            access_mode: LuaAccessMode::NONE,
             constant_index: None,
         }
     }
@@ -61,7 +73,7 @@ impl LuaBackend {
         self.attributes.push(attr)
     }
 
-    fn push_access_attribute(&mut self, access: AccessModeFlags) {
+    fn push_access_attribute(&mut self, access: LuaAccessMode) {
         let attr = LuaBackendAttribute {
             scope: self.top_attribute().scope.clone(),
             access_mode: access,
@@ -174,11 +186,14 @@ impl AstVisitorMut for LuaBackend {
         assert!(!self
             .top_attribute()
             .access_mode
-            .contains(AccessModeFlags::WRITE));
+            .contains(LuaAccessMode::WRITE));
 
         // if literal can use LoadI instructions
         if let Some(v) = try_fit_sbx(literal.literal()) {
-            let r = self.reg_mgr.alloc();
+            let r = self
+                .top_attribute()
+                .register
+                .unwrap_or_else(|| self.reg_mgr.alloc());
             self.byte_codes.push(LuaByteCode::LoadI(r as u8, v));
             self.top_attribute().register = Some(r);
             return;
@@ -213,7 +228,7 @@ impl AstVisitorMut for LuaBackend {
         );
 
         // Callee process
-        if self.top_attribute().access_mode == AccessModeFlags::CALL {
+        if self.top_attribute().access_mode == LuaAccessMode::CALL {
             self.top_attribute().constant_index =
                 Some(self.add_string_constant(var_expr.org_name()));
             return;
@@ -230,7 +245,7 @@ impl AstVisitorMut for LuaBackend {
     fn visit_call_expression_mut(&mut self, call: &mut CallExpression) {
         trace!("LuaGen: call expression: {}", call);
 
-        self.push_access_attribute(AccessModeFlags::CALL);
+        self.push_access_attribute(LuaAccessMode::CALL);
         self.visit_expression_mut(call.callee_mut());
         let callee_index = self.top_attribute().constant_index;
         self.pop_attribute();
@@ -238,7 +253,7 @@ impl AstVisitorMut for LuaBackend {
 
         // visit all arguments
         for arg in call.arguments_mut() {
-            self.push_access_attribute(AccessModeFlags::PARAMETER);
+            self.push_access_attribute(LuaAccessMode::PARAMETER);
             self.visit_expression_mut(arg);
             let arg_value_index = self.top_attribute().constant_index;
             self.pop_attribute();
@@ -285,13 +300,26 @@ impl AstVisitorMut for LuaBackend {
             | Operator::NotEqual
             | Operator::Greater
             | Operator::GreaterEqual => {
-                self.push_access_attribute(AccessModeFlags::READ);
-                self.visit_expression_mut(&mut operands[0]);
-                self.pop_attribute();
+                let dest = self
+                    .top_attribute()
+                    .register
+                    .unwrap_or_else(|| self.reg_mgr.alloc());
 
-                self.push_access_attribute(AccessModeFlags::READ);
+                self.push_access_attribute(LuaAccessMode::READ);
+                self.visit_expression_mut(&mut operands[0]);
+                let op0_reg = self.pop_attribute().register.unwrap();
+
+                self.push_access_attribute(LuaAccessMode::READ);
                 self.visit_expression_mut(&mut operands[1]);
-                self.pop_attribute();
+                let op1_reg = self.pop_attribute().register.unwrap();
+
+                // TODO: only generate + for test
+                self.byte_codes
+                    .push(LuaByteCode::Add(dest as u8, op0_reg as u8, op1_reg as u8));
+
+                self.reg_mgr.free(&op0_reg);
+                self.reg_mgr.free(&op1_reg);
+                self.top_attribute().register = Some(dest);
             }
 
             _ => unreachable!(),
@@ -301,20 +329,29 @@ impl AstVisitorMut for LuaBackend {
     fn visit_assign_expression_mut(&mut self, assign: &mut AssignExpression) {
         trace!("LuaGen: assignment expression: {}", assign);
 
-        self.push_access_attribute(AccessModeFlags::READ);
+        self.push_access_attribute(LuaAccessMode::LOAD);
+        assign.left_mut().accept_mut(self);
+        let lhs_reg = self.pop_attribute().register;
+
+        self.push_access_attribute(LuaAccessMode::READ);
+        self.top_attribute().register = lhs_reg;
         assign.right_mut().accept_mut(self);
         let rhs = self.pop_attribute();
 
-        self.push_access_attribute(AccessModeFlags::WRITE);
+        self.push_access_attribute(LuaAccessMode::WRITE);
+        self.top_attribute().register = lhs_reg;
         assign.left_mut().accept_mut(self);
         let lhs = self.pop_attribute();
 
         // free temporary registers
         if let Some(r) = rhs.register {
-            self.byte_codes
-                .push(LuaByteCode::Move(lhs.register.unwrap() as u8, r as u8));
+            // if rhs register is reused lhs_reg, ignore move
+            if Some(r) != lhs_reg {
+                self.byte_codes
+                    .push(LuaByteCode::Move(lhs.register.unwrap() as u8, r as u8));
 
-            self.reg_mgr.free(&r)
+                self.reg_mgr.free(&r)
+            }
         }
     }
 }
