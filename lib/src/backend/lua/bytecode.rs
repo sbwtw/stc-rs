@@ -51,6 +51,10 @@ pub enum LuaByteCode {
     SetTabUp(u8, u8, u8),
     /// A B: R[A] := K[Bx]
     LoadK(u8, u32),
+    /// A B: R[A] := R[B]
+    Move(u8, u8),
+    /// A sBx: R[A] := sBx
+    LoadI(u8, u32),
 }
 
 impl LuaByteCode {
@@ -60,6 +64,8 @@ impl LuaByteCode {
             LuaByteCode::GetTabUp(..) => "GETTABUP",
             LuaByteCode::SetTabUp(..) => "SETTABUP",
             LuaByteCode::LoadK(..) => "LOADK",
+            LuaByteCode::Move(..) => "MOVE",
+            LuaByteCode::LoadI(..) => "LOADI",
         }
     }
 
@@ -69,6 +75,8 @@ impl LuaByteCode {
             LuaByteCode::GetTabUp(..) => LuaOpCode::OP_GETTABUP,
             LuaByteCode::SetTabUp(..) => LuaOpCode::OP_SETTABUP,
             LuaByteCode::LoadK(..) => LuaOpCode::OP_LOADK,
+            LuaByteCode::Move(..) => LuaOpCode::OP_MOVE,
+            LuaByteCode::LoadI(..) => LuaOpCode::OP_LOADI,
         }
     }
 }
@@ -94,6 +102,14 @@ impl LuaCode {
             // ABx
             LuaByteCode::LoadK(a, bx) => {
                 write!(s, "{a} {bx}").unwrap();
+            }
+            // AsBx
+            LuaByteCode::LoadI(a, sbx) => {
+                write!(s, "{a} {sbx}").unwrap();
+            }
+            // A B
+            LuaByteCode::Move(a, b) => {
+                write!(s, "{a} {b}").unwrap();
             }
         }
 

@@ -1,6 +1,7 @@
 use crate::ast::{
-    AssignExpression, AstVisitor, CallExpression, CompoAccessExpression, ExprStatement,
-    IntoStatement, LiteralExpression, OperatorExpression, Statement, VariableExpression,
+    AssignExpression, AstVisitor, AstVisitorMut, CallExpression, CompoAccessExpression,
+    ExprStatement, IntoStatement, LiteralExpression, OperatorExpression, Statement,
+    VariableExpression,
 };
 use crate::{impl_ast_display, impl_into_statement};
 
@@ -25,42 +26,54 @@ impl_into_statement!(Expression, |x| Statement::expr(Box::new(
 )));
 
 impl Expression {
+    #[inline]
+    pub fn accept_mut<V: AstVisitorMut>(&mut self, vis: &mut V) {
+        vis.visit_expression_mut(self)
+    }
+
+    #[inline]
     pub fn assign(assign: Box<AssignExpression>) -> Self {
         Self {
             kind: ExprKind::Assign(assign),
         }
     }
 
+    #[inline]
     pub fn call(call: Box<CallExpression>) -> Self {
         Self {
             kind: ExprKind::Call(call),
         }
     }
 
+    #[inline]
     pub fn literal(literal: Box<LiteralExpression>) -> Self {
         Self {
             kind: ExprKind::Literal(literal),
         }
     }
 
+    #[inline]
     pub fn operator(operator: Box<OperatorExpression>) -> Self {
         Self {
             kind: ExprKind::Operator(operator),
         }
     }
 
+    #[inline]
     pub fn variable(variable: Box<VariableExpression>) -> Self {
         Self {
             kind: ExprKind::Variable(variable),
         }
     }
 
+    #[inline]
     pub fn compo(compo: Box<CompoAccessExpression>) -> Self {
         Self {
             kind: ExprKind::Compo(compo),
         }
     }
 
+    #[inline]
     pub fn get_variable_expression(&self) -> Option<&VariableExpression> {
         match &self.kind {
             ExprKind::Variable(var) => Some(var),

@@ -51,7 +51,7 @@ fn main() {
     let test_fun_decl = StDeclarationParser::new().parse(test_func).unwrap();
     let test_fun_decl_id = app_ctx.write().add_declaration(test_fun_decl);
 
-    let test_func = StLexerBuilder::new().build_str("print(a + b);");
+    let test_func = StLexerBuilder::new().build_str("a := 1; b := 2; print(a + b);");
     let test_fun_body = StFunctionParser::new().parse(test_func).unwrap();
     app_ctx
         .write()

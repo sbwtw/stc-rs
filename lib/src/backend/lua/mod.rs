@@ -4,17 +4,19 @@ use bytecode::{LuaByteCode, LuaCode, LuaConstants};
 
 /// 32-bits Lua instruction bytecode encoding/decoding
 mod encoding;
+mod register;
+mod utils;
 
 use crate::backend::*;
 use crate::parser::{LiteralValue, Operator};
 use crate::prelude::*;
 
+use crate::backend::lua::register::{RegisterId, RegisterManager};
+use crate::backend::lua::utils::try_fit_sbx;
 use indexmap::IndexSet;
 use log::*;
 use smallvec::{smallvec, SmallVec};
 use std::rc::Rc;
-
-type RegisterId = usize;
 
 #[derive(Clone)]
 pub struct LuaBackendAttribute {
@@ -46,6 +48,7 @@ pub struct LuaBackend {
     attributes: SmallVec<[LuaBackendAttribute; 32]>,
     local_function: Option<Function>,
     constants: IndexSet<LuaConstants>,
+    reg_mgr: RegisterManager,
 }
 
 impl LuaBackend {
@@ -120,6 +123,7 @@ impl CodeGenBackend for LuaBackend {
             attributes: smallvec![],
             local_function: None,
             constants: IndexSet::new(),
+            reg_mgr: RegisterManager::new(),
         }
     }
 
@@ -166,6 +170,20 @@ impl AstVisitorMut for LuaBackend {
     fn visit_literal_mut(&mut self, literal: &mut LiteralExpression) {
         trace!("LuaGen: literal expression: {:?}", literal);
 
+        // Literals can't WRITE
+        assert!(!self
+            .top_attribute()
+            .access_mode
+            .contains(AccessModeFlags::WRITE));
+
+        // if literal can use LoadI instructions
+        if let Some(v) = try_fit_sbx(literal.literal()) {
+            let r = self.reg_mgr.alloc();
+            self.byte_codes.push(LuaByteCode::LoadI(r as u8, v));
+            self.top_attribute().register = Some(r);
+            return;
+        }
+
         match literal.literal() {
             LiteralValue::String(s) => {
                 let constant_index = self.add_string_constant(s);
@@ -184,22 +202,28 @@ impl AstVisitorMut for LuaBackend {
         }
     }
 
-    fn visit_variable_expression_mut(&mut self, variable: &mut VariableExpression) {
+    fn visit_variable_expression_mut(&mut self, var_expr: &mut VariableExpression) {
         let scope = self.current_scope();
-        let var = scope.find_variable(variable.name());
+        let var = scope.find_variable(var_expr.name());
 
         trace!(
             "LuaGen: variable expression: {}: {:?}",
-            variable,
+            var_expr,
             var.and_then(|x| x.ty())
         );
 
+        // Callee process
         if self.top_attribute().access_mode == AccessModeFlags::CALL {
             self.top_attribute().constant_index =
-                Some(self.add_string_constant(variable.org_name()));
+                Some(self.add_string_constant(var_expr.org_name()));
+            return;
+        }
+
+        let scope = self.top_attribute().scope.as_ref().unwrap();
+        if let Some(variable) = scope.find_variable(var_expr.name()) {
+            self.top_attribute().register = Some(self.reg_mgr.alloc());
         } else {
-            let scope = self.top_attribute().scope.as_ref().unwrap();
-            self.top_attribute().variable = scope.find_variable(variable.name());
+            // TODO: variable not found error
         }
     }
 
@@ -276,5 +300,21 @@ impl AstVisitorMut for LuaBackend {
 
     fn visit_assign_expression_mut(&mut self, assign: &mut AssignExpression) {
         trace!("LuaGen: assignment expression: {}", assign);
+
+        self.push_access_attribute(AccessModeFlags::READ);
+        assign.right_mut().accept_mut(self);
+        let rhs = self.pop_attribute();
+
+        self.push_access_attribute(AccessModeFlags::WRITE);
+        assign.left_mut().accept_mut(self);
+        let lhs = self.pop_attribute();
+
+        // free temporary registers
+        if let Some(r) = rhs.register {
+            self.byte_codes
+                .push(LuaByteCode::Move(lhs.register.unwrap() as u8, r as u8));
+
+            self.reg_mgr.free(&r)
+        }
     }
 }
