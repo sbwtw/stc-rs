@@ -1,4 +1,5 @@
 mod lsp;
+mod lsp_types;
 
 use lsp::StcLsp;
 use std::io;

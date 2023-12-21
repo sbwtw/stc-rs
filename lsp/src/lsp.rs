@@ -1,49 +1,23 @@
+use crate::lsp_types::{TokenModifiers, TokenTypes};
+
 use serde_json::Value;
 use stc::parser::{StLexerBuilder, Tok};
+use strum::IntoEnumIterator;
 use tower_lsp::jsonrpc;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer};
 use tracing::*;
 
-const TOKEN_MODIFIERS: &[SemanticTokenModifier] = &[
-    SemanticTokenModifier::new("none"),
-    // 1, STATIC
-    SemanticTokenModifier::STATIC,
-    // 2, GLOBAL
-    SemanticTokenModifier::new("global"),
-    // 4, RETAIN
-    SemanticTokenModifier::new("retain"),
-];
-
-const TOKEN_TYPES: &[SemanticTokenType] = &[
-    // 0, NONE
-    SemanticTokenType::new("none"),
-    // 1, keywords
-    SemanticTokenType::KEYWORD,
-    // 2, identifiers
-    SemanticTokenType::VARIABLE,
-    // 3, operators
-    SemanticTokenType::OPERATOR,
-    // 4, builtin functions
-    SemanticTokenType::new("builtin-functions"),
-    // 5, number literals
-    SemanticTokenType::NUMBER,
-    // 6, string literals
-    SemanticTokenType::STRING,
-    // 7, type
-    SemanticTokenType::TYPE,
-];
-
 fn semantic_token_type_id(tok: &Tok) -> (u32, u32) {
     match tok {
-        Tok::Identifier(_) => (2, 0),
-        Tok::Literal(_) => (5, 0),
-        Tok::String => (6, 0),
+        Tok::Identifier(_) => (TokenTypes::Variable as u32, TokenModifiers::None as u32),
+        Tok::Literal(_) => (TokenTypes::Number as u32, TokenModifiers::None as u32),
+        Tok::String => (TokenTypes::String as u32, TokenModifiers::None as u32),
         // operators
-        op if op.is_operator() => (3, 0),
+        op if op.is_operator() => (TokenTypes::Operator as u32, TokenModifiers::None as u32),
         // builtin-types
-        Tok::Int => (7, 0),
+        Tok::Int => (TokenTypes::Type as u32, TokenModifiers::None as u32),
         // keywords
         Tok::If
         | Tok::Then
@@ -51,8 +25,8 @@ fn semantic_token_type_id(tok: &Tok) -> (u32, u32) {
         | Tok::Var
         | Tok::EndVar
         | Tok::Program
-        | Tok::EndProgram => (1, 0),
-        _ => (0, 0),
+        | Tok::EndProgram => (TokenTypes::Keyword as u32, TokenModifiers::None as u32),
+        _ => (TokenTypes::None as u32, TokenModifiers::None as u32),
     }
 }
 
@@ -74,8 +48,8 @@ impl LanguageServer for StcLsp {
                         work_done_progress: None,
                     },
                     legend: SemanticTokensLegend {
-                        token_types: TOKEN_TYPES.to_vec(),
-                        token_modifiers: TOKEN_MODIFIERS.to_vec(),
+                        token_types: TokenTypes::iter().map(Into::into).collect(),
+                        token_modifiers: TokenModifiers::iter().map(Into::into).collect(),
                     },
                     range: Some(true),
                     full: Some(SemanticTokensFullOptions::Delta { delta: Some(true) }),
