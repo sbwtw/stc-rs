@@ -361,6 +361,7 @@ impl Display for ModuleContextImpl {
         let scope = match self.scope {
             ModuleContextScope::Application => "App",
             ModuleContextScope::CompilerBuiltin => "Builtin",
+            ModuleContextScope::Library => "Library",
         };
 
         f.write_fmt(format_args!("{}_{}", scope, self.id))

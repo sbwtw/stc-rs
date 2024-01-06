@@ -1,0 +1,31 @@
+<application name="test_proj">
+    <pou-list>
+        <pou>
+            <interface>
+                VAR_GLOBAL
+                    g1: INT;
+                    g2: REAL;
+                END_VAR
+            </interface>
+        </pou>
+
+        <pou>
+            <interface>
+                program prg: int
+                VAR
+                    a: BYTE;
+                END_VAR
+                VAR_TEMP
+                    b: INT;
+                END_VAR
+                end_program
+            </interface>
+            <body>
+                a := 1;
+                b := 2;
+
+                print(a + b);
+            </body>
+        </pou>
+    </pou-list>
+</application>

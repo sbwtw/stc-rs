@@ -11,3 +11,5 @@ gtk = "*"
 glib = "*"
 once_cell = "*"
 async-channel = "*"
+quick-xml = { version = "*", features = ["serialize"] }
+serde = { version = "*", features = ["derive"] }

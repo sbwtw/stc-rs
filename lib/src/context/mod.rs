@@ -10,6 +10,6 @@ pub use scope::Scope;
 pub enum ModuleContextScope {
     Application,
     CompilerBuiltin,
-    // Library,
+    Library,
     // System,
 }
