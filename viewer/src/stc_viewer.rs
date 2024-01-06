@@ -3,6 +3,7 @@ use crate::column_object::ColumnObject;
 use async_channel::{Receiver, Sender};
 use glib::subclass::prelude::ObjectSubclassIsExt;
 use glib::value::ValueTypeMismatchOrNoneError;
+use gtk4::gio::Menu;
 use gtk4::glib::Type;
 use gtk4::prelude::*;
 use gtk4::{Button, SearchEntry, TextBuffer, TextView, TreeStore, TreeView, TreeViewColumn};
@@ -63,6 +64,14 @@ impl StcViewerApp {
         };
 
         (r, rx)
+    }
+
+    pub fn popup_menu_model(&self) -> Menu {
+        let m = Menu::new();
+        m.append(Some("a"), None);
+        m.append(Some("b"), None);
+
+        m
     }
 
     pub fn on_cursor_changed(&self) {

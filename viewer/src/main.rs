@@ -4,10 +4,12 @@ mod storage;
 
 use crate::stc_viewer::{StcViewerApp, UIMessages, STC_VIEWER_COLUMN_NAME};
 use glib::MainContext;
+use gtk4::gdk::ffi::GDK_BUTTON_SECONDARY;
+use gtk4::gdk::Rectangle;
 use gtk4::prelude::*;
 use gtk4::{
-    Application, ApplicationWindow, CellRendererText, Orientation, Paned, ScrolledWindow,
-    TreeViewColumn, WrapMode,
+    Application, ApplicationWindow, CellRendererText, EventSequenceState, GestureClick,
+    Orientation, Paned, PopoverMenu, ScrolledWindow, TreeViewColumn, WrapMode,
 };
 use quick_xml::de::from_str;
 use stc::prelude::*;
@@ -113,6 +115,30 @@ fn build_ui(app: &Application, mgr: UnitsManager) {
             app.on_cursor_changed()
         }
     });
+
+    // TreeView popup menus
+    let app_copy = stc_app.clone();
+    let window_copy = window.clone();
+    let gesture = GestureClick::new();
+    gesture.set_button(GDK_BUTTON_SECONDARY as u32);
+    gesture.connect_pressed(move |g, _, x, y| {
+        g.set_state(EventSequenceState::Claimed);
+
+        let app = app_copy.lock().unwrap();
+        let menu_model = &app.popup_menu_model();
+        if menu_model.n_items() == 0 {
+            return;
+        }
+
+        let menu = PopoverMenu::builder()
+            .menu_model(menu_model)
+            .has_arrow(false)
+            .pointing_to(&Rectangle::new(x as i32, y as i32, 0, 0))
+            .build();
+        menu.set_parent(&window_copy);
+        menu.show();
+    });
+    app_lock.tree_view.add_controller(gesture);
 
     // refresh UI when the window is shown
     let tx = app_lock.ui_tx.clone();
