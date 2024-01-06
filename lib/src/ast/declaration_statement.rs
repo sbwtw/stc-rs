@@ -19,6 +19,20 @@ pub struct Declaration {
     pub kind: DeclKind,
 }
 
+impl HasAttribute for Declaration {
+    fn set_attribute<K: AsRef<StString>, V: Into<String>>(&mut self, k: K, v: V) {
+        todo!()
+    }
+
+    fn get_attribute_value<S: AsRef<StString>>(&self, attr: &S) -> Option<&String> {
+        todo!()
+    }
+
+    fn remove_attribute<K: AsRef<StString>>(&mut self, k: K) -> Option<String> {
+        todo!()
+    }
+}
+
 impl Declaration {
     pub fn identifier(&self) -> &StString {
         match self.kind {

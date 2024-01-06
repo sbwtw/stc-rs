@@ -6,7 +6,6 @@ use std::rc::Rc;
 #[derive(Debug)]
 pub struct FunctionDeclare {
     name: StString,
-    #[allow(dead_code)]
     decl_class: DeclareClass,
     return_type: Option<Rc<Box<dyn Type>>>,
     parameters: SmallVec<[Rc<Variable>; 8]>,

@@ -78,6 +78,7 @@ fn build_ui(app: &Application, mgr: UnitsManager) {
     let button_layout = gtk::Box::new(Orientation::Horizontal, 0);
     button_layout.add(&stc_app.refresh_button);
     button_layout.add(&stc_app.compile_button);
+    button_layout.add(&stc_app.run_button);
 
     let right_layout = gtk::Box::new(Orientation::Vertical, 0);
     right_layout.add(&button_layout);
@@ -98,6 +99,11 @@ fn build_ui(app: &Application, mgr: UnitsManager) {
     app_lock
         .compile_button
         .connect_clicked(move |_| app_copy.lock().unwrap().compile());
+
+    let app_copy = stc_app.clone();
+    app_lock
+        .run_button
+        .connect_clicked(move |_| app_copy.lock().unwrap().run());
 
     let app_copy = stc_app.clone();
     app_lock.tree_view.connect_cursor_changed(move |_| {

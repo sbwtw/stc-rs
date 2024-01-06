@@ -12,6 +12,8 @@ pub mod prelude {
     pub use crate::ast::*;
     pub use crate::context::*;
     pub use crate::parser::StString;
+
+    pub use uuid::Uuid;
 }
 
 #[cfg(test)]

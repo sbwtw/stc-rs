@@ -6,6 +6,7 @@ use bytecode::*;
 mod encoding;
 mod register;
 mod utils;
+mod vm;
 
 use crate::backend::lua::register::{RegisterId, RegisterManager};
 use crate::backend::lua::utils::try_fit_sbx;

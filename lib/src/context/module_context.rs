@@ -1,9 +1,12 @@
 use crate::ast::*;
 use crate::backend::TargetCode;
+use crate::context::task::TaskInfo;
 use crate::context::ModuleContextScope;
 use crate::parser::StString;
 use indexmap::IndexMap;
+use log::warn;
 use once_cell::sync::Lazy;
+use smallvec::smallvec;
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
@@ -12,6 +15,7 @@ use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use uuid::Uuid;
 
 static CONTEXT_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
 static DECLARATION_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
@@ -57,6 +61,12 @@ impl Prototype {
             inner: Rc::new(RwLock::new(PrototypeImpl::new(decl))),
         }
     }
+
+    fn with_object_id(decl: Declaration, id: Uuid) -> Self {
+        Self {
+            inner: Rc::new(RwLock::new(PrototypeImpl::with_object_id(decl, id))),
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -79,6 +89,12 @@ impl Function {
         }
     }
 
+    fn with_prototype(proto: &Prototype, function: Statement) -> Self {
+        Self {
+            inner: Rc::new(RwLock::new(FunctionImpl::with_prototype(proto, function))),
+        }
+    }
+
     pub fn read(&self) -> RwLockReadGuard<'_, FunctionImpl> {
         self.inner.read().unwrap()
     }
@@ -90,6 +106,7 @@ impl Function {
 
 pub struct PrototypeImpl {
     id: usize,
+    object_id: Uuid,
     decl: Declaration,
 }
 
@@ -97,8 +114,21 @@ impl PrototypeImpl {
     fn new(decl: Declaration) -> Self {
         Self {
             id: get_next_declaration_id(),
+            object_id: Uuid::nil(),
             decl,
         }
+    }
+
+    fn with_object_id(decl: Declaration, id: Uuid) -> Self {
+        Self {
+            id: get_next_declaration_id(),
+            object_id: id,
+            decl,
+        }
+    }
+
+    pub fn object_id(&self) -> Uuid {
+        self.object_id
     }
 
     pub fn decl(&self) -> &Declaration {
@@ -194,6 +224,7 @@ impl Display for PrototypeImpl {
 
 pub struct FunctionImpl {
     decl_id: usize,
+    object_id: Uuid,
     parse_tree: Statement,
     compiled_code: Option<Box<dyn TargetCode>>,
 }
@@ -202,9 +233,25 @@ impl FunctionImpl {
     fn new(decl_id: usize, function: Statement) -> Self {
         Self {
             decl_id,
+            object_id: Uuid::nil(),
             parse_tree: function,
             compiled_code: None,
         }
+    }
+
+    fn with_prototype(proto: &Prototype, function: Statement) -> Self {
+        let proto = proto.read().unwrap();
+
+        Self {
+            decl_id: proto.id,
+            object_id: proto.object_id(),
+            parse_tree: function,
+            compiled_code: None,
+        }
+    }
+
+    pub fn object_id(&self) -> Uuid {
+        self.object_id
     }
 
     pub fn decl_id(&self) -> usize {
@@ -251,6 +298,7 @@ impl ModuleContext {
                 declaration_name_map: HashMap::new(),
                 function_id_map: IndexMap::new(),
                 toplevel_global_variable_declarations: HashSet::new(),
+                task_info: smallvec![],
             })),
         }
     }
@@ -271,6 +319,7 @@ pub struct ModuleContextImpl {
     declaration_name_map: HashMap<StString, Prototype>,
     function_id_map: IndexMap<usize, Function>,
     toplevel_global_variable_declarations: HashSet<Prototype>,
+    task_info: SmallVec8<TaskInfo>,
 }
 
 impl ModuleContextImpl {
@@ -282,7 +331,7 @@ impl ModuleContextImpl {
         &self.scope
     }
 
-    pub fn add_declaration(&mut self, decl: Declaration) -> usize {
+    pub fn add_declaration(&mut self, decl: Declaration, id: Uuid) -> usize {
         let name = decl.identifier().clone();
         let mut toplevel_global_variable_declaration = false;
 
@@ -292,7 +341,7 @@ impl ModuleContextImpl {
             }
         }
 
-        let decl = Prototype::new(decl);
+        let decl = Prototype::with_object_id(decl, id);
         let proto_id = decl.read().unwrap().id;
 
         self.declaration_id_map.insert(proto_id, decl.clone());
@@ -306,7 +355,24 @@ impl ModuleContextImpl {
     }
 
     pub fn add_function(&mut self, decl_id: usize, fun: Statement) -> Option<Function> {
-        let fun = Function::new(decl_id, fun);
+        let fun = match self.get_declaration_by_id(decl_id) {
+            Some(decl) => Function::with_prototype(decl, fun),
+            _ => {
+                warn!("Declaration of function {decl_id} not found");
+                Function::new(decl_id, fun)
+            }
+        };
+
+        self.function_id_map.insert(decl_id, fun)
+    }
+
+    pub fn add_function_with_proto(
+        &mut self,
+        proto: &Prototype,
+        fun: Statement,
+    ) -> Option<Function> {
+        let decl_id = proto.read().unwrap().id;
+        let fun = Function::with_prototype(proto, fun);
 
         self.function_id_map.insert(decl_id, fun)
     }

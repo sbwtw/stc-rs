@@ -63,6 +63,14 @@ impl Display for ColumnObjectData {
             Self::Prototype(proto) => {
                 let proto = proto.read().unwrap();
 
+                // Prototype properties
+                let uuid = proto.object_id();
+                if !uuid.is_nil() {
+                    writeln!(f, "ObjectId: {}", uuid)?;
+                }
+                writeln!(f, "Id: {}", proto.id())?;
+                writeln!(f)?;
+
                 // name : return_value
                 write!(f, "{}", proto.name())?;
                 if let Some(ty) = proto.return_value().and_then(|x| x.ty()) {
@@ -78,6 +86,14 @@ impl Display for ColumnObjectData {
             }
             Self::Function(func) => {
                 let func = func.read();
+
+                // Function properties
+                let uuid = func.object_id();
+                if !uuid.is_nil() {
+                    writeln!(f, "ObjectId: {}", uuid)?;
+                }
+                writeln!(f, "DeclId: {}", func.decl_id())?;
+                writeln!(f)?;
 
                 if let Some(code) = func.compiled_code() {
                     writeln!(f, "{}", code)

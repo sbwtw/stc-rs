@@ -9,7 +9,7 @@
             </interface>
         </pou>
 
-        <pou>
+        <pou uuid-text="aa61864a-3d85-4771-8575-278039cf3ea6">
             <interface>
                 program prg: int
                 VAR

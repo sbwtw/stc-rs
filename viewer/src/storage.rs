@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use stc::parser::{StDeclarationParser, StFunctionParser, StLexerBuilder};
 use stc::prelude::*;
+use std::str::FromStr;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum AppType {
@@ -37,7 +38,12 @@ impl From<Application> for ModuleContext {
         for pou in app.pou_list.pou {
             let lexer = StLexerBuilder::new().build_str(&pou.interface.content);
             let decl = StDeclarationParser::new().parse(lexer).unwrap();
-            let func = ctx_write.add_declaration(decl);
+            let func = ctx_write.add_declaration(
+                decl,
+                pou.uuid_text
+                    .and_then(|s| Uuid::from_str(&s).ok())
+                    .unwrap_or(Uuid::nil()),
+            );
 
             if let Some(body) = pou.body {
                 let lexer = StLexerBuilder::new().build_str(&body.content);
@@ -59,8 +65,8 @@ pub struct POUList {
 #[derive(Serialize, Deserialize, Debug)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct POU {
-    #[serde(rename = "@guid-text")]
-    pub guid_text: Option<String>,
+    #[serde(rename = "@uuid-text")]
+    pub uuid_text: Option<String>,
     pub interface: POUInterface,
     pub body: Option<POUBody>,
 }

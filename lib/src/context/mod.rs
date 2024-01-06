@@ -5,6 +5,8 @@ mod units_manager;
 pub use units_manager::UnitsManager;
 
 mod scope;
+mod task;
+
 pub use scope::Scope;
 
 pub enum ModuleContextScope {

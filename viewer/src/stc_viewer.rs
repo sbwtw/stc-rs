@@ -33,6 +33,7 @@ pub struct StcViewerApp {
     pub search_entry: SearchEntry,
     pub refresh_button: Button,
     pub compile_button: Button,
+    pub run_button: Button,
 }
 
 impl StcViewerApp {
@@ -58,6 +59,7 @@ impl StcViewerApp {
             search_entry: SearchEntry::new(),
             refresh_button: Button::with_label("Refresh"),
             compile_button: Button::with_label("Compile"),
+            run_button: Button::with_label("Run"),
         };
 
         (r, rx)
@@ -196,4 +198,6 @@ impl StcViewerApp {
             CodeGenerator::new(self.mgr.clone(), app_id).unwrap();
         println!("CodeGen: {:?}", code_gen.build_application());
     }
+
+    pub fn run(&mut self) {}
 }
