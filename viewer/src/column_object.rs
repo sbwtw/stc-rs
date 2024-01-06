@@ -1,5 +1,5 @@
 use glib::Object;
-use gtk::subclass::prelude::*;
+use gtk4::subclass::prelude::*;
 use stc::context::{Function, Prototype};
 use stc::prelude::ModuleContext;
 use std::cell::RefCell;

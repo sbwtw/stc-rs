@@ -4,10 +4,10 @@ mod storage;
 
 use crate::stc_viewer::{StcViewerApp, UIMessages, STC_VIEWER_COLUMN_NAME};
 use glib::MainContext;
-use gtk::prelude::*;
-use gtk::{
-    Adjustment, Application, ApplicationWindow, CellRendererText, Orientation, Paned,
-    ScrolledWindow, WindowPosition, WrapMode,
+use gtk4::prelude::*;
+use gtk4::{
+    Application, ApplicationWindow, CellRendererText, Orientation, Paned, ScrolledWindow,
+    TreeViewColumn, WrapMode,
 };
 use quick_xml::de::from_str;
 use stc::prelude::*;
@@ -24,7 +24,7 @@ fn main() {
     mgr.write().add_context(ctx.clone());
     mgr.write().set_active_application(Some(ctx.read().id()));
 
-    let gtk_app = Application::new(None, Default::default());
+    let gtk_app = Application::builder().build();
     gtk_app.connect_activate(move |app| build_ui(app, mgr.clone()));
     gtk_app.run();
 }
@@ -33,8 +33,7 @@ fn build_ui(app: &Application, mgr: UnitsManager) {
     let (stc_app, rx) = StcViewerApp::new(mgr);
     let window = ApplicationWindow::new(app);
 
-    window.set_title("STC compilation units viewer");
-    window.set_position(WindowPosition::Center);
+    window.set_title(Some("STC compilation units viewer"));
     window.set_size_request(800, 600);
 
     stc_app.content_view.set_monospace(true);
@@ -42,7 +41,7 @@ fn build_ui(app: &Application, mgr: UnitsManager) {
 
     let cell = CellRendererText::new();
     CellLayoutExt::pack_start(&stc_app.tree_column_name, &cell, true);
-    TreeViewColumnExt::add_attribute(
+    TreeViewColumn::add_attribute(
         &stc_app.tree_column_name,
         &cell,
         "text",
@@ -62,31 +61,34 @@ fn build_ui(app: &Application, mgr: UnitsManager) {
     stc_app.tree_view.append_column(&stc_app.tree_column_object);
     stc_app.tree_view.set_headers_visible(false);
 
-    let tree_scroll = ScrolledWindow::new(Adjustment::NONE, Adjustment::NONE);
-    tree_scroll.add(&stc_app.tree_view);
-    tree_scroll.set_expand(true);
+    let tree_scroll = ScrolledWindow::builder()
+        .child(&stc_app.tree_view)
+        .vexpand(true)
+        .build();
 
-    let left_layout = gtk::Box::new(Orientation::Vertical, 0);
-    left_layout.add(&stc_app.search_entry);
-    left_layout.add(&tree_scroll);
-    left_layout.set_width_request(250);
+    let left_layout = gtk4::Box::new(Orientation::Vertical, 0);
+    left_layout.append(&stc_app.search_entry);
+    left_layout.append(&tree_scroll);
+    left_layout.set_width_request(100);
+    let content_scroll = ScrolledWindow::builder()
+        .child(&stc_app.content_view)
+        .vexpand(true)
+        .build();
 
-    let content_scroll = ScrolledWindow::new(Adjustment::NONE, Adjustment::NONE);
-    content_scroll.add(&stc_app.content_view);
-    content_scroll.set_expand(true);
+    let button_layout = gtk4::Box::new(Orientation::Horizontal, 0);
+    button_layout.append(&stc_app.refresh_button);
+    button_layout.append(&stc_app.compile_button);
+    button_layout.append(&stc_app.run_button);
 
-    let button_layout = gtk::Box::new(Orientation::Horizontal, 0);
-    button_layout.add(&stc_app.refresh_button);
-    button_layout.add(&stc_app.compile_button);
-    button_layout.add(&stc_app.run_button);
+    let right_layout = gtk4::Box::new(Orientation::Vertical, 0);
+    right_layout.append(&button_layout);
+    right_layout.append(&content_scroll);
 
-    let right_layout = gtk::Box::new(Orientation::Vertical, 0);
-    right_layout.add(&button_layout);
-    right_layout.add(&content_scroll);
-
-    let paned = Paned::new(Orientation::Horizontal);
-    paned.add(&left_layout);
-    paned.add(&right_layout);
+    let paned = Paned::builder()
+        .hexpand(true)
+        .start_child(&left_layout)
+        .end_child(&right_layout)
+        .build();
 
     let stc_app = Rc::new(Mutex::new(stc_app));
     let app_copy = stc_app.clone();
@@ -133,6 +135,6 @@ fn build_ui(app: &Application, mgr: UnitsManager) {
         }
     });
 
-    window.add(&paned);
-    window.show_all();
+    window.set_child(Some(&paned));
+    window.present();
 }

@@ -7,7 +7,7 @@ edition = "2021"
 stc-rs = { path = "../lib" }
 pretty_env_logger = "*"
 log = "*"
-gtk = "*"
+gtk4 = "*"
 glib = "*"
 once_cell = "*"
 async-channel = "*"

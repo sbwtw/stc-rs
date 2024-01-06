@@ -3,9 +3,9 @@ use crate::column_object::ColumnObject;
 use async_channel::{Receiver, Sender};
 use glib::subclass::prelude::ObjectSubclassIsExt;
 use glib::value::ValueTypeMismatchOrNoneError;
-use gtk::glib::Type;
-use gtk::prelude::*;
-use gtk::{Button, SearchEntry, TextBuffer, TextView, TreeStore, TreeView, TreeViewColumn};
+use gtk4::glib::Type;
+use gtk4::prelude::*;
+use gtk4::{Button, SearchEntry, TextBuffer, TextView, TreeStore, TreeView, TreeViewColumn};
 use log::info;
 use stc::analysis::TypeAnalyzer;
 use stc::backend::{CodeGenerator, LuaBackend};
@@ -66,13 +66,13 @@ impl StcViewerApp {
     }
 
     pub fn on_cursor_changed(&self) {
-        let (path, _col) = self.tree_view.cursor();
+        let (path, _col) = TreeViewExt::cursor(&self.tree_view);
 
         if let Some(p) = path {
             let iter = self.tree_store.iter(&p);
             match self
                 .tree_store
-                .value(&iter.unwrap(), 1)
+                .get_value(&iter.unwrap(), 1)
                 .get::<ColumnObject>()
             {
                 Ok(column_object) => {
@@ -89,7 +89,7 @@ impl StcViewerApp {
 
     pub fn refresh(&self) {
         // record last selection
-        let (last_tree_path, last_tree_column) = self.tree_view.cursor();
+        let (last_tree_path, last_tree_column) = TreeViewExt::cursor(&self.tree_view);
         self.tree_store.clear();
 
         for ctx in self.mgr.read().contexts() {
@@ -163,8 +163,7 @@ impl StcViewerApp {
         // reset to last selected row
         if let Some(p) = last_tree_path {
             self.tree_view.expand_to_path(&p);
-            self.tree_view
-                .set_cursor(&p, last_tree_column.as_ref(), false);
+            TreeViewExt::set_cursor(&self.tree_view, &p, last_tree_column.as_ref(), false);
 
             // refresh contents
             self.on_cursor_changed()
