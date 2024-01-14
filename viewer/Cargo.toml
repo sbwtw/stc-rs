@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-stc-rs = { path = "../lib" }
+stc-rs = { path = "../lib", features = ["llvm_backend", "use_lalrpop"] }
 pretty_env_logger = "*"
 log = "*"
 gtk4 = "*"

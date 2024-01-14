@@ -1,4 +1,7 @@
+#[cfg(feature = "llvm_backend")]
+mod llvm;
 mod lua;
+
 pub use lua::LuaBackend;
 
 use crate::ast::{OperatorExpression, Variable};
