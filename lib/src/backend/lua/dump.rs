@@ -4,7 +4,6 @@ use crate::backend::lua::bytecode::LuaCode;
 use crate::backend::CompiledCode;
 use std::io;
 use std::io::Write;
-use std::mem::size_of;
 
 /// Lua signature
 const LUA_SIGNATURE: &str = "\x1bLua";
@@ -32,7 +31,7 @@ fn lua_dump_size(w: &mut dyn Write, mut data: u64) -> io::Result<()> {
         return lua_dump_byte(w, 0x80);
     }
 
-    let mut buf = [0u8; size_of::<u64>()];
+    let mut buf = [0u8; u64::BITS as usize / 7 + 1];
     let mut reverse_index = buf.len() - 1;
     while data != 0 {
         buf[reverse_index] = (data & 0x7f) as u8;
