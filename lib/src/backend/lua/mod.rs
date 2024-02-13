@@ -2,6 +2,7 @@
 mod bytecode;
 use bytecode::*;
 
+pub mod dump;
 /// 32-bits Lua instruction bytecode encoding/decoding
 mod encoding;
 mod register;
@@ -140,7 +141,7 @@ impl CodeGenBackend for LuaBackend {
         }
     }
 
-    fn gen_function(mut self, func: usize) -> Result<Box<dyn TargetCode>, CodeGenError> {
+    fn gen_function(mut self, func: usize) -> Result<Box<dyn CompiledCode>, CodeGenError> {
         let f = self
             .app
             .read()
@@ -301,7 +302,7 @@ impl AstVisitorMut for LuaBackend {
             | Operator::NotEqual
             | Operator::Greater
             | Operator::GreaterEqual => {
-                let dest = self
+                let dest_reg = self
                     .top_attribute()
                     .register
                     .unwrap_or_else(|| self.reg_mgr.alloc());
@@ -314,13 +315,26 @@ impl AstVisitorMut for LuaBackend {
                 self.visit_expression_mut(&mut operands[1]);
                 let op1_reg = self.pop_attribute().register.unwrap();
 
-                // TODO: only generate + for test
-                self.byte_codes
-                    .push(LuaByteCode::Add(dest as u8, op0_reg as u8, op1_reg as u8));
+                // generate operators
+                match op {
+                    // a + b
+                    Operator::Plus => self.byte_codes.push(LuaByteCode::Add(
+                        dest_reg as u8,
+                        op0_reg as u8,
+                        op1_reg as u8,
+                    )),
+                    // a = b
+                    Operator::Equal => {
+                        // (op0 == op1) != 1
+                        self.byte_codes
+                            .push(LuaByteCode::Eq(op0_reg as u8, op1_reg as u8, 1))
+                    }
+                    _ => unreachable!(),
+                }
 
                 self.reg_mgr.free(&op0_reg);
                 self.reg_mgr.free(&op1_reg);
-                self.top_attribute().register = Some(dest);
+                self.top_attribute().register = Some(dest_reg);
             }
 
             _ => unreachable!(),

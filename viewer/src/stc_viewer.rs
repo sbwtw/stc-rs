@@ -9,7 +9,7 @@ use gtk4::prelude::*;
 use gtk4::{Button, SearchEntry, TextBuffer, TextView, TreeStore, TreeView, TreeViewColumn};
 use log::info;
 use stc::analysis::TypeAnalyzer;
-use stc::backend::{CodeGenerator, LuaBackend};
+use stc::backend::{lua_dump_function, CodeGenerator, LuaBackend};
 use stc::prelude::*;
 use stc::utils::write_ast_to_file;
 
@@ -205,6 +205,16 @@ impl StcViewerApp {
         let mut code_gen: CodeGenerator<LuaBackend> =
             CodeGenerator::new(self.mgr.clone(), app_id).unwrap();
         println!("CodeGen: {:?}", code_gen.build_application());
+
+        if let Some(main) = app_read.find_declaration_by_name(&StString::new("main")) {
+            let id = main.read().unwrap().id();
+            let func = app_read.get_function(id).unwrap();
+
+            let mut buf = vec![0u8; 0];
+            lua_dump_function(func, &mut buf).unwrap();
+
+            println!("{:0>2x?}", buf);
+        }
     }
 
     pub fn run(&mut self) {}

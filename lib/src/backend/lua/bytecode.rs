@@ -1,5 +1,4 @@
 use crate::backend::lua::encoding::LuaOpCode;
-use crate::backend::TargetCode;
 
 use indexmap::IndexSet;
 use std::fmt::{Display, Formatter, Write};
@@ -59,6 +58,10 @@ pub enum LuaByteCode {
     Add(u8, u8, u8),
     /// A sB k: if ((R[A] >= sB) ~= k) then pc++
     Gei(u8, u8, u8),
+    /// A sB k: if ((R[A] > sB) ~= k) then pc++
+    Gti(u8, u8, u8),
+    /// A B k: if ((R[A] == R[B]) ~= k) then pc++
+    Eq(u8, u8, u8),
 }
 
 impl LuaByteCode {
@@ -72,6 +75,8 @@ impl LuaByteCode {
             LuaByteCode::LoadI(..) => "LOADI",
             LuaByteCode::Add(..) => "ADD",
             LuaByteCode::Gei(..) => "GEI",
+            LuaByteCode::Gti(..) => "GTI",
+            LuaByteCode::Eq(..) => "EQ",
         }
     }
 
@@ -85,6 +90,8 @@ impl LuaByteCode {
             LuaByteCode::LoadI(..) => LuaOpCode::OP_LOADI,
             LuaByteCode::Add(..) => LuaOpCode::OP_ADD,
             LuaByteCode::Gei(..) => LuaOpCode::OP_GEI,
+            LuaByteCode::Gti(..) => LuaOpCode::OP_GTI,
+            LuaByteCode::Eq(..) => LuaOpCode::OP_EQ,
         }
     }
 }
@@ -106,6 +113,8 @@ impl LuaCode {
             | LuaByteCode::GetTabUp(a, b, c)
             | LuaByteCode::SetTabUp(a, b, c)
             | LuaByteCode::Gei(a, b, c)
+            | LuaByteCode::Gti(a, b, c)
+            | LuaByteCode::Eq(a, b, c)
             | LuaByteCode::Add(a, b, c) => {
                 write!(s, "{a} {b} {c}").unwrap();
             }
@@ -159,5 +168,3 @@ impl Display for LuaCode {
         Ok(())
     }
 }
-
-impl TargetCode for LuaCode {}

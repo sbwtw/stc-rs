@@ -19,7 +19,7 @@ impl CodeGenBackend for LLVMBackend {
         todo!()
     }
 
-    fn gen_function(self, func: usize) -> Result<Box<dyn TargetCode>, CodeGenError> {
+    fn gen_function(self, func: usize) -> Result<Box<dyn CompiledCode>, CodeGenError> {
         todo!()
     }
 

@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::backend::TargetCode;
+use crate::backend::CompiledCode;
 use crate::context::task::TaskInfo;
 use crate::context::ModuleContextScope;
 use crate::parser::StString;
@@ -226,7 +226,7 @@ pub struct FunctionImpl {
     decl_id: usize,
     object_id: Uuid,
     parse_tree: Statement,
-    compiled_code: Option<Box<dyn TargetCode>>,
+    compiled_code: Option<Box<dyn CompiledCode>>,
 }
 
 impl FunctionImpl {
@@ -266,11 +266,11 @@ impl FunctionImpl {
         &mut self.parse_tree
     }
 
-    pub fn compiled_code(&self) -> &Option<Box<dyn TargetCode>> {
+    pub fn compiled_code(&self) -> &Option<Box<dyn CompiledCode>> {
         &self.compiled_code
     }
 
-    pub fn set_compiled_code(&mut self, compiled_code: Box<dyn TargetCode>) {
+    pub fn set_compiled_code(&mut self, compiled_code: Box<dyn CompiledCode>) {
         self.compiled_code = Some(compiled_code)
     }
 }

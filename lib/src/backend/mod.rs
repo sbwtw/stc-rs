@@ -2,6 +2,7 @@
 mod llvm;
 mod lua;
 
+pub use lua::dump::lua_dump_function;
 pub use lua::LuaBackend;
 
 use crate::ast::{OperatorExpression, Variable};
@@ -11,6 +12,8 @@ use bitflags::bitflags;
 use log::info;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
+use std::io;
+use std::io::Write;
 use std::marker::PhantomData;
 
 bitflags! {
@@ -28,13 +31,15 @@ pub trait CodeGenBackend {
     type Label;
 
     fn new(mgr: UnitsManager, app: ModuleContext) -> Self;
-    fn gen_function(self, func: usize) -> Result<Box<dyn TargetCode>, CodeGenError>;
+    fn gen_function(self, func: usize) -> Result<Box<dyn CompiledCode>, CodeGenError>;
     fn define_label<S: AsRef<str>>(&mut self, label: Option<S>) -> Self::Label;
     fn gen_variable_load(&mut self, variable: &mut Variable);
     fn gen_operator(&mut self, operator: &mut OperatorExpression);
 }
 
-pub trait TargetCode: Display {}
+pub trait CompiledCode: Display {
+    fn dump(&self, w: &mut dyn Write) -> io::Result<()>;
+}
 
 pub enum CodeGenError {
     AppNotFound,

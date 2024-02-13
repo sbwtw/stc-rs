@@ -32,6 +32,7 @@ impl Operator {
             self,
             Self::LessEqual
                 | Self::Less
+                | Self::Greater
                 | Self::GreaterEqual
                 | Self::Equal
                 | Self::Plus

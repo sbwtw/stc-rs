@@ -1,30 +1,30 @@
 <application name="test_proj">
     <pou-list>
         <pou>
-            <interface>
-                VAR_GLOBAL
-                    g1: INT;
-                    g2: REAL;
-                END_VAR
-            </interface>
+            <interface><![CDATA[
+VAR_GLOBAL
+    g1: INT;
+    g2: REAL;
+END_VAR
+]]>         </interface>
         </pou>
 
         <pou uuid-text="aa61864a-3d85-4771-8575-278039cf3ea6">
-            <interface>
-                program prg: int
-                VAR
-                    a: BYTE;
-                END_VAR
-                VAR_TEMP
-                    b: INT;
-                END_VAR
-                end_program
+            <interface><![CDATA[
+program main: int
+VAR
+    a: BYTE;
+END_VAR
+VAR_TEMP
+    b: INT;
+END_VAR
+end_program
+]]>
             </interface>
             <body>
-                a := 1;
-                b := 2;
-
-                print(a + b);
+                IF g1 = a THEN
+                    b := b + 1;
+                END_IF
             </body>
         </pou>
     </pou-list>
