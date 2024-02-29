@@ -103,6 +103,16 @@ impl CompiledCode for LuaCode {
         // TODO: maxstacksize
         lua_dump_byte(w, 0)?;
 
+        // Dump Code
+
+        // Dump Constants
+
+        // Dump UpValues
+
+        // Dump Protos
+
+        // Dump Debug
+
         Ok(())
     }
 }
@@ -129,5 +139,10 @@ mod test {
         lua_dump_size(&mut buf, 128).unwrap();
         assert_eq!(0x01, buf[0]);
         assert_eq!(0x80, buf[1]);
+
+        let mut buf = vec![0u8; 0];
+        lua_dump_size(&mut buf, 668).unwrap();
+        assert_eq!(0x05, buf[0]);
+        assert_eq!(0x9c, buf[1]);
     }
 }

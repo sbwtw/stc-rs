@@ -213,7 +213,15 @@ impl StcViewerApp {
             let mut buf = vec![0u8; 0];
             lua_dump_function(func, &mut buf).unwrap();
 
-            println!("{:0>2x?}", buf);
+            for (i, v) in buf.iter().enumerate() {
+                print!("{:0>2x} ", v);
+
+                if i % 16 == 15 {
+                    println!();
+                }
+            }
+
+            println!()
         }
     }
 
