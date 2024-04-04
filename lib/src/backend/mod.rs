@@ -2,8 +2,8 @@
 mod llvm;
 mod lua;
 
-pub use lua::dump::lua_dump_function;
-pub use lua::LuaBackend;
+pub use lua::dump::lua_dump_module;
+pub use lua::LuaBackendCtx;
 
 use crate::ast::{OperatorExpression, Variable};
 use crate::context::{ModuleContext, UnitsManager};
@@ -14,7 +14,6 @@ use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::io;
 use std::io::Write;
-use std::marker::PhantomData;
 
 bitflags! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -35,6 +34,7 @@ pub trait CodeGenBackend {
     fn define_label<S: AsRef<str>>(&mut self, label: Option<S>) -> Self::Label;
     fn gen_variable_load(&mut self, variable: &mut Variable);
     fn gen_operator(&mut self, operator: &mut OperatorExpression);
+    fn get_bytes<W: Write>(&mut self, w: &mut W) -> io::Result<()>;
 }
 
 pub trait CompiledCode: Display {
@@ -71,7 +71,7 @@ where
 {
     mgr: UnitsManager,
     app: ModuleContext,
-    _backend: PhantomData<B>,
+    backend: B,
 }
 
 impl<B> CodeGenerator<B>
@@ -87,15 +87,14 @@ where
         Ok(Self {
             mgr: mgr.clone(),
             app: app.clone(),
-            _backend: PhantomData,
+            backend: B::new(mgr, app),
         })
     }
-}
 
-impl<B> CodeGenerator<B>
-where
-    B: CodeGenBackend,
-{
+    pub fn get_bytes<W: Write>(&mut self, w: &mut W) -> io::Result<()> {
+        self.backend.get_bytes(w)
+    }
+
     pub fn build_application(&mut self) -> Result<(), CodeGenError> {
         let mut decl_info: Vec<(_, _)> = self
             .app

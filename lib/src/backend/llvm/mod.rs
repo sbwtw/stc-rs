@@ -34,4 +34,8 @@ impl CodeGenBackend for LLVMBackend {
     fn gen_operator(&mut self, operator: &mut OperatorExpression) {
         todo!()
     }
+
+    fn get_bytes<W: Write>(&mut self, w: &mut W) -> io::Result<()> {
+        todo!()
+    }
 }

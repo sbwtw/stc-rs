@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use super::LuaBackendCtx;
 
 use crate::backend::lua::bytecode::LuaCode;
 use crate::backend::CompiledCode;
@@ -13,11 +13,66 @@ const LUAC_DATA: &[u8] = &[0x19, 0x93, 0x0d, 0x0a, 0x1a, 0x0a];
 const LUAC_INT: u64 = 0x5678;
 const LUAC_NUMBER: f64 = 370.5;
 
-pub fn lua_dump_function<W: Write>(f: &Function, w: &mut W) -> io::Result<()> {
-    let fun_impl = f.read();
-    let cc = fun_impl.compiled_code().as_ref().unwrap();
+pub fn lua_dump_module<W: Write>(ctx: &LuaBackendCtx, w: &mut W) -> io::Result<()> {
+    // Lua header
+    lua_dump_bytes(w, LUA_SIGNATURE.as_bytes())?;
+    // Lua version, 5.4
+    lua_dump_byte(w, 5 * 16 + 4)?;
+    // format, now is zero
+    lua_dump_byte(w, 0)?;
+    // data
+    lua_dump_bytes(w, LUAC_DATA)?;
+    // size of Lua instruction
+    lua_dump_byte(w, 4)?;
+    // size of Lua integer
+    lua_dump_byte(w, 8)?;
+    // size of Lua Number
+    lua_dump_byte(w, 8)?;
+    // LUAC_INT
+    lua_dump_bytes(w, &LUAC_INT.to_le_bytes())?;
+    // LUAC_NUMBER
+    lua_dump_bytes(w, &LUAC_NUMBER.to_le_bytes())?;
 
-    cc.dump(w)
+    // TODO: size of UpValues in byte, write 0 in temp
+    lua_dump_byte(w, 0)?;
+    // TODO: source file name
+    lua_dump_int(w, 0)?;
+    // TODO: linedefined
+    lua_dump_int(w, 0)?;
+    // TODO: lastlinedefined
+    lua_dump_int(w, 0)?;
+    // TODO: numparams
+    lua_dump_byte(w, 0)?;
+    // TODO: is_vararg
+    lua_dump_byte(w, 0)?;
+    // TODO: maxstacksize
+    lua_dump_byte(w, 0)?;
+
+    // Dump Code
+
+    // Dump Constants
+
+    // Dump UpValues
+
+    // Dump Protos
+
+    // Dump Debug
+
+    // let fun_impl = f.read();
+    // let cc = fun_impl.compiled_code().as_ref().unwrap();
+
+    // cc.dump(w)
+
+    // if let Some(main) = app_read.find_declaration_by_name(&StString::new("main")) {
+    //     let id = main.read().unwrap().id();
+    //     let func = app_read.get_function(id).unwrap();
+
+    //     let mut buf = vec![0u8; 0];
+    //     lua_dump_module(func, &mut buf).unwrap();
+
+    // }
+
+    Ok(())
 }
 
 #[inline]
@@ -69,50 +124,6 @@ fn lua_dump_block() -> io::Result<()> {
 
 impl CompiledCode for LuaCode {
     fn dump(&self, w: &mut dyn Write) -> io::Result<()> {
-        // Lua header
-        lua_dump_bytes(w, LUA_SIGNATURE.as_bytes())?;
-        // Lua version, 5.4
-        lua_dump_byte(w, 5 * 16 + 4)?;
-        // format, now is zero
-        lua_dump_byte(w, 0)?;
-        // data
-        lua_dump_bytes(w, LUAC_DATA)?;
-        // size of Lua instruction
-        lua_dump_byte(w, 4)?;
-        // size of Lua integer
-        lua_dump_byte(w, 8)?;
-        // size of Lua Number
-        lua_dump_byte(w, 8)?;
-        // LUAC_INT
-        lua_dump_bytes(w, &LUAC_INT.to_le_bytes())?;
-        // LUAC_NUMBER
-        lua_dump_bytes(w, &LUAC_NUMBER.to_le_bytes())?;
-
-        // TODO: size of UpValues in byte, write 0 in temp
-        lua_dump_byte(w, 0)?;
-        // TODO: source file name
-        lua_dump_int(w, 0)?;
-        // TODO: linedefined
-        lua_dump_int(w, 0)?;
-        // TODO: lastlinedefined
-        lua_dump_int(w, 0)?;
-        // TODO: numparams
-        lua_dump_byte(w, 0)?;
-        // TODO: is_vararg
-        lua_dump_byte(w, 0)?;
-        // TODO: maxstacksize
-        lua_dump_byte(w, 0)?;
-
-        // Dump Code
-
-        // Dump Constants
-
-        // Dump UpValues
-
-        // Dump Protos
-
-        // Dump Debug
-
         Ok(())
     }
 }

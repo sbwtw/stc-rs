@@ -63,7 +63,7 @@ pub struct POUList {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[allow(clippy::upper_case_acronyms)]
+#[allow(clippy::upper_case_acronyms)] // Allow upper case POU naming
 pub struct POU {
     #[serde(rename = "@uuid-text")]
     pub uuid_text: Option<String>,

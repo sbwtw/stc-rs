@@ -55,7 +55,7 @@ impl Default for LuaBackendAttribute {
     }
 }
 
-pub struct LuaBackend {
+pub struct LuaBackendCtx {
     mgr: UnitsManager,
     app: ModuleContext,
     byte_codes: Vec<LuaByteCode>,
@@ -65,7 +65,7 @@ pub struct LuaBackend {
     reg_mgr: RegisterManager,
 }
 
-impl LuaBackend {
+impl LuaBackendCtx {
     fn push_attribute_with_scope(&mut self, scope: Scope) {
         let attr = LuaBackendAttribute {
             scope: Some(scope),
@@ -126,7 +126,7 @@ impl LuaBackend {
     }
 }
 
-impl CodeGenBackend for LuaBackend {
+impl CodeGenBackend for LuaBackendCtx {
     type Label = usize;
 
     fn new(mgr: UnitsManager, app: ModuleContext) -> Self {
@@ -178,9 +178,13 @@ impl CodeGenBackend for LuaBackend {
 
         self.visit_expression_mut(&mut operands[0]);
     }
+
+    fn get_bytes<W: Write>(&mut self, w: &mut W) -> io::Result<()> {
+        lua_dump_module(self, w)
+    }
 }
 
-impl AstVisitorMut for LuaBackend {
+impl AstVisitorMut for LuaBackendCtx {
     fn visit_literal_mut(&mut self, literal: &mut LiteralExpression) {
         trace!("LuaGen: literal expression: {:?}", literal);
 
