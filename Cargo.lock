@@ -907,7 +907,7 @@ dependencies = [
  "either",
  "inkwell_internals",
  "libc",
- "llvm-sys 160.1.4",
+ "llvm-sys",
  "once_cell",
  "thiserror",
 ]
@@ -1027,20 +1027,6 @@ dependencies = [
  "lazy_static",
  "libc",
  "regex",
- "semver",
-]
-
-[[package]]
-name = "llvm-sys"
-version = "170.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eed90f72df5504c0af2e3a08ee7762a4a3e42ec2605811fc19f64879de40c50a"
-dependencies = [
- "anyhow",
- "cc",
- "lazy_static",
- "libc",
- "regex-lite",
  "semver",
 ]
 
@@ -1485,12 +1471,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "regex-lite"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30b661b2f27137bdbc16f00eda72866a92bb28af1753ffbd56744fb6e2e9cd8e"
-
-[[package]]
 name = "regex-syntax"
 version = "0.6.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1675,7 +1655,7 @@ dependencies = [
  "inkwell",
  "lalrpop",
  "lalrpop-util",
- "llvm-sys 170.0.1",
+ "llvm-sys",
  "log",
  "once_cell",
  "regex",

@@ -31,7 +31,7 @@ inkwell = { version = "*", optional = true, features = ["llvm16-0-no-llvm-linkin
 [build-dependencies]
 cbindgen = "*"
 lalrpop = { version = "*", optional = true }
-llvm-sys = { version = "170", optional = true, features = ["prefer-dynamic"] }
+llvm-sys = { version = "160", optional = true, features = ["prefer-dynamic"] }
 
 [features]
 default = ["use_lalrpop", "llvm_backend"]
