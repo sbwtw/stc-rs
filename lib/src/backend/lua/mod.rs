@@ -18,6 +18,7 @@ use crate::prelude::*;
 use indexmap::IndexSet;
 use log::*;
 use smallvec::{smallvec, SmallVec};
+use std::mem;
 use std::rc::Rc;
 
 bitflags! {
@@ -55,7 +56,7 @@ impl Default for LuaBackendAttribute {
     }
 }
 
-pub struct LuaBackendCtx {
+pub struct LuaBackend {
     mgr: UnitsManager,
     app: ModuleContext,
     byte_codes: Vec<LuaByteCode>,
@@ -65,7 +66,7 @@ pub struct LuaBackendCtx {
     reg_mgr: RegisterManager,
 }
 
-impl LuaBackendCtx {
+impl LuaBackend {
     fn push_attribute_with_scope(&mut self, scope: Scope) {
         let attr = LuaBackendAttribute {
             scope: Some(scope),
@@ -126,7 +127,7 @@ impl LuaBackendCtx {
     }
 }
 
-impl CodeGenBackend for LuaBackendCtx {
+impl CodeGenBackend for LuaBackend {
     type Label = usize;
 
     fn new(mgr: UnitsManager, app: ModuleContext) -> Self {
@@ -141,7 +142,11 @@ impl CodeGenBackend for LuaBackendCtx {
         }
     }
 
-    fn gen_function(mut self, func: usize) -> Result<Box<dyn CompiledCode>, CodeGenError> {
+    fn get_module_bytes(&mut self, w: &mut dyn Write) -> io::Result<()> {
+        lua_dump_module(self, w)
+    }
+
+    fn gen_function(&mut self, func: usize) -> Result<Box<dyn CompiledCode>, CodeGenError> {
         let f = self
             .app
             .read()
@@ -159,9 +164,12 @@ impl CodeGenBackend for LuaBackendCtx {
         self.visit_statement_mut(fun.parse_tree_mut());
         self.pop_attribute();
 
-        Ok(Box::new(LuaCode {
-            byte_codes: self.byte_codes,
-            constants: self.constants,
+        let byte_codes = mem::take(&mut self.byte_codes);
+        let constants = mem::replace(&mut self.constants, IndexSet::new());
+
+        Ok(Box::new(LuaCompiledCode {
+            byte_codes,
+            constants,
         }))
     }
 
@@ -178,13 +186,9 @@ impl CodeGenBackend for LuaBackendCtx {
 
         self.visit_expression_mut(&mut operands[0]);
     }
-
-    fn get_bytes<W: Write>(&mut self, w: &mut W) -> io::Result<()> {
-        lua_dump_module(self, w)
-    }
 }
 
-impl AstVisitorMut for LuaBackendCtx {
+impl AstVisitorMut for LuaBackend {
     fn visit_literal_mut(&mut self, literal: &mut LiteralExpression) {
         trace!("LuaGen: literal expression: {:?}", literal);
 

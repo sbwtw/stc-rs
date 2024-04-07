@@ -19,7 +19,11 @@ impl CodeGenBackend for LLVMBackend {
         todo!()
     }
 
-    fn gen_function(self, func: usize) -> Result<Box<dyn CompiledCode>, CodeGenError> {
+    fn get_module_bytes(&mut self, w: &mut dyn Write) -> io::Result<()> {
+        todo!()
+    }
+
+    fn gen_function(&mut self, func: usize) -> Result<Box<dyn CompiledCode>, CodeGenError> {
         todo!()
     }
 
@@ -32,10 +36,6 @@ impl CodeGenBackend for LLVMBackend {
     }
 
     fn gen_operator(&mut self, operator: &mut OperatorExpression) {
-        todo!()
-    }
-
-    fn get_bytes<W: Write>(&mut self, w: &mut W) -> io::Result<()> {
         todo!()
     }
 }

@@ -97,12 +97,12 @@ impl LuaByteCode {
 }
 
 #[derive(Debug)]
-pub struct LuaCode {
+pub struct LuaCompiledCode {
     pub byte_codes: Vec<LuaByteCode>,
     pub constants: IndexSet<LuaConstants>,
 }
 
-impl LuaCode {
+impl LuaCompiledCode {
     pub fn disassembly_code(&self, code: &LuaByteCode) -> String {
         let mut s = String::with_capacity(16);
         write!(s, "{:<10} ", code.mnemonic()).unwrap();
@@ -149,7 +149,7 @@ impl LuaCode {
     }
 }
 
-impl Display for LuaCode {
+impl Display for LuaCompiledCode {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         // constants
         writeln!(f, "Constants:")?;

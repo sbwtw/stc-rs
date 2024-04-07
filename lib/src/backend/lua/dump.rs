@@ -1,6 +1,6 @@
-use super::LuaBackendCtx;
+use super::LuaBackend;
 
-use crate::backend::lua::bytecode::LuaCode;
+use crate::backend::lua::bytecode::LuaCompiledCode;
 use crate::backend::CompiledCode;
 use std::io;
 use std::io::Write;
@@ -13,7 +13,7 @@ const LUAC_DATA: &[u8] = &[0x19, 0x93, 0x0d, 0x0a, 0x1a, 0x0a];
 const LUAC_INT: u64 = 0x5678;
 const LUAC_NUMBER: f64 = 370.5;
 
-pub fn lua_dump_module<W: Write>(ctx: &LuaBackendCtx, w: &mut W) -> io::Result<()> {
+pub fn lua_dump_module(ctx: &LuaBackend, w: &mut dyn Write) -> io::Result<()> {
     // Lua header
     lua_dump_bytes(w, LUA_SIGNATURE.as_bytes())?;
     // Lua version, 5.4
@@ -122,9 +122,12 @@ fn lua_dump_block() -> io::Result<()> {
     Ok(())
 }
 
-impl CompiledCode for LuaCode {
-    fn dump(&self, w: &mut dyn Write) -> io::Result<()> {
-        Ok(())
+impl CompiledCode for LuaCompiledCode {
+    fn get_bytes(&self, w: &mut dyn Write) -> io::Result<()> {
+        Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "Can't get code from single Lua function",
+        ))
     }
 }
 

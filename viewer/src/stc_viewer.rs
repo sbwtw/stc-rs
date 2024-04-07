@@ -9,7 +9,7 @@ use gtk4::prelude::*;
 use gtk4::{Button, SearchEntry, TextBuffer, TextView, TreeStore, TreeView, TreeViewColumn};
 use log::info;
 use stc::analysis::TypeAnalyzer;
-use stc::backend::{CodeGenerator, LuaBackendCtx};
+use stc::backend::{CodeGenBackend, CodeGenDriver, LuaBackend};
 use stc::prelude::*;
 use stc::utils::write_ast_to_file;
 
@@ -202,13 +202,12 @@ impl StcViewerApp {
             }
         }
 
-        let mut code_gen: CodeGenerator<LuaBackendCtx> =
-            CodeGenerator::new(self.mgr.clone(), app_id).unwrap();
+        let mut code_gen: CodeGenDriver<LuaBackend> =
+            CodeGenDriver::new(self.mgr.clone(), app_id).unwrap();
         println!("CodeGen: {:?}", code_gen.build_application());
 
         let mut buf = vec![0u8; 0];
-        code_gen.get_bytes(&mut buf).unwrap();
-
+        code_gen.backend().get_module_bytes(&mut buf).unwrap();
         for (i, v) in buf.iter().enumerate() {
             print!("{:0>2x} ", v);
 
