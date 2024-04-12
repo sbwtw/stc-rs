@@ -50,36 +50,42 @@ impl Variable {
             .collect()
     }
 
+    #[inline]
     pub fn name(&self) -> &StString {
         &self.name
     }
 
-    #[allow(dead_code)]
+    #[inline]
     pub fn origin_name(&self) -> &String {
         self.name.origin_string()
     }
 
+    #[inline]
     pub fn ty(&self) -> Option<Rc<Box<dyn Type>>> {
         self.ty.clone()
     }
 
-    #[allow(dead_code)]
+    #[inline]
     pub fn set_ty(&mut self, ty: Option<Rc<Box<dyn Type>>>) {
         self.ty = ty
     }
 
+    #[inline]
     pub fn initial(&self) -> &Option<Box<Expression>> {
         &self.initial
     }
 
+    #[inline]
     pub fn set_flags(&mut self, flags: VariableFlags) {
         self.flags = flags
     }
 
+    #[inline]
     pub fn flags(&self) -> VariableFlags {
         self.flags
     }
 
+    #[inline]
     pub fn scope(&self) -> VariableFlags {
         self.flags & (VariableFlags::INPUT | VariableFlags::INOUT | VariableFlags::OUTPUT)
     }

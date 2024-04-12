@@ -1,4 +1,5 @@
-use super::LuaBackend;
+use super::utils::*;
+use super::{Function, LuaBackend, Prototype};
 
 use crate::backend::lua::bytecode::LuaCompiledCode;
 use crate::backend::CompiledCode;
@@ -11,9 +12,10 @@ const LUA_SIGNATURE: &str = "\x1bLua";
 /// data to catch conversion errors
 const LUAC_DATA: &[u8] = &[0x19, 0x93, 0x0d, 0x0a, 0x1a, 0x0a];
 const LUAC_INT: u64 = 0x5678;
+// 0x4077280000000000
 const LUAC_NUMBER: f64 = 370.5;
 
-pub fn lua_dump_module(ctx: &LuaBackend, w: &mut dyn Write) -> io::Result<()> {
+pub fn lua_dump_module(backend: &LuaBackend, w: &mut dyn Write) -> io::Result<()> {
     // Lua header
     lua_dump_bytes(w, LUA_SIGNATURE.as_bytes())?;
     // Lua version, 5.4
@@ -33,20 +35,46 @@ pub fn lua_dump_module(ctx: &LuaBackend, w: &mut dyn Write) -> io::Result<()> {
     // LUAC_NUMBER
     lua_dump_bytes(w, &LUAC_NUMBER.to_le_bytes())?;
 
-    // TODO: size of UpValues in byte, write 0 in temp
-    lua_dump_byte(w, 0)?;
+    // size of UpValues in 1 byte
+    lua_dump_byte(w, backend.module_upvalues().len() as u8)?;
+
+    // Start to dump functions
+    // get main function
+    let app = backend.current_application();
+    let app_clone = app.clone();
+    let app_read = app.read();
+    let main_proto = app_read.find_declaration_by_name(&"main".into());
+    if let Some(p) = main_proto {
+        let main_id = p.read().unwrap().id();
+        let main_func = app_clone.read().get_function(main_id).cloned();
+
+        if let Some(f) = main_func {
+            lua_dump_function(backend, p, &f, w)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn lua_dump_function(
+    b: &LuaBackend,
+    p: &Prototype,
+    f: &Function,
+    w: &mut dyn Write,
+) -> io::Result<()> {
     // TODO: source file name
-    lua_dump_int(w, 0)?;
+    lua_dump_string(w, None)?;
     // TODO: linedefined
     lua_dump_int(w, 0)?;
     // TODO: lastlinedefined
     lua_dump_int(w, 0)?;
-    // TODO: numparams
-    lua_dump_byte(w, 0)?;
-    // TODO: is_vararg
-    lua_dump_byte(w, 0)?;
-    // TODO: maxstacksize
-    lua_dump_byte(w, 0)?;
+    // numparams
+    lua_dump_byte(w, num_params(p))?;
+    // is_vararg
+    let r = if is_vararg(p) { 1 } else { 0 };
+    lua_dump_byte(w, r)?;
+    // maxstacksize of proto
+    lua_dump_byte(w, max_stack_size(p))?;
 
     // Dump Code
 
@@ -71,7 +99,6 @@ pub fn lua_dump_module(ctx: &LuaBackend, w: &mut dyn Write) -> io::Result<()> {
     //     lua_dump_module(func, &mut buf).unwrap();
 
     // }
-
     Ok(())
 }
 
@@ -115,6 +142,14 @@ fn lua_dump_byte(w: &mut dyn Write, b: u8) -> io::Result<()> {
 #[inline]
 fn lua_dump_bytes(w: &mut dyn Write, bytes: &[u8]) -> io::Result<()> {
     w.write_all(bytes).map(|_| ())
+}
+
+#[inline]
+fn lua_dump_string(w: &mut dyn Write, opt_str: Option<String>) -> io::Result<()> {
+    match opt_str {
+        Some(s) => todo!(),
+        None => lua_dump_size(w, 0),
+    }
 }
 
 #[inline]

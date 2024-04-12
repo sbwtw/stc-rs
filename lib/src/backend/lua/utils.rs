@@ -1,5 +1,7 @@
 use crate::parser::{BitValue, LiteralValue};
 
+use super::{Prototype, VariableFlags};
+
 /// sBx use 17 Bits
 const SBX_BIT_SIZE: u32 = 17;
 /// Max value of sBx is 2^18 - 1
@@ -50,4 +52,28 @@ pub fn try_fit_sbx(literal: &LiteralValue) -> Option<u32> {
         }
         _ => None,
     }
+}
+
+#[inline]
+pub fn num_params(p: &Prototype) -> u8 {
+    let proto = p.read().unwrap();
+
+    // calculate Input variables count
+    proto
+        .variables()
+        .iter()
+        .filter(|x| x.flags().contains(VariableFlags::INPUT))
+        .count() as u8
+}
+
+#[inline]
+pub fn is_vararg(_p: &Prototype) -> bool {
+    // TODO:
+    false
+}
+
+#[inline]
+pub fn max_stack_size(_p: &Prototype) -> u8 {
+    // TODO:
+    64
 }

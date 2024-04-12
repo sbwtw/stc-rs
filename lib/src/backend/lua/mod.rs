@@ -34,7 +34,7 @@ bitflags! {
 }
 
 #[derive(Clone)]
-pub struct LuaBackendAttribute {
+pub struct LuaBackendStates {
     variable: Option<Rc<Variable>>,
     register: Option<RegisterId>,
     constant_index: Option<usize>,
@@ -43,7 +43,7 @@ pub struct LuaBackendAttribute {
     access_mode: LuaAccessMode,
 }
 
-impl Default for LuaBackendAttribute {
+impl Default for LuaBackendStates {
     fn default() -> Self {
         Self {
             variable: None,
@@ -60,47 +60,56 @@ pub struct LuaBackend {
     mgr: UnitsManager,
     app: ModuleContext,
     byte_codes: Vec<LuaByteCode>,
-    attributes: SmallVec<[LuaBackendAttribute; 32]>,
+    states: SmallVec<[LuaBackendStates; 32]>,
     local_function: Option<Function>,
     constants: IndexSet<LuaConstants>,
     reg_mgr: RegisterManager,
+    module_upvalues: SmallVec<[LuaConstants; 32]>,
 }
 
 impl LuaBackend {
+    fn current_application(&self) -> ModuleContext {
+        self.app.clone()
+    }
+
+    fn module_upvalues(&self) -> &SmallVec<[LuaConstants; 32]> {
+        &self.module_upvalues
+    }
+
     fn push_attribute_with_scope(&mut self, scope: Scope) {
-        let attr = LuaBackendAttribute {
+        let attr = LuaBackendStates {
             scope: Some(scope),
             ..Default::default()
         };
 
-        self.attributes.push(attr)
+        self.states.push(attr)
     }
 
     fn push_access_attribute(&mut self, access: LuaAccessMode) {
-        let attr = LuaBackendAttribute {
+        let attr = LuaBackendStates {
             scope: self.top_attribute().scope.clone(),
             access_mode: access,
             ..Default::default()
         };
 
-        self.attributes.push(attr)
+        self.states.push(attr)
     }
 
     fn push_default_attribute(&mut self) {
-        let attr = LuaBackendAttribute {
+        let attr = LuaBackendStates {
             scope: self.top_attribute().scope.clone(),
             ..Default::default()
         };
 
-        self.attributes.push(attr);
+        self.states.push(attr);
     }
 
-    fn pop_attribute(&mut self) -> LuaBackendAttribute {
-        self.attributes.pop().unwrap()
+    fn pop_attribute(&mut self) -> LuaBackendStates {
+        self.states.pop().unwrap()
     }
 
-    fn top_attribute(&mut self) -> &mut LuaBackendAttribute {
-        self.attributes.last_mut().unwrap()
+    fn top_attribute(&mut self) -> &mut LuaBackendStates {
+        self.states.last_mut().unwrap()
     }
 
     /// Return current scope, will be panic if scope not set
@@ -135,10 +144,11 @@ impl CodeGenBackend for LuaBackend {
             mgr,
             app,
             byte_codes: vec![],
-            attributes: smallvec![],
+            states: smallvec![],
             local_function: None,
             constants: IndexSet::new(),
             reg_mgr: RegisterManager::new(),
+            module_upvalues: smallvec![],
         }
     }
 
