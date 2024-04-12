@@ -2,7 +2,7 @@ use crate::parser::*;
 use std::fmt::{self, Display, Formatter};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Tok {
+pub enum TokenKind {
     None,
     /// ' ' or '\n', etc.
     Whitespace,
@@ -154,128 +154,128 @@ pub enum Tok {
     Identifier(StString),
 }
 
-impl Tok {
+impl TokenKind {
     pub fn is_type(&self) -> bool {
-        matches!(self, Tok::Int | Tok::Bool)
+        matches!(self, TokenKind::Int | TokenKind::Bool)
     }
 
     pub fn is_operator(&self) -> bool {
         matches!(
             self,
-            Tok::Less
-                | Tok::LessEqual
-                | Tok::Greater
-                | Tok::GreaterEqual
-                | Tok::Equal
-                | Tok::NotEqual
-                | Tok::Plus
-                | Tok::Minus
-                | Tok::Division
-                | Tok::Multiply
-                | Tok::BitOr
-                | Tok::BitAnd
-                | Tok::Mod
-                | Tok::Power
-                | Tok::Not
-                | Tok::Xor
+            TokenKind::Less
+                | TokenKind::LessEqual
+                | TokenKind::Greater
+                | TokenKind::GreaterEqual
+                | TokenKind::Equal
+                | TokenKind::NotEqual
+                | TokenKind::Plus
+                | TokenKind::Minus
+                | TokenKind::Division
+                | TokenKind::Multiply
+                | TokenKind::BitOr
+                | TokenKind::BitAnd
+                | TokenKind::Mod
+                | TokenKind::Power
+                | TokenKind::Not
+                | TokenKind::Xor
         )
     }
 
     pub fn is_literal(&self) -> bool {
-        matches!(self, Tok::Literal(_))
+        matches!(self, TokenKind::Literal(_))
     }
 }
 
-impl From<&Tok> for String {
-    fn from(value: &Tok) -> Self {
+impl From<&TokenKind> for String {
+    fn from(value: &TokenKind) -> Self {
         let tmp_string;
 
         let s = match value {
-            Tok::None => "!!!NONE!!!",
-            Tok::Whitespace => " ",
-            Tok::Access => ".",
-            Tok::Plus => "+",
-            Tok::Minus => "-",
-            Tok::Multiply => "*",
-            Tok::Power => "**",
-            Tok::Division => "/",
-            Tok::LeftParentheses => "(",
-            Tok::RightParentheses => ")",
-            Tok::Comma => ",",
-            Tok::Semicolon => ";",
-            Tok::Colon => ":",
-            Tok::Assign => ":=",
-            Tok::AssignRight => "=>",
-            Tok::AssignSet => "S=",
-            Tok::AssignReset => "R=",
-            Tok::Equal => "=",
-            Tok::NotEqual => "<>",
-            Tok::Greater => ">",
-            Tok::GreaterEqual => ">=",
-            Tok::Less => "<",
-            Tok::LessEqual => "<=",
-            Tok::BitOr => "OR",
-            Tok::BitAnd => "AND",
-            Tok::Deref => "^",
-            Tok::Mod => "MOD",
-            Tok::Xor => "XOR",
-            Tok::Not => "NOT",
-            Tok::Pointer => "POINTER",
-            Tok::Array => "ARRAY",
-            Tok::Of => "OF",
-            Tok::To => "TO",
-            Tok::If => "IF",
-            Tok::Then => "THEN",
-            Tok::Else => "ELSE",
-            Tok::ElseIf => "ELSEIF",
-            Tok::EndIf => "END_IF",
-            Tok::Function => "FUNCTION",
-            Tok::EndFunction => "END_FUNCTION",
-            Tok::Program => "PROGRAM",
-            Tok::EndProgram => "END_PROGRAM",
-            Tok::FunctionBlock => "FUNCTION_BLOCK",
-            Tok::EndFunctionBlock => "END_FUNCTION_BLOCK",
-            Tok::Struct => "STRUCT",
-            Tok::EndStruct => "END_STRUCT",
-            Tok::VarGlobal => "VAR_GLOBAL",
-            Tok::Var => "VAR",
-            Tok::VarInput => "VAR_INPUT",
-            Tok::VarInOut => "VAR_INOUT",
-            Tok::VarOutput => "VAR_OUTPUT",
-            Tok::VarTemp => "VAR_TEMP",
-            Tok::VarStat => "VAR_STAT",
-            Tok::EndVar => "END_VAR",
-            Tok::Retain => "RETAIN",
-            Tok::Persistent => "PERSISTENT",
-            Tok::Type => "TYPE",
-            Tok::EndType => "END_TYPE",
-            Tok::Int => "INT",
-            Tok::Real => "REAL",
-            Tok::LReal => "LREAL",
-            Tok::Bit => "BIT",
-            Tok::Bool => "BOOL",
-            Tok::SInt => "SINT",
-            Tok::Byte => "BYTE",
-            Tok::UInt => "UINT",
-            Tok::DInt => "DINT",
-            Tok::UDInt => "UDINT",
-            Tok::LInt => "LINT",
-            Tok::ULInt => "ULINT",
-            Tok::Time => "TIME",
-            Tok::LTime => "LTIME",
-            Tok::String => "STRING",
-            Tok::Literal(x) => {
+            TokenKind::None => "!!!NONE!!!",
+            TokenKind::Whitespace => " ",
+            TokenKind::Access => ".",
+            TokenKind::Plus => "+",
+            TokenKind::Minus => "-",
+            TokenKind::Multiply => "*",
+            TokenKind::Power => "**",
+            TokenKind::Division => "/",
+            TokenKind::LeftParentheses => "(",
+            TokenKind::RightParentheses => ")",
+            TokenKind::Comma => ",",
+            TokenKind::Semicolon => ";",
+            TokenKind::Colon => ":",
+            TokenKind::Assign => ":=",
+            TokenKind::AssignRight => "=>",
+            TokenKind::AssignSet => "S=",
+            TokenKind::AssignReset => "R=",
+            TokenKind::Equal => "=",
+            TokenKind::NotEqual => "<>",
+            TokenKind::Greater => ">",
+            TokenKind::GreaterEqual => ">=",
+            TokenKind::Less => "<",
+            TokenKind::LessEqual => "<=",
+            TokenKind::BitOr => "OR",
+            TokenKind::BitAnd => "AND",
+            TokenKind::Deref => "^",
+            TokenKind::Mod => "MOD",
+            TokenKind::Xor => "XOR",
+            TokenKind::Not => "NOT",
+            TokenKind::Pointer => "POINTER",
+            TokenKind::Array => "ARRAY",
+            TokenKind::Of => "OF",
+            TokenKind::To => "TO",
+            TokenKind::If => "IF",
+            TokenKind::Then => "THEN",
+            TokenKind::Else => "ELSE",
+            TokenKind::ElseIf => "ELSEIF",
+            TokenKind::EndIf => "END_IF",
+            TokenKind::Function => "FUNCTION",
+            TokenKind::EndFunction => "END_FUNCTION",
+            TokenKind::Program => "PROGRAM",
+            TokenKind::EndProgram => "END_PROGRAM",
+            TokenKind::FunctionBlock => "FUNCTION_BLOCK",
+            TokenKind::EndFunctionBlock => "END_FUNCTION_BLOCK",
+            TokenKind::Struct => "STRUCT",
+            TokenKind::EndStruct => "END_STRUCT",
+            TokenKind::VarGlobal => "VAR_GLOBAL",
+            TokenKind::Var => "VAR",
+            TokenKind::VarInput => "VAR_INPUT",
+            TokenKind::VarInOut => "VAR_INOUT",
+            TokenKind::VarOutput => "VAR_OUTPUT",
+            TokenKind::VarTemp => "VAR_TEMP",
+            TokenKind::VarStat => "VAR_STAT",
+            TokenKind::EndVar => "END_VAR",
+            TokenKind::Retain => "RETAIN",
+            TokenKind::Persistent => "PERSISTENT",
+            TokenKind::Type => "TYPE",
+            TokenKind::EndType => "END_TYPE",
+            TokenKind::Int => "INT",
+            TokenKind::Real => "REAL",
+            TokenKind::LReal => "LREAL",
+            TokenKind::Bit => "BIT",
+            TokenKind::Bool => "BOOL",
+            TokenKind::SInt => "SINT",
+            TokenKind::Byte => "BYTE",
+            TokenKind::UInt => "UINT",
+            TokenKind::DInt => "DINT",
+            TokenKind::UDInt => "UDINT",
+            TokenKind::LInt => "LINT",
+            TokenKind::ULInt => "ULINT",
+            TokenKind::Time => "TIME",
+            TokenKind::LTime => "LTIME",
+            TokenKind::String => "STRING",
+            TokenKind::Literal(x) => {
                 tmp_string = format!("{}", x);
                 tmp_string.as_str()
             }
-            Tok::Identifier(s) => s.origin_string(),
+            TokenKind::Identifier(s) => s.origin_string(),
         };
 
         s.to_owned()
     }
 }
 
-impl Display for Tok {
+impl Display for TokenKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", Into::<String>::into(self))
     }

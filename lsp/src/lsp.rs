@@ -1,7 +1,7 @@
 use crate::lsp_types::{TokenModifiers, TokenTypes};
 
 use serde_json::Value;
-use stc::parser::{StLexerBuilder, Tok};
+use stc::parser::{StLexerBuilder, TokenKind};
 use strum::IntoEnumIterator;
 use tower_lsp::jsonrpc;
 use tower_lsp::jsonrpc::Result;
@@ -9,23 +9,23 @@ use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer};
 use tracing::*;
 
-fn semantic_token_type_id(tok: &Tok) -> (u32, u32) {
+fn semantic_token_type_id(tok: &TokenKind) -> (u32, u32) {
     match tok {
-        Tok::Identifier(_) => (TokenTypes::Variable as u32, TokenModifiers::None as u32),
-        Tok::Literal(_) => (TokenTypes::Number as u32, TokenModifiers::None as u32),
-        Tok::String => (TokenTypes::String as u32, TokenModifiers::None as u32),
+        TokenKind::Identifier(_) => (TokenTypes::Variable as u32, TokenModifiers::None as u32),
+        TokenKind::Literal(_) => (TokenTypes::Number as u32, TokenModifiers::None as u32),
+        TokenKind::String => (TokenTypes::String as u32, TokenModifiers::None as u32),
         // operators
         op if op.is_operator() => (TokenTypes::Operator as u32, TokenModifiers::None as u32),
         // builtin-types
-        Tok::Int => (TokenTypes::Type as u32, TokenModifiers::None as u32),
+        TokenKind::Int => (TokenTypes::Type as u32, TokenModifiers::None as u32),
         // keywords
-        Tok::If
-        | Tok::Then
-        | Tok::EndIf
-        | Tok::Var
-        | Tok::EndVar
-        | Tok::Program
-        | Tok::EndProgram => (TokenTypes::Keyword as u32, TokenModifiers::None as u32),
+        TokenKind::If
+        | TokenKind::Then
+        | TokenKind::EndIf
+        | TokenKind::Var
+        | TokenKind::EndVar
+        | TokenKind::Program
+        | TokenKind::EndProgram => (TokenTypes::Keyword as u32, TokenModifiers::None as u32),
         _ => (TokenTypes::None as u32, TokenModifiers::None as u32),
     }
 }
@@ -121,7 +121,7 @@ impl LanguageServer for StcLsp {
                 last_offset = 0;
             }
 
-            let (tt, tm) = semantic_token_type_id(&tok.tok);
+            let (tt, tm) = semantic_token_type_id(&tok.kind);
             let token = SemanticToken {
                 delta_line: (tok.pos.line - last_line) as u32,
                 delta_start: (tok.pos.offset - last_offset) as u32,

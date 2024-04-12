@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::parser::{BitValue, LiteralValue, Operator, Tok};
+use crate::parser::{BitValue, LiteralValue, Operator, TokenKind};
 use std::fmt::Arguments;
 use std::io::Write;
 
@@ -66,7 +66,7 @@ impl<W: Write> StringifyVisitor<W> {
 
 impl<W: Write> DeclVisitor<'_> for StringifyVisitor<W> {
     fn visit_function_declaration(&mut self, fun: &FunctionDeclare) {
-        self.write(format_args!("{} : ", Tok::Function));
+        self.write(format_args!("{} : ", TokenKind::Function));
         if let Some(ret_type) = fun.return_type() {
             self.write(format_args!("{} ", ret_type))
         }
@@ -80,7 +80,7 @@ impl<W: Write> DeclVisitor<'_> for StringifyVisitor<W> {
                 // new group
                 if current_scope != Some(v.scope()) {
                     if current_scope.is_some() {
-                        self.writeln(format_args!("{}", Tok::EndVar));
+                        self.writeln(format_args!("{}", TokenKind::EndVar));
                     }
 
                     self.writeln(format_args!("{}", variable_scope_start_tok(v.scope())));
@@ -101,21 +101,21 @@ impl<W: Write> DeclVisitor<'_> for StringifyVisitor<W> {
 
             // last group end
             if current_scope.is_some() {
-                self.writeln(format_args!("{}", Tok::EndVar));
+                self.writeln(format_args!("{}", TokenKind::EndVar));
             }
         }
 
-        self.writeln(format_args!("{}", Tok::EndFunction));
+        self.writeln(format_args!("{}", TokenKind::EndFunction));
     }
 
     fn visit_enum_declaration(&mut self, decl: &'_ EnumDeclare) {
         self.writeln(format_args!(
             "{} {} {}",
-            Tok::Type,
+            TokenKind::Type,
             decl.name().origin_string(),
-            Tok::Colon
+            TokenKind::Colon
         ));
-        self.writeln(format_args!("{}", Tok::LeftParentheses));
+        self.writeln(format_args!("{}", TokenKind::LeftParentheses));
 
         // fields
         self.indent += 1;
@@ -124,26 +124,26 @@ impl<W: Write> DeclVisitor<'_> for StringifyVisitor<W> {
             self.write_indent();
             self.write(format_args!("{}", field.name().origin_string()));
             if let Some(val) = field.initial() {
-                self.write(format_args!(" {} ", Tok::Assign));
+                self.write(format_args!(" {} ", TokenKind::Assign));
                 self.visit_expression(val);
             }
 
             if field_count == index + 1 {
                 self.writeln(format_args!(""));
             } else {
-                self.writeln(format_args!("{}", Tok::Comma))
+                self.writeln(format_args!("{}", TokenKind::Comma))
             }
         }
         self.indent -= 1;
 
         // closed type, like: ) DINT;
-        self.write(format_args!("{}", Tok::RightParentheses));
+        self.write(format_args!("{}", TokenKind::RightParentheses));
         if let Some(ty) = decl.ty() {
             self.write(format_args!(" {}", ty));
         }
-        self.writeln(format_args!("{}", Tok::Semicolon));
+        self.writeln(format_args!("{}", TokenKind::Semicolon));
 
-        self.writeln(format_args!("{}", Tok::EndType))
+        self.writeln(format_args!("{}", TokenKind::EndType))
     }
 }
 impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
@@ -173,11 +173,11 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
     fn visit_call_expression(&mut self, call: &'_ CallExpression) {
         self.visit_expression(call.callee());
 
-        self.write(format_args!("{}", Tok::LeftParentheses));
+        self.write(format_args!("{}", TokenKind::LeftParentheses));
         let mut first = true;
         for arg in call.arguments() {
             if !first {
-                self.write(format_args!("{} ", Tok::Comma));
+                self.write(format_args!("{} ", TokenKind::Comma));
             }
 
             self.visit_expression(arg);
@@ -187,7 +187,7 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
             }
         }
 
-        self.write(format_args!("{}", Tok::RightParentheses));
+        self.write(format_args!("{}", TokenKind::RightParentheses));
     }
 
     fn visit_expr_statement(&mut self, stmt: &ExprStatement) {
@@ -243,8 +243,8 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
 
         if operands.len() == 1 {
             match op {
-                Operator::Not => self.write(format_args!("{} ", Tok::Not)),
-                Operator::Minus => self.write(format_args!("{}", Tok::Minus)),
+                Operator::Not => self.write(format_args!("{} ", TokenKind::Not)),
+                Operator::Minus => self.write(format_args!("{}", TokenKind::Minus)),
                 _ => panic!("invalid unary operator!"),
             };
 
@@ -272,21 +272,21 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
 
     fn visit_assign_expression(&mut self, assign: &AssignExpression) {
         self.visit_expression(assign.left());
-        self.write(format_args!(" {} ", Tok::Assign));
+        self.write(format_args!(" {} ", TokenKind::Assign));
         self.visit_expression(assign.right());
     }
 
     fn visit_compo_access_expression(&mut self, compo: &CompoAccessExpression) {
         self.visit_expression(compo.left());
-        self.write(format_args!("{}", Tok::Access));
+        self.write(format_args!("{}", TokenKind::Access));
         self.visit_expression(compo.right());
     }
 }
 
-fn variable_scope_start_tok(class: VariableFlags) -> Tok {
+fn variable_scope_start_tok(class: VariableFlags) -> TokenKind {
     match class {
-        VariableFlags::NONE => Tok::Var,
-        VariableFlags::GLOBAL => Tok::VarGlobal,
+        VariableFlags::NONE => TokenKind::Var,
+        VariableFlags::GLOBAL => TokenKind::VarGlobal,
         _ => unimplemented!(),
     }
 }

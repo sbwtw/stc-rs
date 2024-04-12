@@ -9,60 +9,60 @@ extern {
     type Location = usize;
     type Error = lexer::LexicalError;
 
-    enum Tok {
-        "." => Tok::Access,
-        "+" => Tok::Plus,
-        "-" => Tok::Minus,
-        "*" => Tok::Multiply,
-        "**" => Tok::Power,
-        "/" => Tok::Division,
-        "(" => Tok::LeftParentheses,
-        ")" => Tok::RightParentheses,
-        "," => Tok::Comma,
-        ";" => Tok::Semicolon,
-        ":=" => Tok::Assign,
-        "=>" => Tok::AssignRight,
-        ":" => Tok::Colon,
-        "=" => Tok::Equal,
-        "<>" => Tok::NotEqual,
-        ">" => Tok::Greater,
-        ">=" => Tok::GreaterEqual,
-        "<" => Tok::Less,
-        "<=" => Tok::LessEqual,
-        "|" => Tok::BitOr,
-        "&" => Tok::BitAnd,
-        "XOR" => Tok::Xor,
-        "NOT" => Tok::Not,
-        "MOD" => Tok::Mod,
-        "IF" => Tok::If,
-        "THEN" => Tok::Then,
-        "ELSE" => Tok::Else,
-        "ELSEIF" => Tok::ElseIf,
-        "END_IF" => Tok::EndIf,
-        "FUNCTION" => Tok::Function,
-        "END_FUNCTION" => Tok::EndFunction,
-        "PROGRAM" => Tok::Program,
-        "END_PROGRAM" => Tok::EndProgram,
-        "STRUCT" => Tok::Struct,
-        "END_STRUCT" => Tok::EndStruct,
-        "VAR" => Tok::Var,
-        "VAR_GLOBAL" => Tok::VarGlobal,
-        "VAR_INPUT" => Tok::VarInput,
-        "VAR_INOUT" => Tok::VarInOut,
-        "VAR_OUTPUT" => Tok::VarOutput,
-        "VAR_TEMP" => Tok::VarTemp,
-        "VAR_STAT" => Tok::VarStat,
-        "END_VAR" => Tok::EndVar,
-        "RETAIN" => Tok::Retain,
-        "PERSISTENT" => Tok::Persistent,
-        "TYPE" => Tok::Type,
-        "END_TYPE" => Tok::EndType,
-        "INT" => Tok::Int,
-        "BOOL" => Tok::Bool,
-        "REAL" => Tok::Real,
-        "BYTE" => Tok::Byte,
-        "LITERAL" => Tok::Literal(<LiteralValue>),
-        "IDENTIFIER" => Tok::Identifier(<StString>),
+    enum TokenKind {
+        "." => TokenKind::Access,
+        "+" => TokenKind::Plus,
+        "-" => TokenKind::Minus,
+        "*" => TokenKind::Multiply,
+        "**" => TokenKind::Power,
+        "/" => TokenKind::Division,
+        "(" => TokenKind::LeftParentheses,
+        ")" => TokenKind::RightParentheses,
+        "," => TokenKind::Comma,
+        ";" => TokenKind::Semicolon,
+        ":=" => TokenKind::Assign,
+        "=>" => TokenKind::AssignRight,
+        ":" => TokenKind::Colon,
+        "=" => TokenKind::Equal,
+        "<>" => TokenKind::NotEqual,
+        ">" => TokenKind::Greater,
+        ">=" => TokenKind::GreaterEqual,
+        "<" => TokenKind::Less,
+        "<=" => TokenKind::LessEqual,
+        "|" => TokenKind::BitOr,
+        "&" => TokenKind::BitAnd,
+        "XOR" => TokenKind::Xor,
+        "NOT" => TokenKind::Not,
+        "MOD" => TokenKind::Mod,
+        "IF" => TokenKind::If,
+        "THEN" => TokenKind::Then,
+        "ELSE" => TokenKind::Else,
+        "ELSEIF" => TokenKind::ElseIf,
+        "END_IF" => TokenKind::EndIf,
+        "FUNCTION" => TokenKind::Function,
+        "END_FUNCTION" => TokenKind::EndFunction,
+        "PROGRAM" => TokenKind::Program,
+        "END_PROGRAM" => TokenKind::EndProgram,
+        "STRUCT" => TokenKind::Struct,
+        "END_STRUCT" => TokenKind::EndStruct,
+        "VAR" => TokenKind::Var,
+        "VAR_GLOBAL" => TokenKind::VarGlobal,
+        "VAR_INPUT" => TokenKind::VarInput,
+        "VAR_INOUT" => TokenKind::VarInOut,
+        "VAR_OUTPUT" => TokenKind::VarOutput,
+        "VAR_TEMP" => TokenKind::VarTemp,
+        "VAR_STAT" => TokenKind::VarStat,
+        "END_VAR" => TokenKind::EndVar,
+        "RETAIN" => TokenKind::Retain,
+        "PERSISTENT" => TokenKind::Persistent,
+        "TYPE" => TokenKind::Type,
+        "END_TYPE" => TokenKind::EndType,
+        "INT" => TokenKind::Int,
+        "BOOL" => TokenKind::Bool,
+        "REAL" => TokenKind::Real,
+        "BYTE" => TokenKind::Byte,
+        "LITERAL" => TokenKind::Literal(<LiteralValue>),
+        "IDENTIFIER" => TokenKind::Identifier(<StString>),
     }
 }
 
@@ -158,9 +158,9 @@ BitAndExpr: Expression = {
     EquExpr,
 }
 
-EquOp: Tok = {
-    "=" => Tok::Equal,
-    "<>" => Tok::NotEqual,
+EquOp: TokenKind = {
+    "=" => TokenKind::Equal,
+    "<>" => TokenKind::NotEqual,
 }
 
 EquExpr: Expression = {
@@ -168,11 +168,11 @@ EquExpr: Expression = {
     CmpExpr,
 }
 
-CmpOp: Tok = {
-    ">" => Tok::Greater,
-    ">=" => Tok::GreaterEqual,
-    "<" => Tok::Less,
-    "<=" => Tok::LessEqual,
+CmpOp: TokenKind = {
+    ">" => TokenKind::Greater,
+    ">=" => TokenKind::GreaterEqual,
+    "<" => TokenKind::Less,
+    "<=" => TokenKind::LessEqual,
 }
 
 CmpExpr: Expression = {
@@ -181,9 +181,9 @@ CmpExpr: Expression = {
 }
 
 /// Low-priority op
-ExprOp: Tok = {
-    "+" => Tok::Plus,
-    "-" => Tok::Minus,
+ExprOp: TokenKind = {
+    "+" => TokenKind::Plus,
+    "-" => TokenKind::Minus,
 };
 
 /// Low-priority op expression
@@ -193,10 +193,10 @@ OpExpr: Expression = {
 }
 
 /// High-priority op
-FactorOp: Tok = {
-    "*" => Tok::Multiply,
-    "/" => Tok::Division,
-    "MOD" => Tok::Mod,
+FactorOp: TokenKind = {
+    "*" => TokenKind::Multiply,
+    "/" => TokenKind::Division,
+    "MOD" => TokenKind::Mod,
 };
 
 /// High-priority factor
@@ -211,9 +211,9 @@ PowerExpr: Expression = {
 }
 
 /// Top priority unary op
-UnaryOp: Tok = {
-    "-" => Tok::Minus,
-    "NOT" => Tok::Not,
+UnaryOp: TokenKind = {
+    "-" => TokenKind::Minus,
+    "NOT" => TokenKind::Not,
 };
 
 /// Top priority unary factor

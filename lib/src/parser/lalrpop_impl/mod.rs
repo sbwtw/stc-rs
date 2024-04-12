@@ -4,12 +4,12 @@ use lalrpop_util::lalrpop_mod;
 
 lalrpop_mod!(st, "/parser/lalrpop_impl/st.rs");
 
-type LalrPopLexerItem = (usize, Tok, usize);
+type LalrPopLexerItem = (usize, TokenKind, usize);
 type LalrPopLexerResult = Result<LalrPopLexerItem, LexicalError>;
 
 impl From<Token> for LalrPopLexerItem {
     fn from(tok: Token) -> Self {
-        (tok.pos.line, tok.tok, tok.pos.offset)
+        (tok.pos.line, tok.kind, tok.pos.offset)
     }
 }
 

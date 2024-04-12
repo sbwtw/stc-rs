@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::parser::{Buffer, StreamBuffer, StringBuffer, Tok};
+use crate::parser::{Buffer, StreamBuffer, StringBuffer, TokenKind};
 use smallmap::Map;
 use std::cmp::Ordering;
 use std::fmt::{self, Display, Formatter};
@@ -42,15 +42,15 @@ pub struct TokenPosition {
 }
 
 pub struct Token {
-    pub tok: Tok,
+    pub kind: TokenKind,
     pub length: usize,
     pub pos: TokenPosition,
 }
 
 impl Token {
-    pub fn new(tok: Tok, start_pos: usize, end_pos: usize) -> Self {
+    pub fn new(kind: TokenKind, start_pos: usize, end_pos: usize) -> Self {
         Self {
-            tok,
+            kind,
             length: 0,
             pos: TokenPosition { line: 0, offset: 0 },
         }
@@ -60,7 +60,7 @@ impl Token {
 impl Default for Token {
     fn default() -> Self {
         Self {
-            tok: Tok::None,
+            kind: TokenKind::None,
             length: 0,
             pos: TokenPosition { line: 0, offset: 0 },
         }
@@ -121,8 +121,8 @@ impl StString {
     }
 }
 
-impl From<Tok> for StString {
-    fn from(value: Tok) -> Self {
+impl From<TokenKind> for StString {
+    fn from(value: TokenKind) -> Self {
         StString::Origin(Into::<String>::into(&value))
     }
 }
@@ -239,20 +239,20 @@ impl LiteralValue {
 impl Display for LiteralValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            LiteralValue::Bit(BitValue::Zero) => write!(f, "{}#{}", Tok::Bit, 0),
-            LiteralValue::Bit(BitValue::One) => write!(f, "{}#{}", Tok::Bit, 1),
-            LiteralValue::Bool(x) => write!(f, "{}#{}", Tok::Bool, x),
-            LiteralValue::Int(x) => write!(f, "{}#{}", Tok::Int, x),
-            LiteralValue::UInt(x) => write!(f, "{}#{}", Tok::UInt, x),
-            LiteralValue::Byte(x) => write!(f, "{}#{}", Tok::Byte, x),
-            LiteralValue::SInt(x) => write!(f, "{}#{}", Tok::SInt, x),
-            LiteralValue::DInt(x) => write!(f, "{}#{}", Tok::DInt, x),
-            LiteralValue::UDInt(x) => write!(f, "{}#{}", Tok::UDInt, x),
-            LiteralValue::LInt(x) => write!(f, "{}#{}", Tok::LInt, x),
-            LiteralValue::ULInt(x) => write!(f, "{}#{}", Tok::ULInt, x),
-            LiteralValue::Real(x) => write!(f, "{}#{}", Tok::Real, x),
-            LiteralValue::LReal(x) => write!(f, "{}#{}", Tok::LReal, x),
-            LiteralValue::String(s) => write!(f, "{}#{}", Tok::String, s),
+            LiteralValue::Bit(BitValue::Zero) => write!(f, "{}#{}", TokenKind::Bit, 0),
+            LiteralValue::Bit(BitValue::One) => write!(f, "{}#{}", TokenKind::Bit, 1),
+            LiteralValue::Bool(x) => write!(f, "{}#{}", TokenKind::Bool, x),
+            LiteralValue::Int(x) => write!(f, "{}#{}", TokenKind::Int, x),
+            LiteralValue::UInt(x) => write!(f, "{}#{}", TokenKind::UInt, x),
+            LiteralValue::Byte(x) => write!(f, "{}#{}", TokenKind::Byte, x),
+            LiteralValue::SInt(x) => write!(f, "{}#{}", TokenKind::SInt, x),
+            LiteralValue::DInt(x) => write!(f, "{}#{}", TokenKind::DInt, x),
+            LiteralValue::UDInt(x) => write!(f, "{}#{}", TokenKind::UDInt, x),
+            LiteralValue::LInt(x) => write!(f, "{}#{}", TokenKind::LInt, x),
+            LiteralValue::ULInt(x) => write!(f, "{}#{}", TokenKind::ULInt, x),
+            LiteralValue::Real(x) => write!(f, "{}#{}", TokenKind::Real, x),
+            LiteralValue::LReal(x) => write!(f, "{}#{}", TokenKind::LReal, x),
+            LiteralValue::String(s) => write!(f, "{}#{}", TokenKind::String, s),
         }
     }
 }
@@ -307,7 +307,7 @@ impl StLexerOptions {
 
 pub struct StLexer<'a> {
     buffer: Box<dyn Buffer + 'a>,
-    keywords: Map<StString, Tok>,
+    keywords: Map<StString, TokenKind>,
     options: StLexerOptions,
 }
 
@@ -325,7 +325,7 @@ macro_rules! keywords {
 
 pub struct StLexerBuilder {
     options: StLexerOptions,
-    keywords: Map<StString, Tok>,
+    keywords: Map<StString, TokenKind>,
 }
 
 impl Default for StLexerBuilder {
@@ -353,38 +353,38 @@ impl StLexerBuilder {
 
     fn init(mut self) -> Self {
         let keywords = keywords![
-            Tok::BitAnd,
-            Tok::BitOr,
-            Tok::Xor,
-            Tok::Mod,
-            Tok::Not,
-            Tok::If,
-            Tok::Else,
-            Tok::Then,
-            Tok::ElseIf,
-            Tok::EndIf,
-            Tok::Function,
-            Tok::EndFunction,
-            Tok::Program,
-            Tok::EndProgram,
-            Tok::Struct,
-            Tok::EndStruct,
-            Tok::Var,
-            Tok::VarInput,
-            Tok::VarInOut,
-            Tok::VarOutput,
-            Tok::VarGlobal,
-            Tok::VarTemp,
-            Tok::EndVar,
-            Tok::Retain,
-            Tok::Persistent,
-            Tok::Type,
-            Tok::EndType,
-            Tok::Int,
-            Tok::Bool,
-            Tok::Byte,
-            Tok::Real,
-            Tok::LReal
+            TokenKind::BitAnd,
+            TokenKind::BitOr,
+            TokenKind::Xor,
+            TokenKind::Mod,
+            TokenKind::Not,
+            TokenKind::If,
+            TokenKind::Else,
+            TokenKind::Then,
+            TokenKind::ElseIf,
+            TokenKind::EndIf,
+            TokenKind::Function,
+            TokenKind::EndFunction,
+            TokenKind::Program,
+            TokenKind::EndProgram,
+            TokenKind::Struct,
+            TokenKind::EndStruct,
+            TokenKind::Var,
+            TokenKind::VarInput,
+            TokenKind::VarInOut,
+            TokenKind::VarOutput,
+            TokenKind::VarGlobal,
+            TokenKind::VarTemp,
+            TokenKind::EndVar,
+            TokenKind::Retain,
+            TokenKind::Persistent,
+            TokenKind::Type,
+            TokenKind::EndType,
+            TokenKind::Int,
+            TokenKind::Bool,
+            TokenKind::Byte,
+            TokenKind::Real,
+            TokenKind::LReal
         ];
 
         self.keywords = keywords;
@@ -416,7 +416,7 @@ impl<'input> StLexer<'input> {
         let start_with_zero = ch == '0';
 
         if start_with_zero && self.buffer.peek1() != Some('.') {
-            tok.tok = Tok::Literal(LiteralValue::Bit(BitValue::Zero));
+            tok.kind = TokenKind::Literal(LiteralValue::Bit(BitValue::Zero));
             return Some(Ok(tok));
         }
 
@@ -431,7 +431,7 @@ impl<'input> StLexer<'input> {
                 }
                 _ => {
                     tok.length = s.len();
-                    tok.tok = Tok::Literal(LiteralValue::UInt(s.parse().unwrap()));
+                    tok.kind = TokenKind::Literal(LiteralValue::UInt(s.parse().unwrap()));
                     return Some(Ok(tok));
                 }
             }
@@ -454,7 +454,7 @@ impl<'input> StLexer<'input> {
                 }
                 _ => {
                     tok.length = s.len();
-                    tok.tok = Tok::Literal(LiteralValue::LReal(s));
+                    tok.kind = TokenKind::Literal(LiteralValue::LReal(s));
                     return Some(Ok(tok));
                 }
             }
@@ -492,7 +492,7 @@ impl<'input> StLexer<'input> {
                 }
                 Some('\"') => {
                     self.buffer.consume1();
-                    tok.tok = Tok::Literal(LiteralValue::String(s));
+                    tok.kind = TokenKind::Literal(LiteralValue::String(s));
                     return Some(Ok(tok));
                 }
                 Some(c) => {
@@ -532,7 +532,7 @@ impl<'input> StLexer<'input> {
                 }
                 x => {
                     tok.length = str.len();
-                    tok.tok = self.keywords_or_identifier(str);
+                    tok.kind = self.keywords_or_identifier(str);
                     return Some(Ok(tok));
                 }
             }
@@ -540,7 +540,7 @@ impl<'input> StLexer<'input> {
     }
 
     fn parse_whitespace(&mut self, mut tok: Token) -> LexerResult {
-        tok.tok = Tok::Whitespace;
+        tok.kind = TokenKind::Whitespace;
 
         loop {
             match self.buffer.peek1() {
@@ -559,34 +559,34 @@ impl<'input> StLexer<'input> {
         tok.length = 2;
 
         match (ch, self.buffer.peek1()) {
-            ('<', Some('=')) => tok.tok = Tok::LessEqual,
-            ('<', Some('>')) => tok.tok = Tok::NotEqual,
+            ('<', Some('=')) => tok.kind = TokenKind::LessEqual,
+            ('<', Some('>')) => tok.kind = TokenKind::NotEqual,
             ('<', _) => {
-                tok.tok = Tok::Less;
+                tok.kind = TokenKind::Less;
                 tok.length = 1;
             }
 
-            ('>', Some('=')) => tok.tok = Tok::GreaterEqual,
+            ('>', Some('=')) => tok.kind = TokenKind::GreaterEqual,
             ('>', _) => {
-                tok.tok = Tok::Greater;
+                tok.kind = TokenKind::Greater;
                 tok.length = 1;
             }
 
-            (':', Some('=')) => tok.tok = Tok::Assign,
+            (':', Some('=')) => tok.kind = TokenKind::Assign,
             (':', _) => {
-                tok.tok = Tok::Colon;
+                tok.kind = TokenKind::Colon;
                 tok.length = 1;
             }
 
-            ('*', Some('*')) => tok.tok = Tok::Power,
+            ('*', Some('*')) => tok.kind = TokenKind::Power,
             ('*', _) => {
-                tok.tok = Tok::Multiply;
+                tok.kind = TokenKind::Multiply;
                 tok.length = 1;
             }
 
-            ('=', Some('>')) => tok.tok = Tok::AssignRight,
+            ('=', Some('>')) => tok.kind = TokenKind::AssignRight,
             ('=', _) => {
-                tok.tok = Tok::Equal;
+                tok.kind = TokenKind::Equal;
                 tok.length = 1;
             }
 
@@ -600,14 +600,14 @@ impl<'input> StLexer<'input> {
         Some(Ok(tok))
     }
 
-    fn keywords_or_identifier(&mut self, s: String) -> Tok {
+    fn keywords_or_identifier(&mut self, s: String) -> TokenKind {
         let st_str = s.into();
 
         if let Some(keyword) = self.keywords.get(&st_str) {
             return keyword.clone();
         }
 
-        Tok::Identifier(st_str)
+        TokenKind::Identifier(st_str)
     }
 
     fn is_valid_identifier_character(&self, ch: char) -> bool {
@@ -643,47 +643,47 @@ impl<'input> StLexer<'input> {
             }
             Some('.') => {
                 self.buffer.consume1();
-                tok.tok = Tok::Access;
+                tok.kind = TokenKind::Access;
                 Some(Ok(tok))
             }
             Some('+') => {
                 self.buffer.consume1();
-                tok.tok = Tok::Plus;
+                tok.kind = TokenKind::Plus;
                 Some(Ok(tok))
             }
             Some('-') => {
                 self.buffer.consume1();
-                tok.tok = Tok::Minus;
+                tok.kind = TokenKind::Minus;
                 Some(Ok(tok))
             }
             Some('/') => {
                 self.buffer.consume1();
-                tok.tok = Tok::Division;
+                tok.kind = TokenKind::Division;
                 Some(Ok(tok))
             }
             Some('(') => {
                 self.buffer.consume1();
-                tok.tok = Tok::LeftParentheses;
+                tok.kind = TokenKind::LeftParentheses;
                 Some(Ok(tok))
             }
             Some(')') => {
                 self.buffer.consume1();
-                tok.tok = Tok::RightParentheses;
+                tok.kind = TokenKind::RightParentheses;
                 Some(Ok(tok))
             }
             Some(',') => {
                 self.buffer.consume1();
-                tok.tok = Tok::Comma;
+                tok.kind = TokenKind::Comma;
                 Some(Ok(tok))
             }
             Some(';') => {
                 self.buffer.consume1();
-                tok.tok = Tok::Semicolon;
+                tok.kind = TokenKind::Semicolon;
                 Some(Ok(tok))
             }
             Some('&') => {
                 self.buffer.consume1();
-                tok.tok = Tok::BitAnd;
+                tok.kind = TokenKind::BitAnd;
                 Some(Ok(tok))
             }
             Some('\"') => {
@@ -722,7 +722,7 @@ impl Iterator for StLexer<'_> {
 
         loop {
             match self.next_raw() {
-                Some(Ok(tok)) if matches!(tok.tok, Tok::Whitespace) => {}
+                Some(Ok(tok)) if matches!(tok.kind, TokenKind::Whitespace) => {}
                 x => return x,
             }
         }
@@ -779,12 +779,12 @@ mod test {
         assert_eq!(x.pos.offset, 0);
         assert_eq!(x.pos.line, 0);
         assert_eq!(x.length, 2);
-        assert_eq!(x.tok, Tok::If);
+        assert_eq!(x.kind, TokenKind::If);
 
         let x = lexer.next().unwrap().unwrap();
         assert_eq!(x.pos.offset, 3);
         assert_eq!(x.length, 3);
-        assert!(matches!(x.tok, Tok::Identifier(_)));
+        assert!(matches!(x.kind, TokenKind::Identifier(_)));
 
         assert!(lexer.next().is_none());
     }
@@ -797,18 +797,18 @@ mod test {
         let x = lexer.next().unwrap().unwrap();
         assert_eq!(x.pos.offset, 0);
         assert_eq!(x.length, 1);
-        assert!(matches!(x.tok, Tok::Literal(_)));
+        assert!(matches!(x.kind, TokenKind::Literal(_)));
 
         let x = lexer.next().unwrap().unwrap();
         assert_eq!(x.pos.offset, 2);
         assert_eq!(x.length, 1);
-        assert!(matches!(x.tok, Tok::Plus));
+        assert!(matches!(x.kind, TokenKind::Plus));
 
         let x = lexer.next().unwrap().unwrap();
         assert_eq!(x.pos.line, 1);
         assert_eq!(x.pos.offset, 0);
         assert_eq!(x.length, 1);
-        assert!(matches!(x.tok, Tok::Identifier(_)));
+        assert!(matches!(x.kind, TokenKind::Identifier(_)));
     }
 
     #[test]
@@ -819,7 +819,7 @@ mod test {
         let x = lexer.next().unwrap().unwrap();
         assert_eq!(x.pos.offset, 0);
         assert_eq!(x.length, 6);
-        assert!(matches!(x.tok, Tok::Identifier(_)));
+        assert!(matches!(x.kind, TokenKind::Identifier(_)));
     }
 
     #[test]
@@ -842,8 +842,8 @@ mod test {
         let mut lexer = StLexerBuilder::new().build_str(s);
 
         assert!(matches!(
-            lexer.next().unwrap().unwrap().tok,
-            Tok::AssignRight
+            lexer.next().unwrap().unwrap().kind,
+            TokenKind::AssignRight
         ));
     }
 
@@ -855,6 +855,6 @@ mod test {
         let x = lexer.next().unwrap().unwrap();
         assert_eq!(x.pos.offset, 0);
         assert_eq!(x.length, 5);
-        assert!(matches!(x.tok, Tok::Literal(LiteralValue::LReal(_))));
+        assert!(matches!(x.kind, TokenKind::Literal(LiteralValue::LReal(_))));
     }
 }

@@ -8,7 +8,7 @@ mod operator;
 pub use operator::Operator;
 
 mod token;
-pub use token::Tok;
+pub use token::TokenKind;
 
 #[derive(Clone, Debug)]
 pub enum ParseError {
@@ -20,7 +20,7 @@ pub enum ParseError {
 }
 
 impl ParseError {
-    pub fn expect_tokens(pos: usize, tokens: &[Tok]) -> Self {
+    pub fn expect_tokens(pos: usize, tokens: &[TokenKind]) -> Self {
         let tokens: Vec<_> = tokens.iter().map(|x| x.into()).collect();
 
         Self::UnexpectedToken(pos, tokens)
@@ -28,8 +28,8 @@ impl ParseError {
 }
 
 #[cfg(feature = "use_lalrpop")]
-impl From<lalrpop_util::ParseError<usize, Tok, LexicalError>> for ParseError {
-    fn from(e: lalrpop_util::ParseError<usize, Tok, LexicalError>) -> Self {
+impl From<lalrpop_util::ParseError<usize, TokenKind, LexicalError>> for ParseError {
+    fn from(e: lalrpop_util::ParseError<usize, TokenKind, LexicalError>) -> Self {
         match e {
             lalrpop_util::ParseError::InvalidToken { location: loc } => {
                 ParseError::InvalidToken(loc)
