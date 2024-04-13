@@ -44,18 +44,22 @@ impl TypeAnalyzer {
             .unwrap_or(&self.local_scope)
     }
 
+    #[inline]
     fn top(&self) -> &TypeAnalyzerAttribute {
         self.attribute_stack.last().unwrap()
     }
 
+    #[inline]
     fn top_mut(&mut self) -> &mut TypeAnalyzerAttribute {
         self.attribute_stack.last_mut().unwrap()
     }
 
+    #[inline]
     fn push(&mut self, attr: TypeAnalyzerAttribute) {
         self.attribute_stack.push(attr)
     }
 
+    #[inline]
     fn push_default(&mut self) {
         self.push(TypeAnalyzerAttribute::default())
     }

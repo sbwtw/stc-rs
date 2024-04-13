@@ -21,15 +21,15 @@ jobs:
 
     - uses: KyleMayes/install-llvm-action@v1
       with:
-        version: "16.0"
-        directory: ${{ runner.temp }}/llvm-16
+        version: "17.0"
+        directory: ${{ runner.temp }}/llvm-17
 
     - uses: actions/checkout@v3
     - name: Build
       run: cargo build --verbose
       env:
-        LLVM_SYS_160_PREFIX: ${{ runner.temp }}/llvm-16
+        LLVM_SYS_170_PREFIX: ${{ runner.temp }}/llvm-17
     - name: Run tests
       run: cargo test --verbose
       env:
-        LLVM_SYS_160_PREFIX: ${{ runner.temp }}/llvm-16
+        LLVM_SYS_170_PREFIX: ${{ runner.temp }}/llvm-17
