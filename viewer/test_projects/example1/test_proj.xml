@@ -23,6 +23,7 @@ end_program
             </interface>
             <body>
                 a := 123;
+                a := b;
             </body>
         </pou>
     </pou-list>

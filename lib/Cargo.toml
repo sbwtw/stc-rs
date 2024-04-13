@@ -25,6 +25,7 @@ smallvec = { version = "*", features = ["union", "const_generics", "const_new"] 
 smallmap = "*"
 log = "*"
 indexmap = "*"
+byteorder = "*"
 uuid = { version = "*", features = ["v4", "fast-rng", "macro-diagnostics", "serde"] }
 inkwell = { version = "*", optional = true, features = ["llvm16-0-no-llvm-linking"] }
 

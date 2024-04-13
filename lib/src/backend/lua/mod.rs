@@ -37,6 +37,23 @@ bitflags! {
     }
 }
 
+bitflags! {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+    pub struct LuaType: u8 {
+        const NONE          = 0xff;
+
+        const NIL           = 0;
+        const BOOLEAN       = 1;
+        const LIGHTUSERDATA = 2;
+        const NUMBER        = 3;
+        const STRING        = 4;
+        const TABLE         = 5;
+        const FUNCTION      = 6;
+        const USERDATA      = 7;
+        const THREAD        = 8;
+    }
+}
+
 #[derive(Clone)]
 pub struct LuaBackendStates {
     variable: Option<Rc<Variable>>,
@@ -358,7 +375,7 @@ impl AstVisitorMut for LuaBackend {
         }
 
         self.push_code(LuaByteCode::Call(
-            callee_index.unwrap() as u8,
+            callee_index.unwrap(),
             call.arguments().len() as u8,
             0,
         ))

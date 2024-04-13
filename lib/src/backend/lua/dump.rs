@@ -1,4 +1,6 @@
-use super::utils::*;
+use byteorder::{LittleEndian, WriteBytesExt};
+
+use super::{utils::*, LuaConstants};
 use super::{Function, LuaBackend, Prototype};
 
 use crate::backend::lua::bytecode::LuaCompiledCode;
@@ -65,9 +67,9 @@ fn lua_dump_function(
     // TODO: source file name
     lua_dump_string(w, None)?;
     // TODO: linedefined
-    lua_dump_int(w, 0)?;
+    lua_dump_size(w, 0)?;
     // TODO: lastlinedefined
-    lua_dump_int(w, 0)?;
+    lua_dump_size(w, 0)?;
     // numparams
     lua_dump_byte(w, num_params(p))?;
     // is_vararg
@@ -84,19 +86,23 @@ fn lua_dump_function(
 
     // Dump Code
     for c in lua_code.byte_codes() {
-        let data = c.encode();
-        w.write_all(&[
-            (data & 0xff) as u8,
-            ((data >> 8) & 0xff) as u8,
-            ((data >> 16) & 0xff) as u8,
-            ((data >> 24) & 0xff) as u8,
-        ])?;
+        w.write_u32::<LittleEndian>(c.encode())?;
     }
 
     // Dump size of constants
     lua_dump_size(w, lua_code.constants_len() as u64)?;
 
     // Dump Constants
+    for constant in lua_code.constants() {
+        lua_dump_byte(w, constant.lua_type().bits())?;
+
+        match *constant {
+            LuaConstants::Integer(i) => lua_dump_integer(w, i)?,
+            LuaConstants::Float(f) => lua_dump_float(w, f)?,
+            LuaConstants::String(ref s) => lua_dump_string(w, Some(s))?,
+            _ => todo!(),
+        }
+    }
 
     // Dump size of UpValues
     lua_dump_size(w, lua_code.upvalues.len() as u64)?;
@@ -128,8 +134,13 @@ fn lua_dump_function(
 }
 
 #[inline]
-fn lua_dump_int(w: &mut dyn Write, i: i32) -> io::Result<()> {
-    lua_dump_size(w, i as u32 as u64)
+fn lua_dump_integer(w: &mut dyn Write, n: i64) -> io::Result<()> {
+    w.write_i64::<LittleEndian>(n)
+}
+
+#[inline]
+fn lua_dump_float(w: &mut dyn Write, f: f64) -> io::Result<()> {
+    w.write_f64::<LittleEndian>(f)
 }
 
 #[inline]
@@ -170,7 +181,7 @@ fn lua_dump_bytes(w: &mut dyn Write, bytes: &[u8]) -> io::Result<()> {
 }
 
 #[inline]
-fn lua_dump_string(w: &mut dyn Write, opt_str: Option<String>) -> io::Result<()> {
+fn lua_dump_string(w: &mut dyn Write, opt_str: Option<&String>) -> io::Result<()> {
     match opt_str {
         Some(s) => todo!(),
         None => lua_dump_size(w, 0),

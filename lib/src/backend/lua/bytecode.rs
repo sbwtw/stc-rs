@@ -6,7 +6,7 @@ use crate::ast::SmallVec8;
 use crate::parser::StString;
 
 use super::register::Register;
-use super::ConstantIndex;
+use super::{ConstantIndex, LuaType};
 
 macro_rules! excess_k {
     ($v: expr, $k: expr) => {
@@ -149,6 +149,17 @@ pub enum LuaConstants {
     Function(fn(&mut LuaExecState) -> i32),
 }
 
+impl LuaConstants {
+    pub fn lua_type(&self) -> LuaType {
+        match *self {
+            Self::Nil => LuaType::NIL,
+            Self::Function(..) => LuaType::FUNCTION,
+            Self::String(..) => LuaType::STRING,
+            Self::Float(..) | Self::Integer(..) => LuaType::NUMBER,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct LuaUpValue {
     pub name: Option<StString>,
@@ -274,7 +285,7 @@ impl LuaByteCode {
             // AsBx
             LuaByteCode::LoadI(a, sbx) => excess_sBx!(sbx) << 8 | a.num() as u32,
             // A B
-            LuaByteCode::Move(a, b) => todo!(),
+            LuaByteCode::Move(a, b) => (b.num() as u32) << 9 | a.num() as u32,
             // A only
             LuaByteCode::VarArgPrep(a) => (a as u32) << 8,
         };
@@ -311,17 +322,17 @@ impl LuaCompiledCode {
         match code {
             // ABC
             LuaByteCode::Add(a, b, c) => {
-                write!(s, "{} {} {}", a.num(), b.num(), c.num()).unwrap();
+                write!(s, "R{} R{} R{}", a.num(), b.num(), c.num()).unwrap();
             }
             // A B k
             LuaByteCode::Eq(a, b, k) => {
-                write!(s, "{} {} {k}", a.num(), b.num()).unwrap();
+                write!(s, "R{} R{} {k}", a.num(), b.num()).unwrap();
             }
             // A sB k
             LuaByteCode::GetTabUp(a, b, c)
             | LuaByteCode::Gti(a, b, c)
             | LuaByteCode::Gei(a, b, c) => {
-                write!(s, "{} {b} {c}", a.num()).unwrap();
+                write!(s, "R{} {b} {c}", a.num()).unwrap();
             }
             // A B C all literal
             LuaByteCode::Call(a, b, c) => {
@@ -333,15 +344,15 @@ impl LuaCompiledCode {
             }
             // ABx
             LuaByteCode::LoadK(a, bx) => {
-                write!(s, "{} {bx}", a.num()).unwrap();
+                write!(s, "R{} {bx}", a.num()).unwrap();
             }
             // AsBx
             LuaByteCode::LoadI(a, sbx) => {
-                write!(s, "{} {sbx}", a.num()).unwrap();
+                write!(s, "R{} {sbx}", a.num()).unwrap();
             }
             // A B
             LuaByteCode::Move(a, b) => {
-                write!(s, "{} {}", a.num(), b.num()).unwrap();
+                write!(s, "R{} R{}", a.num(), b.num()).unwrap();
             }
             // A only
             LuaByteCode::VarArgPrep(a) => {
@@ -351,7 +362,7 @@ impl LuaCompiledCode {
 
         match code {
             LuaByteCode::LoadK(a, bx) => {
-                write!(s, " ; {}", self.constants[*bx as usize]).unwrap();
+                write!(s, " ; K[{}] = {}", bx, self.constants[*bx as usize]).unwrap();
             }
             LuaByteCode::GetTabUp(a, b, c) => {
                 write!(s, " ; _ENV \"{}\"", self.constants[*c as usize]).unwrap();
