@@ -2,7 +2,6 @@
 mod llvm;
 mod lua;
 
-pub use lua::dump::lua_dump_module;
 pub use lua::LuaBackend;
 
 use crate::ast::{OperatorExpression, Variable};

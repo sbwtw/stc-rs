@@ -2,16 +2,18 @@
 mod bytecode;
 use bytecode::*;
 
-pub mod dump;
+mod dump;
 mod register;
 mod utils;
 mod vm;
 
-use crate::backend::lua::register::{RegisterId, RegisterManager};
-use crate::backend::lua::utils::*;
 use crate::backend::*;
 use crate::parser::{LiteralValue, Operator};
 use crate::prelude::*;
+
+use self::dump::lua_dump_module;
+use self::register::*;
+use self::utils::*;
 
 use indexmap::IndexSet;
 use log::*;
@@ -33,7 +35,7 @@ bitflags! {
 #[derive(Clone)]
 pub struct LuaBackendStates {
     variable: Option<Rc<Variable>>,
-    register: Option<RegisterId>,
+    register: Option<Register>,
     constant_index: Option<usize>,
     scope: Option<Scope>,
     error: bool,
@@ -188,7 +190,7 @@ impl CodeGenBackend for LuaBackend {
         self.pop_attribute();
 
         // generate return
-        self.push_code(LuaByteCode::Return(false, 0, 1, 1));
+        self.push_code(LuaByteCode::Return(0, 1, 1));
 
         let byte_codes = mem::take(&mut self.byte_codes);
         let constants = mem::replace(&mut self.constants, IndexSet::new());
@@ -236,8 +238,8 @@ impl AstVisitorMut for LuaBackend {
             let r = self
                 .top_attribute()
                 .register
-                .unwrap_or_else(|| self.reg_mgr.alloc());
-            self.push_code(LuaByteCode::LoadI(r as u8, v));
+                .unwrap_or_else(|| self.reg_mgr.alloc_hard());
+            self.push_code(LuaByteCode::LoadI(r, v));
             self.top_attribute().register = Some(r);
             return;
         }
@@ -283,11 +285,11 @@ impl AstVisitorMut for LuaBackend {
             LuaAccessMode::READ => {
                 let scope = self.top_attribute().scope.as_ref().unwrap();
                 if let Some(variable) = scope.find_variable(var_expr.name()) {
-                    let reg = self.reg_mgr.alloc();
+                    let reg = self.reg_mgr.alloc_hard();
                     self.top_attribute().register = Some(reg);
 
                     // TODO: initialize
-                    self.push_code(LuaByteCode::LoadI(reg as u8, 0));
+                    self.push_code(LuaByteCode::LoadI(reg, 0));
                 } else {
                     // TODO: variable not found error
                 }
@@ -303,7 +305,9 @@ impl AstVisitorMut for LuaBackend {
         self.visit_expression_mut(call.callee_mut());
         let callee_index = self.top_attribute().constant_index;
         self.pop_attribute();
-        self.push_code(LuaByteCode::GetTabUp(0, 0, 0));
+
+        // TODO:
+        // self.push_code(LuaByteCode::GetTabUp(0, 0, 0));
 
         // visit all arguments
         for arg in call.arguments_mut() {
@@ -356,7 +360,7 @@ impl AstVisitorMut for LuaBackend {
                 let dest_reg = self
                     .top_attribute()
                     .register
-                    .unwrap_or_else(|| self.reg_mgr.alloc());
+                    .unwrap_or_else(|| self.reg_mgr.alloc_hard());
 
                 self.push_access_attribute(LuaAccessMode::READ);
                 self.visit_expression_mut(&mut operands[0]);
@@ -369,15 +373,11 @@ impl AstVisitorMut for LuaBackend {
                 // generate operators
                 match op {
                     // a + b
-                    Operator::Plus => self.push_code(LuaByteCode::Add(
-                        dest_reg as u8,
-                        op0_reg as u8,
-                        op1_reg as u8,
-                    )),
+                    Operator::Plus => self.push_code(LuaByteCode::Add(dest_reg, op0_reg, op1_reg)),
                     // a = b
                     Operator::Equal => {
                         // (op0 == op1) != 1
-                        self.push_code(LuaByteCode::Eq(op0_reg as u8, op1_reg as u8, 1))
+                        self.push_code(LuaByteCode::Eq(op0_reg, op1_reg, 1))
                     }
                     _ => unreachable!(),
                 }
@@ -412,9 +412,8 @@ impl AstVisitorMut for LuaBackend {
         if let Some(r) = rhs.register {
             // if rhs register is reused lhs_reg, ignore move
             if Some(r) != lhs_reg {
-                self.push_code(LuaByteCode::Move(lhs.register.unwrap() as u8, r as u8));
-
-                self.reg_mgr.free(&r)
+                self.reg_mgr.free(&r);
+                self.push_code(LuaByteCode::Move(lhs.register.unwrap(), r));
             }
         }
     }

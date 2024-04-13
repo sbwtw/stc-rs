@@ -1,44 +1,78 @@
 use std::collections::HashSet;
 
-pub type RegisterId = usize;
+const MAX_REGISTER_ID: u8 = 255;
 
-const MAX_REGISTER_ID: usize = 255;
+#[derive(PartialEq, Eq, Clone, Debug, Copy)]
+pub enum Register {
+    VirtualRegister(usize),
+    LuaRegister(u8),
+}
+
+impl Register {
+    pub fn num(&self) -> u8 {
+        match *self {
+            Self::LuaRegister(x) => x,
+            Self::VirtualRegister(..) => panic!("Can't get number for virtual register"),
+        }
+    }
+
+    pub fn is_virtual(&self) -> bool {
+        matches!(*self, Self::VirtualRegister(..))
+    }
+}
+
+#[cfg(test)]
+impl Register {
+    pub fn from_raw(n: u8) -> Self {
+        Self::LuaRegister(n)
+    }
+}
 
 pub struct RegisterManager {
-    register_alloc_cursor: usize,
-    used_registers: HashSet<usize>,
+    // Cursor point to next free register id
+    virtual_register_cursor: usize,
+    real_register_cursor: u8,
+    used_real_registers: HashSet<u8>,
 }
 
 impl RegisterManager {
     #[inline]
     pub fn new() -> Self {
         Self {
-            register_alloc_cursor: 0,
-            used_registers: HashSet::with_capacity(MAX_REGISTER_ID),
+            virtual_register_cursor: 0,
+            real_register_cursor: 0,
+            used_real_registers: HashSet::with_capacity(MAX_REGISTER_ID as usize),
         }
     }
 
-    pub fn alloc(&mut self) -> RegisterId {
+    pub fn alloc(&mut self) -> Register {
+        let next = self.virtual_register_cursor;
+        self.virtual_register_cursor += 1;
+
+        Register::VirtualRegister(next)
+    }
+
+    pub fn alloc_hard(&mut self) -> Register {
         // ensure has free register to allocate
-        assert!(self.used_registers.len() <= MAX_REGISTER_ID);
+        assert!(self.used_real_registers.len() <= MAX_REGISTER_ID as usize);
 
         loop {
-            if self.used_registers.insert(self.register_alloc_cursor) {
-                return self.register_alloc_cursor;
+            if self.used_real_registers.insert(self.real_register_cursor) {
+                return Register::LuaRegister(self.real_register_cursor);
             }
 
-            self.register_alloc_cursor += 1;
-            self.register_alloc_cursor %= MAX_REGISTER_ID;
+            self.real_register_cursor += 1;
+            self.real_register_cursor %= MAX_REGISTER_ID;
         }
     }
 
     #[inline]
-    pub fn free(&mut self, id: &RegisterId) {
-        _ = self.used_registers.remove(id)
-    }
-
-    #[inline]
-    pub fn used_count(&self) -> usize {
-        self.used_registers.len()
+    pub fn free(&mut self, reg: &Register) {
+        match *reg {
+            Register::LuaRegister(x) => {
+                self.used_real_registers.remove(&x);
+            }
+            Register::VirtualRegister(_) => {}
+        }
     }
 }
