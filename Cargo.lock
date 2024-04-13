@@ -913,7 +913,7 @@ dependencies = [
  "either",
  "inkwell_internals",
  "libc",
- "llvm-sys 160.1.4",
+ "llvm-sys",
  "once_cell",
  "thiserror",
 ]
@@ -1022,19 +1022,6 @@ name = "linux-raw-sys"
 version = "0.4.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "01cda141df6706de531b6c46c3a33ecca755538219bd484262fa09410c13539c"
-
-[[package]]
-name = "llvm-sys"
-version = "160.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49f9888529887dfda6c59e20f0e0727b17e826cd54ae1ddf0d4c83850fa23b69"
-dependencies = [
- "cc",
- "lazy_static",
- "libc",
- "regex",
- "semver",
-]
 
 [[package]]
 name = "llvm-sys"
@@ -1682,7 +1669,7 @@ dependencies = [
  "inkwell",
  "lalrpop",
  "lalrpop-util",
- "llvm-sys 170.0.1",
+ "llvm-sys",
  "log",
  "once_cell",
  "regex",

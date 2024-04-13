@@ -27,7 +27,7 @@ log = "*"
 indexmap = "*"
 byteorder = "*"
 uuid = { version = "*", features = ["v4", "fast-rng", "macro-diagnostics", "serde"] }
-inkwell = { version = "*", optional = true, features = ["llvm16-0-no-llvm-linking"] }
+inkwell = { version = "*", optional = true, features = ["llvm17-0-no-llvm-linking"] }
 
 [build-dependencies]
 cbindgen = "*"
