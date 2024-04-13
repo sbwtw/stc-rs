@@ -77,6 +77,12 @@ fn lua_dump_function(
     lua_dump_byte(w, max_stack_size(p))?;
 
     // Dump Code
+    let f = f.read();
+    let code = f.compiled_code().as_ref().unwrap();
+    let lua_code = code.as_any().downcast_ref::<LuaCompiledCode>().unwrap();
+    for c in lua_code.byte_codes() {
+        println!("{:?} {}", c, c.encode())
+    }
 
     // Dump Constants
 
@@ -163,6 +169,10 @@ impl CompiledCode for LuaCompiledCode {
             io::ErrorKind::InvalidData,
             "Can't get code from single Lua function",
         ))
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }
 

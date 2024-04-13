@@ -3,8 +3,6 @@ mod bytecode;
 use bytecode::*;
 
 pub mod dump;
-/// 32-bits Lua instruction bytecode encoding/decoding
-mod encoding;
 mod register;
 mod utils;
 mod vm;
@@ -214,7 +212,7 @@ impl AstVisitorMut for LuaBackend {
                 .top_attribute()
                 .register
                 .unwrap_or_else(|| self.reg_mgr.alloc());
-            self.byte_codes.push(LuaByteCode::LoadI(r as u8, v));
+            self.byte_codes.push(LuaByteCode::LoadI(r as u8, v as i32));
             self.top_attribute().register = Some(r);
             return;
         }

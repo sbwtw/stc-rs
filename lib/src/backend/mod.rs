@@ -10,6 +10,7 @@ use crate::context::{ModuleContext, UnitsManager};
 
 use bitflags::bitflags;
 use log::info;
+use std::any::Any;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::io;
@@ -39,6 +40,7 @@ pub trait CodeGenBackend {
 
 pub trait CompiledCode: Display {
     fn get_bytes(&self, w: &mut dyn Write) -> io::Result<()>;
+    fn as_any(&self) -> &dyn Any;
 }
 
 pub enum CodeGenError {
