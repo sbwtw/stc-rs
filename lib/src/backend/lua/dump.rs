@@ -76,35 +76,45 @@ fn lua_dump_function(
     // maxstacksize of proto
     lua_dump_byte(w, max_stack_size(p))?;
 
-    // Dump Code
+    // Dump size of code
     let f = f.read();
     let code = f.compiled_code().as_ref().unwrap();
     let lua_code = code.as_any().downcast_ref::<LuaCompiledCode>().unwrap();
+    lua_dump_size(w, lua_code.byte_codes().len() as u64)?;
+
+    // Dump Code
     for c in lua_code.byte_codes() {
-        println!("{:?} {}", c, c.encode())
+        w.write_all(&c.encode().to_le_bytes())?;
     }
+
+    // Dump size of constants
+    lua_dump_size(w, lua_code.constants_len() as u64)?;
 
     // Dump Constants
 
+    // Dump size of UpValues
+    lua_dump_size(w, 0)?;
+
     // Dump UpValues
+
+    // Dump size of Protos
+    lua_dump_size(w, 0)?;
 
     // Dump Protos
 
+    // Dump size of Debug line info
+    lua_dump_size(w, 0)?;
+
+    // Dump size of Debug abs line info
+    lua_dump_size(w, 0)?;
+
+    // Dump size of Debug loc vars
+    lua_dump_size(w, 0)?;
+
+    // Dump size of Debug upvalues
+    lua_dump_size(w, 0)?;
+
     // Dump Debug
-
-    // let fun_impl = f.read();
-    // let cc = fun_impl.compiled_code().as_ref().unwrap();
-
-    // cc.dump(w)
-
-    // if let Some(main) = app_read.find_declaration_by_name(&StString::new("main")) {
-    //     let id = main.read().unwrap().id();
-    //     let func = app_read.get_function(id).unwrap();
-
-    //     let mut buf = vec![0u8; 0];
-    //     lua_dump_module(func, &mut buf).unwrap();
-
-    // }
     Ok(())
 }
 

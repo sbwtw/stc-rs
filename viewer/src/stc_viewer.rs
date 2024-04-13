@@ -1,3 +1,6 @@
+use std::fs;
+use std::io::Write;
+
 use crate::column_object::ColumnObject;
 
 use async_channel::{Receiver, Sender};
@@ -215,7 +218,15 @@ impl StcViewerApp {
                 println!();
             }
         }
-        println!()
+        println!();
+
+        let mut f = fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open("/home/stc.o")
+            .unwrap();
+        f.write_all(&buf).unwrap();
     }
 
     pub fn run(&mut self) {}

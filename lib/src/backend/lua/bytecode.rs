@@ -9,7 +9,9 @@ macro_rules! excess_k {
 }
 
 macro_rules! excess_sBx {
-    ($v: expr) => { excess_k!($v, 17) };
+    ($v: expr) => {
+        excess_k!($v, 17)
+    };
 }
 
 #[repr(u8)]
@@ -167,27 +169,32 @@ impl Display for LuaConstants {
 
 #[derive(Debug)]
 pub enum LuaByteCode {
-    /// Call k, v: k is callee symbol position, v is argument count, return value not included
-    /// A B C: R[A], ... ,R[A+C-2] := R[A](R[A+1], ... ,R[A+B-1])
-    Call(u8, u8, u8),
-    /// A B C: R[A] := UpValue[B][K[C]:string]
-    GetTabUp(u8, u8, u8),
-    /// A B C: UpValue[A][K[B]:string] := RK(C)
-    SetTabUp(u8, u8, u8),
-    /// A B: R[A] := K[Bx]
-    LoadK(u8, u32),
     /// A B: R[A] := R[B]
     Move(u8, u8),
     /// A sBx: R[A] := sBx
     LoadI(u8, i32),
+    /// A B: R[A] := K[Bx]
+    LoadK(u8, u32),
+
+    /// A B C: R[A] := UpValue[B][K[C]:string]
+    GetTabUp(u8, u8, u8),
+    /// A B C: UpValue[A][K[B]:string] := RK(C)
+    SetTabUp(u8, u8, u8),
+
     /// A B C: R[A] := R[B] + R[C]
     Add(u8, u8, u8),
-    /// A sB k: if ((R[A] >= sB) ~= k) then pc++
-    Gei(u8, u8, u8),
-    /// A sB k: if ((R[A] > sB) ~= k) then pc++
-    Gti(u8, u8, u8),
+
     /// A B k: if ((R[A] == R[B]) ~= k) then pc++
     Eq(u8, u8, u8),
+
+    /// A sB k: if ((R[A] > sB) ~= k) then pc++
+    Gti(u8, u8, u8),
+    /// A sB k: if ((R[A] >= sB) ~= k) then pc++
+    Gei(u8, u8, u8),
+
+    /// Call k, v: k is callee symbol position, v is argument count, return value not included
+    /// A B C: R[A], ... ,R[A+C-2] := R[A](R[A+1], ... ,R[A+B-1])
+    Call(u8, u8, u8),
 }
 
 impl LuaByteCode {
@@ -230,7 +237,7 @@ impl LuaByteCode {
             | LuaByteCode::Gei(a, b, c)
             | LuaByteCode::Gti(a, b, c)
             | LuaByteCode::Eq(a, b, c)
-            | LuaByteCode::Add(a, b, c) => (c as u32) << 24 | (b as u32) << 15 | (a as u32) << 7,
+            | LuaByteCode::Add(a, b, c) => (c as u32) << 16 | (b as u32) << 8 | a as u32,
             // ABx
             LuaByteCode::LoadK(a, bx) => bx << 8 | a as u32,
             // AsBx
@@ -251,6 +258,14 @@ pub struct LuaCompiledCode {
 }
 
 impl LuaCompiledCode {
+    pub fn constants_len(&self) -> usize {
+        self.constants.len()
+    }
+
+    pub fn constants(&self) -> impl Iterator<Item = &LuaConstants> {
+        self.constants.as_slice().into_iter()
+    }
+
     pub fn byte_codes(&self) -> &[LuaByteCode] {
         &self.byte_codes
     }
