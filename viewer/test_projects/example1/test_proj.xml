@@ -22,9 +22,7 @@ end_program
 ]]>
             </interface>
             <body>
-                IF g1 = a THEN
-                    b := b + 1;
-                END_IF
+                a := 1;
             </body>
         </pou>
     </pou-list>

@@ -12,40 +12,40 @@ const SBX_MIN_VALUE: i32 = 0 - 2_i32.pow(SBX_BIT_SIZE);
 const SBX_MASK: u32 = 0b0001_1111_1111_1111_1111;
 
 /// Returns true if literal can fit into sBx value
-pub fn try_fit_sbx(literal: &LiteralValue) -> Option<u32> {
-    match literal {
+pub fn try_fit_sbx(literal: &LiteralValue) -> Option<i32> {
+    match *literal {
         LiteralValue::Bit(BitValue::Zero) => Some(0),
         LiteralValue::Bit(BitValue::One) => Some(1),
         LiteralValue::Bool(false) => Some(0),
         LiteralValue::Bool(true) => Some(1),
-        LiteralValue::Byte(v) => Some(*v as u32),
-        LiteralValue::SInt(v) => Some((*v as i32) as u32 & SBX_MASK),
-        LiteralValue::Int(v) => Some((*v as i32) as u32 & SBX_MASK),
-        LiteralValue::UInt(v) => Some(*v as u32 & SBX_MASK),
+        LiteralValue::Byte(v) => Some(v as i32),
+        LiteralValue::SInt(v) => Some(v as i32),
+        LiteralValue::Int(v) => Some(v as i32),
+        LiteralValue::UInt(v) => Some(v as i32),
         LiteralValue::DInt(v) => {
-            if (SBX_MIN_VALUE..=SBX_MAX_VALUE).contains(v) {
-                Some(*v as u32 & SBX_MASK)
+            if (SBX_MIN_VALUE..=SBX_MAX_VALUE).contains(&v) {
+                Some(v)
             } else {
                 None
             }
         }
         LiteralValue::UDInt(v) => {
-            if *v <= SBX_MAX_VALUE as u32 {
-                Some(v & SBX_MASK)
+            if v <= SBX_MAX_VALUE as u32 {
+                Some(v as i32)
             } else {
                 None
             }
         }
         LiteralValue::LInt(v) => {
-            if (SBX_MIN_VALUE as i64..=SBX_MAX_VALUE as i64).contains(v) {
-                Some(*v as u32 & SBX_MASK)
+            if (SBX_MIN_VALUE as i64..=SBX_MAX_VALUE as i64).contains(&v) {
+                Some(v as i32)
             } else {
                 None
             }
         }
         LiteralValue::ULInt(v) => {
-            if *v <= SBX_MAX_VALUE as u64 {
-                Some(*v as u32 & SBX_MASK)
+            if v <= SBX_MAX_VALUE as u64 {
+                Some(v as i32)
             } else {
                 None
             }
@@ -69,7 +69,7 @@ pub fn num_params(p: &Prototype) -> u8 {
 #[inline]
 pub fn is_vararg(_p: &Prototype) -> bool {
     // TODO:
-    false
+    true
 }
 
 #[inline]

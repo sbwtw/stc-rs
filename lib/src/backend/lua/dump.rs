@@ -84,7 +84,13 @@ fn lua_dump_function(
 
     // Dump Code
     for c in lua_code.byte_codes() {
-        w.write_all(&c.encode().to_le_bytes())?;
+        let data = c.encode();
+        w.write_all(&[
+            (data & 0xff) as u8,
+            ((data >> 8) & 0xff) as u8,
+            ((data >> 16) & 0xff) as u8,
+            ((data >> 24) & 0xff) as u8,
+        ])?;
     }
 
     // Dump size of constants
@@ -93,9 +99,12 @@ fn lua_dump_function(
     // Dump Constants
 
     // Dump size of UpValues
-    lua_dump_size(w, 0)?;
+    lua_dump_size(w, lua_code.upvalues.len() as u64)?;
 
     // Dump UpValues
+    for upv in lua_code.upvalues.as_ref() {
+        w.write_all(&[upv.stack, upv.index, upv.kind])?;
+    }
 
     // Dump size of Protos
     lua_dump_size(w, 0)?;

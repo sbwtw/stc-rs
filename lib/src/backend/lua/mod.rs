@@ -8,7 +8,7 @@ mod utils;
 mod vm;
 
 use crate::backend::lua::register::{RegisterId, RegisterManager};
-use crate::backend::lua::utils::try_fit_sbx;
+use crate::backend::lua::utils::*;
 use crate::backend::*;
 use crate::parser::{LiteralValue, Operator};
 use crate::prelude::*;
@@ -27,7 +27,6 @@ bitflags! {
         const WRITE             = 0b0000_0000_0000_0010;
         const PARAMETER         = 0b0000_0000_0000_0100;
         const CALL              = 0b0000_0000_0000_1000;
-        const LOAD              = 0b0000_0000_0001_0000;
     }
 }
 
@@ -60,12 +59,18 @@ pub struct LuaBackend {
     byte_codes: Vec<LuaByteCode>,
     states: SmallVec<[LuaBackendStates; 32]>,
     local_function: Option<Function>,
+    local_proto: Option<Prototype>,
     constants: IndexSet<LuaConstants>,
     reg_mgr: RegisterManager,
     module_upvalues: SmallVec<[LuaConstants; 32]>,
 }
 
 impl LuaBackend {
+    fn push_code(&mut self, code: LuaByteCode) {
+        debug!("LuaBackend: Push Code {:?}", code);
+        self.byte_codes.push(code)
+    }
+
     fn current_application(&self) -> ModuleContext {
         self.app.clone()
     }
@@ -144,6 +149,7 @@ impl CodeGenBackend for LuaBackend {
             byte_codes: vec![],
             states: smallvec![],
             local_function: None,
+            local_proto: None,
             constants: IndexSet::new(),
             reg_mgr: RegisterManager::new(),
             module_upvalues: smallvec![],
@@ -155,22 +161,34 @@ impl CodeGenBackend for LuaBackend {
     }
 
     fn gen_function(&mut self, func: usize) -> Result<Box<dyn CompiledCode>, CodeGenError> {
-        let f = self
-            .app
-            .read()
+        let app = self.app.read();
+        let f = app
             .get_function(func)
             .ok_or(CodeGenError::FunctionNotDefined(func))?
             .clone();
+        let p = app.get_declaration_by_id(func).cloned();
 
         self.local_function = Some(f.clone());
+        self.local_proto = p;
+        drop(app);
 
         let app_id = self.app.read().id();
         let fun_scope = Scope::new(Some(self.mgr.clone()), Some(app_id), Some(func));
+
+        // generate VarArgPrep
+        if let Some(p) = &self.local_proto {
+            if is_vararg(p) {
+                self.push_code(LuaByteCode::VarArgPrep(0));
+            }
+        }
 
         let mut fun = f.write();
         self.push_attribute_with_scope(fun_scope);
         self.visit_statement_mut(fun.parse_tree_mut());
         self.pop_attribute();
+
+        // generate return
+        self.push_code(LuaByteCode::Return(false, 0, 1, 1));
 
         let byte_codes = mem::take(&mut self.byte_codes);
         let constants = mem::replace(&mut self.constants, IndexSet::new());
@@ -178,6 +196,13 @@ impl CodeGenBackend for LuaBackend {
         Ok(Box::new(LuaCompiledCode {
             byte_codes,
             constants,
+            // TODO:: upvalues
+            upvalues: smallvec![LuaUpValue {
+                name: None,
+                stack: 1,
+                index: 0,
+                kind: 0
+            }],
         }))
     }
 
@@ -212,7 +237,7 @@ impl AstVisitorMut for LuaBackend {
                 .top_attribute()
                 .register
                 .unwrap_or_else(|| self.reg_mgr.alloc());
-            self.byte_codes.push(LuaByteCode::LoadI(r as u8, v as i32));
+            self.push_code(LuaByteCode::LoadI(r as u8, v));
             self.top_attribute().register = Some(r);
             return;
         }
@@ -245,18 +270,29 @@ impl AstVisitorMut for LuaBackend {
             var.and_then(|x| x.ty())
         );
 
-        // Callee process
-        if self.top_attribute().access_mode == LuaAccessMode::CALL {
-            self.top_attribute().constant_index =
-                Some(self.add_string_constant(var_expr.org_name()));
-            return;
-        }
+        let access_mode = self.top_attribute().access_mode;
+        match access_mode & (LuaAccessMode::READ | LuaAccessMode::WRITE | LuaAccessMode::CALL) {
+            // Callee process
+            LuaAccessMode::CALL => {
+                self.top_attribute().constant_index =
+                    Some(self.add_string_constant(var_expr.org_name()))
+            }
+            // Write register into stack
+            LuaAccessMode::WRITE => {}
+            // Load into register
+            LuaAccessMode::READ => {
+                let scope = self.top_attribute().scope.as_ref().unwrap();
+                if let Some(variable) = scope.find_variable(var_expr.name()) {
+                    let reg = self.reg_mgr.alloc();
+                    self.top_attribute().register = Some(reg);
 
-        let scope = self.top_attribute().scope.as_ref().unwrap();
-        if let Some(variable) = scope.find_variable(var_expr.name()) {
-            self.top_attribute().register = Some(self.reg_mgr.alloc());
-        } else {
-            // TODO: variable not found error
+                    // TODO: initialize
+                    self.push_code(LuaByteCode::LoadI(reg as u8, 0));
+                } else {
+                    // TODO: variable not found error
+                }
+            }
+            _ => unreachable!("{:?}", access_mode),
         }
     }
 
@@ -267,7 +303,7 @@ impl AstVisitorMut for LuaBackend {
         self.visit_expression_mut(call.callee_mut());
         let callee_index = self.top_attribute().constant_index;
         self.pop_attribute();
-        self.byte_codes.push(LuaByteCode::GetTabUp(0, 0, 0));
+        self.push_code(LuaByteCode::GetTabUp(0, 0, 0));
 
         // visit all arguments
         for arg in call.arguments_mut() {
@@ -278,12 +314,11 @@ impl AstVisitorMut for LuaBackend {
 
             // Load argument
             if let Some(idx) = arg_value_index {
-                let load = LuaByteCode::LoadK(0, idx as u32);
-                self.byte_codes.push(load);
+                self.push_code(LuaByteCode::LoadK(0, idx as u32));
             }
         }
 
-        self.byte_codes.push(LuaByteCode::Call(
+        self.push_code(LuaByteCode::Call(
             callee_index.unwrap() as u8,
             call.arguments().len() as u8,
             0,
@@ -334,7 +369,7 @@ impl AstVisitorMut for LuaBackend {
                 // generate operators
                 match op {
                     // a + b
-                    Operator::Plus => self.byte_codes.push(LuaByteCode::Add(
+                    Operator::Plus => self.push_code(LuaByteCode::Add(
                         dest_reg as u8,
                         op0_reg as u8,
                         op1_reg as u8,
@@ -342,8 +377,7 @@ impl AstVisitorMut for LuaBackend {
                     // a = b
                     Operator::Equal => {
                         // (op0 == op1) != 1
-                        self.byte_codes
-                            .push(LuaByteCode::Eq(op0_reg as u8, op1_reg as u8, 1))
+                        self.push_code(LuaByteCode::Eq(op0_reg as u8, op1_reg as u8, 1))
                     }
                     _ => unreachable!(),
                 }
@@ -360,7 +394,7 @@ impl AstVisitorMut for LuaBackend {
     fn visit_assign_expression_mut(&mut self, assign: &mut AssignExpression) {
         trace!("LuaGen: assignment expression: {}", assign);
 
-        self.push_access_attribute(LuaAccessMode::LOAD);
+        self.push_access_attribute(LuaAccessMode::READ);
         assign.left_mut().accept_mut(self);
         let lhs_reg = self.pop_attribute().register;
 
@@ -378,8 +412,7 @@ impl AstVisitorMut for LuaBackend {
         if let Some(r) = rhs.register {
             // if rhs register is reused lhs_reg, ignore move
             if Some(r) != lhs_reg {
-                self.byte_codes
-                    .push(LuaByteCode::Move(lhs.register.unwrap() as u8, r as u8));
+                self.push_code(LuaByteCode::Move(lhs.register.unwrap() as u8, r as u8));
 
                 self.reg_mgr.free(&r)
             }

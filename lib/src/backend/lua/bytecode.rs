@@ -2,6 +2,9 @@ use indexmap::IndexSet;
 use std::fmt::{Display, Formatter, Write};
 use std::hash::{Hash, Hasher};
 
+use crate::ast::SmallVec8;
+use crate::parser::StString;
+
 macro_rules! excess_k {
     ($v: expr, $k: expr) => {
         ($v as u32).wrapping_add(((2u32.pow($k) - 1) / 2)) & (2u32.pow($k) - 1)
@@ -143,6 +146,14 @@ pub enum LuaConstants {
     Function(fn(&mut LuaExecState) -> i32),
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct LuaUpValue {
+    pub name: Option<StString>,
+    pub stack: u8,
+    pub index: u8,
+    pub kind: u8,
+}
+
 impl Eq for LuaConstants {}
 
 impl Hash for LuaConstants {
@@ -192,9 +203,15 @@ pub enum LuaByteCode {
     /// A sB k: if ((R[A] >= sB) ~= k) then pc++
     Gei(u8, u8, u8),
 
+    /// A B C k: return R[A], ... ,R[A+B-2]
+    Return(bool, u8, u8, u8),
+
     /// Call k, v: k is callee symbol position, v is argument count, return value not included
     /// A B C: R[A], ... ,R[A+C-2] := R[A](R[A+1], ... ,R[A+B-1])
     Call(u8, u8, u8),
+
+    /// A (adjust vararg parameters)
+    VarArgPrep(u8),
 }
 
 impl LuaByteCode {
@@ -210,6 +227,8 @@ impl LuaByteCode {
             LuaByteCode::Gei(..) => "GEI",
             LuaByteCode::Gti(..) => "GTI",
             LuaByteCode::Eq(..) => "EQ",
+            LuaByteCode::Return(..) => "RETURN",
+            LuaByteCode::VarArgPrep(..) => "VARARGPREP",
         }
     }
 
@@ -225,6 +244,8 @@ impl LuaByteCode {
             LuaByteCode::Gei(..) => LuaOpCode::OP_GEI,
             LuaByteCode::Gti(..) => LuaOpCode::OP_GTI,
             LuaByteCode::Eq(..) => LuaOpCode::OP_EQ,
+            LuaByteCode::Return(..) => LuaOpCode::OP_RETURN,
+            LuaByteCode::VarArgPrep(..) => LuaOpCode::OP_VARARGPREP,
         }
     }
 
@@ -237,13 +258,20 @@ impl LuaByteCode {
             | LuaByteCode::Gei(a, b, c)
             | LuaByteCode::Gti(a, b, c)
             | LuaByteCode::Eq(a, b, c)
-            | LuaByteCode::Add(a, b, c) => (c as u32) << 16 | (b as u32) << 8 | a as u32,
+            | LuaByteCode::Add(a, b, c) => (c as u32) << 17 | (b as u32) << 9 | a as u32,
+            // ABC with k
+            LuaByteCode::Return(k, a, b, c) => {
+                let k = if k { 1u32 } else { 0u32 };
+                k << 15 | (c as u32) << 17 | (b as u32) << 9 | a as u32
+            }
             // ABx
             LuaByteCode::LoadK(a, bx) => bx << 8 | a as u32,
             // AsBx
             LuaByteCode::LoadI(a, sbx) => excess_sBx!(sbx) << 8 | a as u32,
             // A B
             LuaByteCode::Move(a, b) => todo!(),
+            // A only
+            LuaByteCode::VarArgPrep(a) => (a as u32) << 8,
         };
 
         let op = self.opcode() as u32;
@@ -255,6 +283,7 @@ impl LuaByteCode {
 pub struct LuaCompiledCode {
     pub byte_codes: Vec<LuaByteCode>,
     pub constants: IndexSet<LuaConstants>,
+    pub upvalues: SmallVec8<LuaUpValue>,
 }
 
 impl LuaCompiledCode {
@@ -285,6 +314,10 @@ impl LuaCompiledCode {
             | LuaByteCode::Add(a, b, c) => {
                 write!(s, "{a} {b} {c}").unwrap();
             }
+            // ABC with k
+            LuaByteCode::Return(_, a, b, c) => {
+                write!(s, "{a} {b} {c}").unwrap();
+            }
             // ABx
             LuaByteCode::LoadK(a, bx) => {
                 write!(s, "{a} {bx}").unwrap();
@@ -296,6 +329,10 @@ impl LuaCompiledCode {
             // A B
             LuaByteCode::Move(a, b) => {
                 write!(s, "{a} {b}").unwrap();
+            }
+            // A only
+            LuaByteCode::VarArgPrep(a) => {
+                write!(s, "{a}").unwrap();
             }
         }
 
@@ -347,5 +384,8 @@ mod test {
 
         let code = LuaByteCode::LoadI(3, -65535);
         assert_eq!(code.encode(), 0x00000181);
+
+        let code = LuaByteCode::Return(false, 0, 1, 1);
+        assert_eq!(code.encode(), 0x01010046);
     }
 }
