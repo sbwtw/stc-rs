@@ -6,6 +6,7 @@ use crate::ast::SmallVec8;
 use crate::parser::StString;
 
 use super::register::Register;
+use super::ConstantIndex;
 
 macro_rules! excess_k {
     ($v: expr, $k: expr) => {
@@ -175,7 +176,8 @@ impl Display for LuaConstants {
         match *self {
             LuaConstants::String(ref s) => write!(f, "{s}"),
             LuaConstants::Float(ref v) => write!(f, "{:?}", v),
-            _ => todo!(),
+            LuaConstants::Integer(ref i) => write!(f, "{}", i),
+            _ => panic!("Display for constants {:?} not implement", self),
         }
     }
 }
@@ -187,7 +189,7 @@ pub enum LuaByteCode {
     /// A sBx: R[A] := sBx
     LoadI(Register, i32),
     /// A B: R[A] := K[Bx]
-    LoadK(u8, u32),
+    LoadK(Register, ConstantIndex),
 
     /// A B C: R[A] := UpValue[B][K[C]:string]
     GetTabUp(Register, u8, u8),
@@ -268,7 +270,7 @@ impl LuaByteCode {
             | LuaByteCode::SetTabUp(a, b, c)
             | LuaByteCode::Call(a, b, c) => (c as u32) << 17 | (b as u32) << 9 | a as u32,
             // ABx
-            LuaByteCode::LoadK(a, bx) => bx << 8 | a as u32,
+            LuaByteCode::LoadK(a, bx) => (bx as u32) << 8 | a.num() as u32,
             // AsBx
             LuaByteCode::LoadI(a, sbx) => excess_sBx!(sbx) << 8 | a.num() as u32,
             // A B
@@ -331,7 +333,7 @@ impl LuaCompiledCode {
             }
             // ABx
             LuaByteCode::LoadK(a, bx) => {
-                write!(s, "{a} {bx}").unwrap();
+                write!(s, "{} {bx}", a.num()).unwrap();
             }
             // AsBx
             LuaByteCode::LoadI(a, sbx) => {

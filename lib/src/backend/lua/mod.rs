@@ -21,14 +21,19 @@ use smallvec::{smallvec, SmallVec};
 use std::mem;
 use std::rc::Rc;
 
+type ConstantIndex = u8;
+type UpValueIndex = u8;
+
 bitflags! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub struct LuaAccessMode: u32 {
         const NONE              = 0b0000_0000_0000_0000;
         const READ              = 0b0000_0000_0000_0001;
         const WRITE             = 0b0000_0000_0000_0010;
-        const PARAMETER         = 0b0000_0000_0000_0100;
-        const CALL              = 0b0000_0000_0000_1000;
+        const CALL              = 0b0000_0000_0000_0100;
+
+        // Read constant into register first
+        const READ_REG          = 0b0000_0001_0000_0000;
     }
 }
 
@@ -36,7 +41,7 @@ bitflags! {
 pub struct LuaBackendStates {
     variable: Option<Rc<Variable>>,
     register: Option<Register>,
-    constant_index: Option<usize>,
+    constant_index: Option<ConstantIndex>,
     scope: Option<Scope>,
     error: bool,
     access_mode: LuaAccessMode,
@@ -68,15 +73,53 @@ pub struct LuaBackend {
 }
 
 impl LuaBackend {
+    #[inline]
     fn push_code(&mut self, code: LuaByteCode) {
         debug!("LuaBackend: Push Code {:?}", code);
         self.byte_codes.push(code)
     }
 
+    #[inline]
+    fn code_move(&mut self, from: Register, to: Register) {
+        self.push_code(LuaByteCode::Move(to, from))
+    }
+
+    fn code_load(&mut self, r: Register, v: &LiteralValue) {
+        // if literal can use LoadI instructions
+        if let Some(v) = try_fit_sbx(v) {
+            self.push_code(LuaByteCode::LoadI(r, v));
+            return;
+        }
+
+        let constant_index = self.add_constant(v);
+        self.code_load_constant(r, constant_index)
+    }
+
+    #[inline]
+    fn code_load_constant(&mut self, r: Register, k: ConstantIndex) {
+        self.push_code(LuaByteCode::LoadK(r, k))
+    }
+
+    #[inline]
+    fn add_constant(&mut self, v: &LiteralValue) -> ConstantIndex {
+        match v {
+            LiteralValue::String(s) => self.add_string_constant(s),
+            LiteralValue::DInt(i) => self.add_integer_constant(*i as i64),
+            LiteralValue::UInt(i) => self.add_integer_constant(*i as i64),
+            LiteralValue::Real(s) | LiteralValue::LReal(s) => {
+                let f: f64 = s.parse().unwrap();
+                self.add_float_constant(f)
+            }
+            _ => panic!("Add literal {:?} failed", v),
+        }
+    }
+
+    #[inline]
     fn current_application(&self) -> ModuleContext {
         self.app.clone()
     }
 
+    #[inline]
     fn module_upvalues(&self) -> &SmallVec<[LuaConstants; 32]> {
         &self.module_upvalues
     }
@@ -109,35 +152,41 @@ impl LuaBackend {
         self.states.push(attr);
     }
 
+    #[inline]
     fn pop_attribute(&mut self) -> LuaBackendStates {
         self.states.pop().unwrap()
     }
 
+    #[inline]
     fn top_attribute(&mut self) -> &mut LuaBackendStates {
         self.states.last_mut().unwrap()
     }
 
     /// Return current scope, will be panic if scope not set
+    #[inline]
     fn current_scope(&mut self) -> Scope {
         self.top_attribute().clone().scope.unwrap()
     }
 
-    fn add_string_constant<S: AsRef<str>>(&mut self, s: S) -> usize {
+    #[inline]
+    fn add_string_constant<S: AsRef<str>>(&mut self, s: S) -> ConstantIndex {
         let constant = LuaConstants::String(s.as_ref().to_owned());
         let (idx, _inserted) = self.constants.insert_full(constant);
-        idx
+        idx as ConstantIndex
     }
 
-    fn add_integer_constant(&mut self, i: i64) -> usize {
+    #[inline]
+    fn add_integer_constant(&mut self, i: i64) -> ConstantIndex {
         let constant = LuaConstants::Integer(i);
         let (idx, _inserted) = self.constants.insert_full(constant);
-        idx
+        idx as ConstantIndex
     }
 
-    fn add_float_constant(&mut self, f: f64) -> usize {
+    #[inline]
+    fn add_float_constant(&mut self, f: f64) -> ConstantIndex {
         let constant = LuaConstants::Float(f);
         let (idx, _inserted) = self.constants.insert_full(constant);
-        idx
+        idx as ConstantIndex
     }
 }
 
@@ -233,32 +282,18 @@ impl AstVisitorMut for LuaBackend {
             .access_mode
             .contains(LuaAccessMode::WRITE));
 
-        // if literal can use LoadI instructions
-        if let Some(v) = try_fit_sbx(literal.literal()) {
+        if self
+            .top_attribute()
+            .access_mode
+            .contains(LuaAccessMode::READ_REG)
+        {
             let r = self
                 .top_attribute()
                 .register
                 .unwrap_or_else(|| self.reg_mgr.alloc_hard());
-            self.push_code(LuaByteCode::LoadI(r, v));
-            self.top_attribute().register = Some(r);
-            return;
-        }
-
-        match literal.literal() {
-            LiteralValue::String(s) => {
-                let constant_index = self.add_string_constant(s);
-                self.top_attribute().constant_index = Some(constant_index);
-            }
-            LiteralValue::DInt(i) => {
-                let constant_index = self.add_integer_constant(*i as i64);
-                self.top_attribute().constant_index = Some(constant_index);
-            }
-            LiteralValue::Real(s) | LiteralValue::LReal(s) => {
-                let f: f64 = s.parse().unwrap();
-                let constant_index = self.add_float_constant(f);
-                self.top_attribute().constant_index = Some(constant_index);
-            }
-            _ => {}
+            self.code_load(r, literal.literal());
+        } else {
+            self.top_attribute().constant_index = Some(self.add_constant(literal.literal()))
         }
     }
 
@@ -311,14 +346,14 @@ impl AstVisitorMut for LuaBackend {
 
         // visit all arguments
         for arg in call.arguments_mut() {
-            self.push_access_attribute(LuaAccessMode::PARAMETER);
             self.visit_expression_mut(arg);
             let arg_value_index = self.top_attribute().constant_index;
             self.pop_attribute();
 
             // Load argument
             if let Some(idx) = arg_value_index {
-                self.push_code(LuaByteCode::LoadK(0, idx as u32));
+                // TODO:
+                // self.push_code(LuaByteCode::LoadK(0, idx as u32));
             }
         }
 
@@ -395,26 +430,24 @@ impl AstVisitorMut for LuaBackend {
         trace!("LuaGen: assignment expression: {}", assign);
 
         self.push_access_attribute(LuaAccessMode::READ);
-        assign.left_mut().accept_mut(self);
-        let lhs_reg = self.pop_attribute().register;
-
-        self.push_access_attribute(LuaAccessMode::READ);
-        self.top_attribute().register = lhs_reg;
         assign.right_mut().accept_mut(self);
         let rhs = self.pop_attribute();
 
-        self.push_access_attribute(LuaAccessMode::WRITE);
-        self.top_attribute().register = lhs_reg;
+        // Get lhs register
+        self.push_access_attribute(LuaAccessMode::READ);
         assign.left_mut().accept_mut(self);
-        let lhs = self.pop_attribute();
+        let lhs_reg = self.pop_attribute().register.unwrap();
 
-        // free temporary registers
-        if let Some(r) = rhs.register {
-            // if rhs register is reused lhs_reg, ignore move
-            if Some(r) != lhs_reg {
-                self.reg_mgr.free(&r);
-                self.push_code(LuaByteCode::Move(lhs.register.unwrap(), r));
-            }
+        if let Some(constant_index) = rhs.constant_index {
+            self.code_load_constant(lhs_reg, constant_index)
+        } else if let Some(r) = rhs.register {
+            assert!(lhs_reg != r);
+            self.reg_mgr.free(&r);
+            self.code_move(r, lhs_reg);
+        } else {
+            panic!()
         }
+
+        self.top_attribute().register = Some(lhs_reg);
     }
 }

@@ -19,10 +19,9 @@ impl Register {
     pub fn is_virtual(&self) -> bool {
         matches!(*self, Self::VirtualRegister(..))
     }
-}
 
-#[cfg(test)]
-impl Register {
+    // for unit test
+    #[cfg(test)]
     pub fn from_raw(n: u8) -> Self {
         Self::LuaRegister(n)
     }

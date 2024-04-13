@@ -22,7 +22,7 @@ end_program
 ]]>
             </interface>
             <body>
-                a := 1;
+                a := 123;
             </body>
         </pou>
     </pou-list>
