@@ -84,9 +84,11 @@ pub struct LuaBackend {
     states: SmallVec<[LuaBackendStates; 32]>,
     local_function: Option<Function>,
     local_proto: Option<Prototype>,
-    constants: IndexSet<LuaConstants>,
     reg_mgr: RegisterManager,
-    module_upvalues: SmallVec<[LuaConstants; 32]>,
+
+    // tmp values for generating function
+    upvalues: SmallVec<[LuaUpValue; 32]>,
+    constants: IndexSet<LuaConstants>,
 }
 
 impl LuaBackend {
@@ -134,11 +136,6 @@ impl LuaBackend {
     #[inline]
     fn current_application(&self) -> ModuleContext {
         self.app.clone()
-    }
-
-    #[inline]
-    fn module_upvalues(&self) -> &SmallVec<[LuaConstants; 32]> {
-        &self.module_upvalues
     }
 
     fn push_attribute_with_scope(&mut self, scope: Scope) {
@@ -220,12 +217,8 @@ impl CodeGenBackend for LuaBackend {
             local_proto: None,
             constants: IndexSet::new(),
             reg_mgr: RegisterManager::new(),
-            module_upvalues: smallvec![],
+            upvalues: smallvec![],
         }
-    }
-
-    fn get_module_bytes(&mut self, w: &mut dyn Write) -> io::Result<()> {
-        lua_dump_module(self, w)
     }
 
     fn gen_function(&mut self, func: usize) -> Result<Box<dyn CompiledCode>, CodeGenError> {
@@ -250,6 +243,14 @@ impl CodeGenBackend for LuaBackend {
             }
         }
 
+        // create upvalue table
+        self.upvalues.push(LuaUpValue {
+            name: None,
+            stack: 1,
+            index: 0,
+            kind: 0,
+        });
+
         let mut fun = f.write();
         self.push_attribute_with_scope(fun_scope);
         self.visit_statement_mut(fun.parse_tree_mut());
@@ -260,17 +261,15 @@ impl CodeGenBackend for LuaBackend {
 
         let byte_codes = mem::take(&mut self.byte_codes);
         let constants = mem::replace(&mut self.constants, IndexSet::new());
+        let upvalues = mem::replace(&mut self.upvalues, smallvec![]);
+
+        // reset RegMan and check register is balance
+        assert!(self.reg_mgr.check_and_reset());
 
         Ok(Box::new(LuaCompiledCode {
             byte_codes,
             constants,
-            // TODO:: upvalues
-            upvalues: smallvec![LuaUpValue {
-                name: None,
-                stack: 1,
-                index: 0,
-                kind: 0
-            }],
+            upvalues,
         }))
     }
 
@@ -286,6 +285,10 @@ impl CodeGenBackend for LuaBackend {
         let operands = operator.operands_mut();
 
         self.visit_expression_mut(&mut operands[0]);
+    }
+
+    fn get_module_bytes(&mut self, w: &mut dyn Write) -> io::Result<()> {
+        lua_dump_module(self, w)
     }
 }
 
@@ -328,8 +331,14 @@ impl AstVisitorMut for LuaBackend {
         match access_mode & (LuaAccessMode::READ | LuaAccessMode::WRITE | LuaAccessMode::CALL) {
             // Callee process
             LuaAccessMode::CALL => {
+                assert!(self.top_attribute().register.is_none());
+
+                let dest = self.reg_mgr.alloc_hard();
+                self.top_attribute().register = Some(dest);
                 self.top_attribute().constant_index =
-                    Some(self.add_string_constant(var_expr.org_name()))
+                    Some(self.add_string_constant(var_expr.org_name()));
+
+                self.push_code(LuaByteCode::GetTabUp(dest, 0, 0));
             }
             // Write register into stack
             LuaAccessMode::WRITE => {}
@@ -337,11 +346,13 @@ impl AstVisitorMut for LuaBackend {
             LuaAccessMode::READ => {
                 let scope = self.top_attribute().scope.as_ref().unwrap();
                 if let Some(variable) = scope.find_variable(var_expr.name()) {
-                    let reg = self.reg_mgr.alloc_hard();
-                    self.top_attribute().register = Some(reg);
+                    self.top_attribute().register = Some(self.reg_mgr.alloc_local_variable(variable.name()));
 
-                    // TODO: initialize
-                    self.push_code(LuaByteCode::LoadI(reg, 0));
+                    // let reg = self.reg_mgr.alloc_hard();
+                    // self.top_attribute().register = Some(reg);
+                    //
+                    // // TODO: initialize
+                    // self.push_code(LuaByteCode::LoadI(reg, 0));
                 } else {
                     // TODO: variable not found error
                 }
@@ -355,30 +366,35 @@ impl AstVisitorMut for LuaBackend {
 
         self.push_access_attribute(LuaAccessMode::CALL);
         self.visit_expression_mut(call.callee_mut());
-        let callee_index = self.top_attribute().constant_index;
-        self.pop_attribute();
+        let callee_attr = self.pop_attribute();
+        let callee_reg = callee_attr.register.unwrap();
 
         // TODO:
         // self.push_code(LuaByteCode::GetTabUp(0, 0, 0));
 
         // visit all arguments
         for arg in call.arguments_mut() {
+            self.push_access_attribute(LuaAccessMode::READ);
             self.visit_expression_mut(arg);
-            let arg_value_index = self.top_attribute().constant_index;
-            self.pop_attribute();
+            let arg_attr = self.pop_attribute();
+            let arg_value_index = arg_attr.constant_index;
 
             // Load argument
             if let Some(idx) = arg_value_index {
                 // TODO:
                 // self.push_code(LuaByteCode::LoadK(0, idx as u32));
             }
+
+            self.reg_mgr.free(&arg_attr.register.unwrap());
         }
 
         self.push_code(LuaByteCode::Call(
-            callee_index.unwrap(),
-            call.arguments().len() as u8,
-            0,
-        ))
+            callee_reg,
+            call.arguments().len() as u8 + 1,
+            1,
+        ));
+
+        self.reg_mgr.free(&callee_reg);
     }
 
     fn visit_if_statement_mut(&mut self, ifst: &mut IfStatement) {
@@ -456,15 +472,18 @@ impl AstVisitorMut for LuaBackend {
         let lhs_reg = self.pop_attribute().register.unwrap();
 
         if let Some(constant_index) = rhs.constant_index {
+            assert!(rhs.register.is_none());
             self.code_load_constant(lhs_reg, constant_index)
         } else if let Some(r) = rhs.register {
-            assert!(lhs_reg != r);
+            assert_ne!(lhs_reg, r);
             self.reg_mgr.free(&r);
             self.code_move(r, lhs_reg);
         } else {
             panic!()
         }
 
-        self.top_attribute().register = Some(lhs_reg);
+        // TODO: keep register?
+        // self.top_attribute().register = Some(lhs_reg);
+        self.reg_mgr.free(&lhs_reg);
     }
 }

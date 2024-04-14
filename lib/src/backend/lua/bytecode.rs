@@ -1,8 +1,8 @@
 use indexmap::IndexSet;
 use std::fmt::{Display, Formatter, Write};
 use std::hash::{Hash, Hasher};
+use smallvec::SmallVec;
 
-use crate::ast::SmallVec8;
 use crate::parser::StString;
 
 use super::register::Register;
@@ -14,7 +14,7 @@ macro_rules! excess_k {
     };
 }
 
-macro_rules! excess_sBx {
+macro_rules! excess_sbx {
     ($v: expr) => {
         excess_k!($v, 17)
     };
@@ -223,7 +223,7 @@ pub enum LuaByteCode {
 
     /// Call k, v: k is callee symbol position, v is argument count, return value not included
     /// A B C: R[A], ... ,R[A+C-2] := R[A](R[A+1], ... ,R[A+B-1])
-    Call(u8, u8, u8),
+    Call(Register, u8, u8),
 
     /// A (adjust vararg parameters)
     VarArgPrep(u8),
@@ -275,15 +275,15 @@ impl LuaByteCode {
             // A sB k
             LuaByteCode::GetTabUp(a, sb, c)
             | LuaByteCode::Gei(a, sb, c)
-            | LuaByteCode::Gti(a, sb, c) => (c as u32) << 17 | (sb as u32) << 9 | a.num() as u32,
+            | LuaByteCode::Gti(a, sb, c)
+            | LuaByteCode::Call(a, sb, c) => (c as u32) << 17 | (sb as u32) << 9 | a.num() as u32,
             // A B C all literal
             LuaByteCode::Return(a, b, c)
-            | LuaByteCode::SetTabUp(a, b, c)
-            | LuaByteCode::Call(a, b, c) => (c as u32) << 17 | (b as u32) << 9 | a as u32,
+            | LuaByteCode::SetTabUp(a, b, c) => (c as u32) << 17 | (b as u32) << 9 | a as u32,
             // ABx
             LuaByteCode::LoadK(a, bx) => (bx as u32) << 8 | a.num() as u32,
             // AsBx
-            LuaByteCode::LoadI(a, sbx) => excess_sBx!(sbx) << 8 | a.num() as u32,
+            LuaByteCode::LoadI(a, sbx) => excess_sbx!(sbx) << 8 | a.num() as u32,
             // A B
             LuaByteCode::Move(a, b) => (b.num() as u32) << 9 | a.num() as u32,
             // A only
@@ -299,7 +299,7 @@ impl LuaByteCode {
 pub struct LuaCompiledCode {
     pub byte_codes: Vec<LuaByteCode>,
     pub constants: IndexSet<LuaConstants>,
-    pub upvalues: SmallVec8<LuaUpValue>,
+    pub upvalues: SmallVec<[LuaUpValue; 32]>,
 }
 
 impl LuaCompiledCode {
@@ -331,12 +331,9 @@ impl LuaCompiledCode {
             // A sB k
             LuaByteCode::GetTabUp(a, b, c)
             | LuaByteCode::Gti(a, b, c)
-            | LuaByteCode::Gei(a, b, c) => {
+            | LuaByteCode::Gei(a, b, c)
+            | LuaByteCode::Call(a, b, c) => {
                 write!(s, "R{} {b} {c}", a.num()).unwrap();
-            }
-            // A B C all literal
-            LuaByteCode::Call(a, b, c) => {
-                write!(s, "{a} {b} {c}").unwrap();
             }
             // ABC with k
             LuaByteCode::SetTabUp(a, b, c) | LuaByteCode::Return(a, b, c) => {
@@ -368,7 +365,17 @@ impl LuaCompiledCode {
                 write!(s, " ; _ENV \"{}\"", self.constants[*c as usize]).unwrap();
             }
             LuaByteCode::Call(a, b, c) => {
-                write!(s, " ; {b} in {c} out").unwrap();
+                if *b == 0 {
+                    write!(s, " ; all in ").unwrap();
+                } else {
+                    write!(s, " ; {} in ", b - 1).unwrap();
+                }
+
+                if *c == 0 {
+                    write!(s, "all out").unwrap();
+                } else {
+                    write!(s, "{} out", c - 1).unwrap();
+                }
             }
             _ => {}
         }
@@ -379,18 +386,29 @@ impl LuaCompiledCode {
 
 impl Display for LuaCompiledCode {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        // constants
-        writeln!(f, "Constants:")?;
-        for (idx, constant) in self.constants.iter().enumerate() {
-            writeln!(f, "{:<3} {:?}", idx, constant)?
+        // upvalues
+        if !self.upvalues.is_empty() {
+            writeln!(f, "UpValues:")?;
+
+            for (idx, up_val) in self.upvalues.iter().enumerate() {
+                writeln!(f, "{:<4} {:?}", idx, up_val)?
+            }
+            writeln!(f)?;
         }
 
-        writeln!(f)?;
-
         // constants
+        if !self.constants.is_empty() {
+            writeln!(f, "Constants:")?;
+            for (idx, constant) in self.constants.iter().enumerate() {
+                writeln!(f, "{:<4} {:?}", idx, constant)?
+            }
+            writeln!(f)?;
+        }
+
+        // ByteCodes
         writeln!(f, "ByteCodes:")?;
         for (idx, bc) in self.byte_codes.iter().enumerate() {
-            writeln!(f, "{:<6} {:<20}", idx + 1, self.disassembly_code(bc))?
+            writeln!(f, "{:<4} {:<20}", idx + 1, self.disassembly_code(bc))?
         }
 
         Ok(())

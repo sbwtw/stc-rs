@@ -1,12 +1,13 @@
-use byteorder::{LittleEndian, WriteBytesExt};
-
-use super::{utils::*, LuaConstants};
-use super::{Function, LuaBackend, Prototype};
-
-use crate::backend::lua::bytecode::LuaCompiledCode;
-use crate::backend::CompiledCode;
 use std::io;
 use std::io::Write;
+
+use byteorder::{LittleEndian, WriteBytesExt};
+
+use crate::backend::CompiledCode;
+use crate::backend::lua::bytecode::LuaCompiledCode;
+
+use super::{LuaConstants, utils::*};
+use super::{Function, LuaBackend, Prototype};
 
 /// Lua signature
 const LUA_SIGNATURE: &str = "\x1bLua";
@@ -37,8 +38,8 @@ pub fn lua_dump_module(backend: &LuaBackend, w: &mut dyn Write) -> io::Result<()
     // LUAC_NUMBER
     lua_dump_bytes(w, &LUAC_NUMBER.to_le_bytes())?;
 
-    // size of UpValues in 1 byte
-    lua_dump_byte(w, backend.module_upvalues().len() as u8)?;
+    // size of UpValues in 1 byte, TODO: hard-coded 1
+    lua_dump_byte(w, 1)?;
 
     // Start to dump functions
     // get main function
@@ -183,7 +184,11 @@ fn lua_dump_bytes(w: &mut dyn Write, bytes: &[u8]) -> io::Result<()> {
 #[inline]
 fn lua_dump_string(w: &mut dyn Write, opt_str: Option<&String>) -> io::Result<()> {
     match opt_str {
-        Some(s) => todo!(),
+        Some(s) => {
+            let bytes = s.as_bytes();
+            lua_dump_size(w, (bytes.len() + 1) as u64)?;
+            w.write_all(bytes)
+        },
         None => lua_dump_size(w, 0),
     }
 }

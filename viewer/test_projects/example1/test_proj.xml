@@ -22,8 +22,7 @@ end_program
 ]]>
             </interface>
             <body>
-                a := 123;
-                a := b;
+                print(a);
             </body>
         </pou>
     </pou-list>
