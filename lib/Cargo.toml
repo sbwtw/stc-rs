@@ -35,6 +35,6 @@ lalrpop = { version = "*", optional = true }
 llvm-sys = { version = "170", optional = true, features = ["prefer-dynamic"] }
 
 [features]
-default = ["use_lalrpop", "llvm_backend"]
+default = ["use_lalrpop"]
 use_lalrpop = ["lalrpop", "lalrpop-util"]
 llvm_backend = ["inkwell", "llvm-sys"]

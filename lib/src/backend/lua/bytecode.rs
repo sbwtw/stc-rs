@@ -1,7 +1,7 @@
 use indexmap::IndexSet;
+use smallvec::SmallVec;
 use std::fmt::{Display, Formatter, Write};
 use std::hash::{Hash, Hasher};
-use smallvec::SmallVec;
 
 use crate::parser::StString;
 
@@ -278,8 +278,9 @@ impl LuaByteCode {
             | LuaByteCode::Gti(a, sb, c)
             | LuaByteCode::Call(a, sb, c) => (c as u32) << 17 | (sb as u32) << 9 | a.num() as u32,
             // A B C all literal
-            LuaByteCode::Return(a, b, c)
-            | LuaByteCode::SetTabUp(a, b, c) => (c as u32) << 17 | (b as u32) << 9 | a as u32,
+            LuaByteCode::Return(a, b, c) | LuaByteCode::SetTabUp(a, b, c) => {
+                (c as u32) << 17 | (b as u32) << 9 | a as u32
+            }
             // ABx
             LuaByteCode::LoadK(a, bx) => (bx as u32) << 8 | a.num() as u32,
             // AsBx

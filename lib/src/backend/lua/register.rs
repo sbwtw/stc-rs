@@ -1,6 +1,6 @@
-use std::collections::HashSet;
 use log::warn;
-use smallmap::{Map as SmallMap, smallmap};
+use smallmap::Map as SmallMap;
+use std::collections::HashSet;
 
 use crate::parser::StString;
 
@@ -47,8 +47,8 @@ impl RegisterManager {
             virtual_register_cursor: 0,
             real_register_cursor: 0,
             used_real_registers: HashSet::with_capacity(MAX_REGISTER_ID as usize),
-            local_variable_register: smallmap![],
-            local_variable_register_reverse: smallmap![],
+            local_variable_register: SmallMap::with_capacity(201),
+            local_variable_register_reverse: SmallMap::with_capacity(201),
         }
     }
 
@@ -112,10 +112,27 @@ impl RegisterManager {
         }
     }
 
+    pub fn alloc_hard_batch(&mut self, count: usize) -> Vec<Register> {
+        let cursor = self.real_register_cursor as usize;
+        if cursor + count >= MAX_REGISTER_ID as usize {
+            panic!("no more registers!")
+        }
+
+        self.real_register_cursor = (cursor + count) as u8;
+
+        let mut r = Vec::with_capacity(count);
+        for x in cursor..=cursor + count {
+            r.push(Register::LuaRegister(x as u8));
+            self.used_real_registers.insert(x as u8);
+        }
+
+        r
+    }
+
     #[inline]
     pub fn free(&mut self, reg: &Register) {
         // prevent free for local variable register
-        if self.local_variable_register_reverse.contains_key(&reg) {
+        if self.local_variable_register_reverse.contains_key(reg) {
             return;
         }
 
