@@ -427,7 +427,7 @@ impl AstVisitorMut for LuaBackend {
             | Operator::Greater
             | Operator::GreaterEqual => {
                 let dest_reg = match self.top_attribute().registers.first() {
-                    Some(r) => r.clone(),
+                    Some(r) => *r,
                     _ => self.reg_mgr.alloc_hard(),
                 };
 
