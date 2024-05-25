@@ -17,15 +17,7 @@ jobs:
     steps:
     - uses: ConorMacBride/install-package@v1
       with:
-        apt: libpango1.0-dev libgtk-4-dev
-
-    - uses: leafo/gh-actions-lua@v10
-      with:
-        luaVersion: "5.4"
-
-    - name: Add lua 5.4 to PATH
-      run: |
-        echo ".lua/bin" >> $GITHUB_PATH
+        apt: libpango1.0-dev libgtk-4-dev lua5.4
 
     - uses: KyleMayes/install-llvm-action@v1
       with:
@@ -38,6 +30,7 @@ jobs:
       env:
         LLVM_SYS_170_PREFIX: ${{ runner.temp }}/llvm-17
     - name: Run tests
-      run: cargo test --verbose
+      run: |
+        cargo test --verbose
       env:
         LLVM_SYS_170_PREFIX: ${{ runner.temp }}/llvm-17
