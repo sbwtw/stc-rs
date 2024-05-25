@@ -19,6 +19,11 @@ jobs:
       with:
         apt: libpango1.0-dev libgtk-4-dev
 
+    - uses: leafo/gh-actions-lua@v10
+      with:
+        luaVersion: "5.4"
+      run: echo ".lua/bin" >> $GITHUB_ENV
+
     - uses: KyleMayes/install-llvm-action@v1
       with:
         version: "17.0"

@@ -1,12 +1,11 @@
-use indexmap::IndexSet;
-use smallvec::SmallVec;
+use indexmap::{IndexMap, IndexSet};
 use std::fmt::{Display, Formatter, Write};
 use std::hash::{Hash, Hasher};
 
 use crate::parser::StString;
 
-use super::register::Register;
-use super::{ConstantIndex, LuaType};
+use super::register::{Register, RK};
+use super::{ConstantIndex, LuaType, LuaVarKind, UpValueIndex};
 
 macro_rules! excess_k {
     ($v: expr, $k: expr) => {
@@ -160,12 +159,21 @@ impl LuaConstants {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Copy)]
 pub struct LuaUpValue {
-    pub name: Option<StString>,
     pub stack: u8,
     pub index: u8,
-    pub kind: u8,
+    pub kind: LuaVarKind,
+}
+
+impl Default for LuaUpValue {
+    fn default() -> Self {
+        Self {
+            stack: 0,
+            index: 0,
+            kind: LuaVarKind::VDKREG,
+        }
+    }
 }
 
 impl Eq for LuaConstants {}
@@ -203,9 +211,9 @@ pub enum LuaByteCode {
     LoadK(Register, ConstantIndex),
 
     /// A B C: R[A] := UpValue[B][K[C]:string]
-    GetTabUp(Register, u8, u8),
+    GetTabUp(Register, u8, ConstantIndex),
     /// A B C: UpValue[A][K[B]:string] := RK(C)
-    SetTabUp(u8, u8, u8),
+    SetTabUp(Register, UpValueIndex, RK),
 
     /// A B C: R[A] := R[B] + R[C]
     Add(Register, Register, Register),
@@ -273,12 +281,25 @@ impl LuaByteCode {
             // A B k
             LuaByteCode::Eq(a, b, k) => (k as u32) << 17 | (b.num() as u32) << 9 | a.num() as u32,
             // A sB k
-            LuaByteCode::GetTabUp(a, sb, c)
             | LuaByteCode::Gei(a, sb, c)
             | LuaByteCode::Gti(a, sb, c)
             | LuaByteCode::Call(a, sb, c) => (c as u32) << 17 | (sb as u32) << 9 | a.num() as u32,
+            // A B K
+            LuaByteCode::GetTabUp(a, upv, k) => {
+                (k as u32) << 17 | (upv as u32) << 9 | a.num() as u32
+            }
+            // A B RK
+            LuaByteCode::SetTabUp(a, upv, rk) => {
+                let c = match rk {
+                    RK::R(Register::RealRegister(r)) => r as u32,
+                    RK::K(k) => (k as u32) << 17 | 1u32 << 8,
+                    _ => unreachable!(),
+                };
+
+                c | (upv as u32) << 9 | a.num() as u32
+            },
             // A B C all literal
-            LuaByteCode::Return(a, b, c) | LuaByteCode::SetTabUp(a, b, c) => {
+            LuaByteCode::Return(a, b, c) => {
                 (c as u32) << 17 | (b as u32) << 9 | a as u32
             }
             // ABx
@@ -300,7 +321,7 @@ impl LuaByteCode {
 pub struct LuaCompiledCode {
     pub byte_codes: Vec<LuaByteCode>,
     pub constants: IndexSet<LuaConstants>,
-    pub upvalues: SmallVec<[LuaUpValue; 32]>,
+    pub upvalues: IndexMap<StString, LuaUpValue>,
 }
 
 impl LuaCompiledCode {
@@ -330,14 +351,26 @@ impl LuaCompiledCode {
                 write!(s, "R{} R{} {k}", a.num(), b.num()).unwrap();
             }
             // A sB k
-            LuaByteCode::GetTabUp(a, b, c)
-            | LuaByteCode::Gti(a, b, c)
+            LuaByteCode::Gti(a, b, c)
             | LuaByteCode::Gei(a, b, c)
             | LuaByteCode::Call(a, b, c) => {
                 write!(s, "R{} {b} {c}", a.num()).unwrap();
             }
+            // Reg, Upv, K
+            LuaByteCode::GetTabUp(reg, upv, k) => {
+                write!(s, "R{} {upv} {k}", reg.num()).unwrap();
+            }
+            // Reg, Upv, RK
+            LuaByteCode::SetTabUp(reg, upv, rk) => {
+                write!(s, "R{} {upv} ", reg.num()).unwrap();
+
+                match rk {
+                    RK::R(r) => write!(s, "{}", r.num()),
+                    RK::K(k) => write!(s, "{}k", k),
+                }.unwrap();
+            },
             // ABC with k
-            LuaByteCode::SetTabUp(a, b, c) | LuaByteCode::Return(a, b, c) => {
+            LuaByteCode::Return(a, b, c) => {
                 write!(s, "{a} {b} {c}").unwrap();
             }
             // ABx
@@ -362,8 +395,9 @@ impl LuaCompiledCode {
             LuaByteCode::LoadK(a, bx) => {
                 write!(s, " ; K[{}] = {}", bx, self.constants[*bx as usize]).unwrap();
             }
-            LuaByteCode::GetTabUp(a, b, c) => {
-                write!(s, " ; _ENV \"{}\"", self.constants[*c as usize]).unwrap();
+            LuaByteCode::GetTabUp(a, b, k) => {
+                let (name, _upv) = self.upvalues.get_index(*k as usize).unwrap();
+                write!(s, " ; _ENV \"{}\"", name).unwrap()
             }
             LuaByteCode::Call(a, b, c) => {
                 if *b == 0 {

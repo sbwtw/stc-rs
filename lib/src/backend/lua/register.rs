@@ -7,15 +7,21 @@ use crate::parser::StString;
 const MAX_REGISTER_ID: u8 = 255;
 
 #[derive(PartialEq, Eq, Clone, Debug, Copy, Hash)]
+pub enum RK {
+    R(Register),
+    K(u8),
+}
+
+#[derive(PartialEq, Eq, Clone, Debug, Copy, Hash)]
 pub enum Register {
     VirtualRegister(usize),
-    LuaRegister(u8),
+    RealRegister(u8),
 }
 
 impl Register {
     pub fn num(&self) -> u8 {
         match *self {
-            Self::LuaRegister(x) => x,
+            Self::RealRegister(x) => x,
             Self::VirtualRegister(..) => panic!("Can't get number for virtual register"),
         }
     }
@@ -27,7 +33,7 @@ impl Register {
     // for unit test
     #[cfg(test)]
     pub fn from_raw(n: u8) -> Self {
-        Self::LuaRegister(n)
+        Self::RealRegister(n)
     }
 }
 
@@ -72,7 +78,7 @@ impl RegisterManager {
     pub fn check_and_reset(&mut self) -> bool {
         // free all local variable registers
         for (r, _) in self.local_variable_register_reverse.iter() {
-            if let Register::LuaRegister(x) = r {
+            if let Register::RealRegister(x) = r {
                 self.used_real_registers.remove(x);
             }
         }
@@ -104,7 +110,7 @@ impl RegisterManager {
 
         loop {
             if self.used_real_registers.insert(self.real_register_cursor) {
-                return Register::LuaRegister(self.real_register_cursor);
+                return Register::RealRegister(self.real_register_cursor);
             }
 
             self.real_register_cursor += 1;
@@ -122,7 +128,7 @@ impl RegisterManager {
 
         let mut r = Vec::with_capacity(count);
         for x in cursor..=cursor + count {
-            r.push(Register::LuaRegister(x as u8));
+            r.push(Register::RealRegister(x as u8));
             self.used_real_registers.insert(x as u8);
         }
 
@@ -137,7 +143,7 @@ impl RegisterManager {
         }
 
         match *reg {
-            Register::LuaRegister(x) => {
+            Register::RealRegister(x) => {
                 self.used_real_registers.remove(&x);
             }
             Register::VirtualRegister(_) => {}

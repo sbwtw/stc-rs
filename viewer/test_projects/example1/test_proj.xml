@@ -22,7 +22,7 @@ end_program
 ]]>
             </interface>
             <body>
-                a := 1.234;
+                a := 1;
                 print(a);
             </body>
         </pou>

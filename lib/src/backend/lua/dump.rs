@@ -109,8 +109,8 @@ fn lua_dump_function(
     lua_dump_size(w, lua_code.upvalues.len() as u64)?;
 
     // Dump UpValues
-    for upv in lua_code.upvalues.as_ref() {
-        w.write_all(&[upv.stack, upv.index, upv.kind])?;
+    for (_, upv) in &lua_code.upvalues {
+        w.write_all(&[upv.stack, upv.index, upv.kind.bits()])?;
     }
 
     // Dump size of Protos

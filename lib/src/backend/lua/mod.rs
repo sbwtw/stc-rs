@@ -4,6 +4,8 @@ use bytecode::*;
 
 mod dump;
 mod register;
+#[cfg(test)]
+mod test;
 mod utils;
 mod vm;
 
@@ -15,11 +17,12 @@ use self::dump::lua_dump_module;
 use self::register::*;
 use self::utils::*;
 
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use log::*;
 use smallvec::{smallvec, SmallVec};
 use std::mem;
 use std::rc::Rc;
+use crate::backend::lua::register::Register::RealRegister;
 
 type ConstantIndex = u8;
 type UpValueIndex = u8;
@@ -41,10 +44,26 @@ bitflags! {
     }
 }
 
+bitflags! {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+    pub struct LuaVarKind: u8 {
+        // regular
+        const VDKREG        = 0;
+        // constant
+        const RDKCONST      = 1;
+        // to-be-closed
+        const RDKTOCLOSE    = 2;
+        // compile-time constant
+        const RDKCTC        = 3;
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 enum LuaAccessMode {
     None,
     Call(usize),
+    ReadUpValue,
+    WriteRegister,
     // Read value into register or literal
     LoadNewRegister,
     // Read value into register only
@@ -59,6 +78,7 @@ pub struct LuaBackendStates {
     variable: Option<Rc<Variable>>,
     registers: SmallVec8<Register>,
     constant_index: Option<ConstantIndex>,
+    upvalue: Option<(u8, LuaUpValue)>,
     scope: Option<Scope>,
     error: bool,
     access_mode: LuaAccessMode,
@@ -71,6 +91,7 @@ impl Default for LuaBackendStates {
             registers: smallvec![],
             scope: None,
             error: false,
+            upvalue: None,
             access_mode: LuaAccessMode::None,
             constant_index: None,
         }
@@ -87,15 +108,19 @@ pub struct LuaBackend {
     reg_mgr: RegisterManager,
 
     // tmp values for generating function
-    upvalues: SmallVec<[LuaUpValue; 32]>,
+    upvalue_table: IndexMap<StString, LuaUpValue>,
     constants: IndexSet<LuaConstants>,
 }
 
 impl LuaBackend {
     #[inline]
-    fn push_code(&mut self, code: LuaByteCode) {
-        debug!("LuaBackend: Push Code {:?}", code);
-        self.byte_codes.push(code)
+    fn code_gettabup(&mut self, dst: Register, k: ConstantIndex) {
+        self.push_code(LuaByteCode::GetTabUp(dst, 0, k));
+    }
+
+    #[inline]
+    fn code_settabup(&mut self, up_idx: u8, rk: RK) {
+        self.push_code(LuaByteCode::SetTabUp(RealRegister(0), up_idx, rk));
     }
 
     #[inline]
@@ -117,6 +142,22 @@ impl LuaBackend {
     #[inline]
     fn code_load_constant(&mut self, r: Register, k: ConstantIndex) {
         self.push_code(LuaByteCode::LoadK(r, k))
+    }
+
+    #[inline]
+    fn push_code(&mut self, code: LuaByteCode) {
+        debug!("LuaBackend: Push Code {:?}", code);
+        self.byte_codes.push(code)
+    }
+
+    fn lookup_symbol(&mut self, sym: &StString) -> Option<(u8, LuaUpValue)> {
+        if !self.upvalue_table.contains_key(sym) {
+            let constant = self.add_constant(&LiteralValue::String(sym.origin_string().clone()));
+            self.upvalue_table.insert_full(sym.clone(), LuaUpValue { stack: 0, index: constant, kind: LuaVarKind::RDKCONST });
+        }
+
+        let (idx, _key, val) = self.upvalue_table.get_full(sym).unwrap();
+        Some((idx as u8, *val))
     }
 
     #[inline]
@@ -216,8 +257,8 @@ impl CodeGenBackend for LuaBackend {
             local_function: None,
             local_proto: None,
             constants: IndexSet::new(),
+            upvalue_table: IndexMap::new(),
             reg_mgr: RegisterManager::new(),
-            upvalues: smallvec![],
         }
     }
 
@@ -244,11 +285,16 @@ impl CodeGenBackend for LuaBackend {
         }
 
         // create upvalue table
-        self.upvalues.push(LuaUpValue {
-            name: None,
+        // self.upvalues.push(LuaUpValue {
+        //     name: None,
+        //     stack: 1,
+        //     index: 0,
+        //     kind: 0,
+        // });
+        self.upvalue_table.insert(StString::empty(), LuaUpValue {
             stack: 1,
             index: 0,
-            kind: 0,
+            kind: LuaVarKind::VDKREG,
         });
 
         let mut fun = f.write();
@@ -261,7 +307,7 @@ impl CodeGenBackend for LuaBackend {
 
         let byte_codes = mem::take(&mut self.byte_codes);
         let constants = mem::replace(&mut self.constants, IndexSet::new());
-        let upvalues = mem::replace(&mut self.upvalues, smallvec![]);
+        let upvalues = mem::replace(&mut self.upvalue_table, IndexMap::new());
 
         // reset RegMan and check register is balance
         assert!(self.reg_mgr.check_and_reset());
@@ -332,8 +378,18 @@ impl AstVisitorMut for LuaBackend {
 
                 let arg_regs = self.reg_mgr.alloc_hard_batch(arg_cnt);
                 self.top_attribute().registers = arg_regs.into();
-                self.top_attribute().constant_index =
-                    Some(self.add_string_constant(var_expr.org_name()));
+                self.top_attribute().upvalue = self.lookup_symbol(var_expr.name());
+                // self.top_attribute().constant_index =
+                //     Some(self.add_string_constant(var_expr.org_name()));
+            }
+            // Read UpValue
+            LuaAccessMode::ReadUpValue => {
+                self.top_attribute().upvalue = self.lookup_symbol(var_expr.name());
+            }
+            LuaAccessMode::WriteRegister => {
+                let dst = self.top_attribute().registers[0];
+                let upv = self.lookup_symbol(var_expr.name());
+                self.code_gettabup(dst, upv.unwrap().0);
             }
             // Write register into stack
             LuaAccessMode::Write => {}
@@ -374,14 +430,14 @@ impl AstVisitorMut for LuaBackend {
         let callee_reg = arg_regs[0];
 
         // TODO:
-        self.push_code(LuaByteCode::GetTabUp(callee_reg, 0, 1));
+        self.push_code(LuaByteCode::GetTabUp(callee_reg, 0, callee_attr.upvalue.unwrap().0));
 
         // visit all arguments
         for (idx, arg) in call.arguments_mut().iter_mut().enumerate() {
-            self.push_access_attribute(LuaAccessMode::LoadExistRegister);
+            self.push_access_attribute(LuaAccessMode::WriteRegister);
             self.top_attribute().registers = smallvec![arg_regs[idx + 1]];
             self.visit_expression_mut(arg);
-            let arg_attr = self.pop_attribute();
+            self.pop_attribute();
         }
 
         // free registers
@@ -468,23 +524,21 @@ impl AstVisitorMut for LuaBackend {
         let rhs = self.pop_attribute();
 
         // Get lhs register
-        self.push_access_attribute(LuaAccessMode::LoadNewRegister);
+        self.push_access_attribute(LuaAccessMode::ReadUpValue);
         assign.left_mut().accept_mut(self);
-        let lhs_reg = self.pop_attribute().registers[0];
+        let lhs_upv = self.pop_attribute().upvalue.unwrap();
+        // let lhs_reg = self.pop_attribute().registers[0];
 
         if let Some(constant_index) = rhs.constant_index {
             assert_eq!(rhs.registers.len(), 0);
-            self.code_load_constant(lhs_reg, constant_index)
+            // self.code_load_constant(lhs_reg, constant_index)
+            self.code_settabup(lhs_upv.0, RK::K(constant_index));
         } else {
             assert_eq!(1, rhs.registers.len());
-            assert_ne!(lhs_reg, rhs.registers[0]);
+            // assert_ne!(lhs_reg, rhs.registers[0]);
 
             self.reg_mgr.free(&rhs.registers[0]);
-            self.code_move(rhs.registers[0], lhs_reg);
+            // self.code_move(rhs.registers[0], lhs_reg);
         }
-
-        // TODO: keep register?
-        // self.top_attribute().register = Some(lhs_reg);
-        self.reg_mgr.free(&lhs_reg);
     }
 }

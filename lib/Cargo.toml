@@ -29,6 +29,9 @@ byteorder = "*"
 uuid = { version = "*", features = ["v4", "fast-rng", "macro-diagnostics", "serde"] }
 inkwell = { version = "*", optional = true, features = ["llvm17-0-no-llvm-linking"] }
 
+[dev-dependencies]
+tempfile = "*"
+
 [build-dependencies]
 cbindgen = "*"
 lalrpop = { version = "*", optional = true }
