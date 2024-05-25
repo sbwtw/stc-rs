@@ -22,7 +22,10 @@ jobs:
     - uses: leafo/gh-actions-lua@v10
       with:
         luaVersion: "5.4"
-      run: echo ".lua/bin" >> $GITHUB_ENV
+
+    - name: Add lua 5.4 to PATH
+      run: |
+        echo ".lua/bin" >> $GITHUB_PATH
 
     - uses: KyleMayes/install-llvm-action@v1
       with:
