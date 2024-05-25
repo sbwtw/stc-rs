@@ -22,10 +22,9 @@ use log::*;
 use smallvec::{smallvec, SmallVec};
 use std::mem;
 use std::rc::Rc;
-use crate::backend::lua::register::Register::RealRegister;
+use crate::backend::lua::register::Reg::R;
 
-type ConstantIndex = u8;
-type UpValueIndex = u8;
+type ConstIdx = u8;
 
 bitflags! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -62,7 +61,7 @@ bitflags! {
 enum LuaAccessMode {
     None,
     Call(usize),
-    ReadUpValue,
+    ReadSymbol,
     WriteRegister,
     // Read value into register or literal
     LoadNewRegister,
@@ -76,9 +75,8 @@ enum LuaAccessMode {
 #[derive(Clone)]
 pub struct LuaBackendStates {
     variable: Option<Rc<Variable>>,
-    registers: SmallVec8<Register>,
-    constant_index: Option<ConstantIndex>,
-    upvalue: Option<(u8, LuaUpValue)>,
+    registers: SmallVec8<Reg>,
+    const_idx: Option<ConstIdx>,
     scope: Option<Scope>,
     error: bool,
     access_mode: LuaAccessMode,
@@ -91,9 +89,8 @@ impl Default for LuaBackendStates {
             registers: smallvec![],
             scope: None,
             error: false,
-            upvalue: None,
             access_mode: LuaAccessMode::None,
-            constant_index: None,
+            const_idx: None,
         }
     }
 }
@@ -114,21 +111,21 @@ pub struct LuaBackend {
 
 impl LuaBackend {
     #[inline]
-    fn code_gettabup(&mut self, dst: Register, k: ConstantIndex) {
+    fn code_gettabup(&mut self, dst: Reg, k: ConstIdx) {
         self.push_code(LuaByteCode::GetTabUp(dst, 0, k));
     }
 
     #[inline]
     fn code_settabup(&mut self, up_idx: u8, rk: RK) {
-        self.push_code(LuaByteCode::SetTabUp(RealRegister(0), up_idx, rk));
+        self.push_code(LuaByteCode::SetTabUp(R(0), up_idx, rk));
     }
 
     #[inline]
-    fn code_move(&mut self, from: Register, to: Register) {
+    fn code_move(&mut self, from: Reg, to: Reg) {
         self.push_code(LuaByteCode::Move(to, from))
     }
 
-    fn code_load(&mut self, r: Register, v: &LiteralValue) {
+    fn code_load(&mut self, r: Reg, v: &LiteralValue) {
         // if literal can use LoadI instructions
         if let Some(v) = try_fit_sbx(v) {
             self.push_code(LuaByteCode::LoadI(r, v));
@@ -140,28 +137,18 @@ impl LuaBackend {
     }
 
     #[inline]
-    fn code_load_constant(&mut self, r: Register, k: ConstantIndex) {
+    fn code_load_constant(&mut self, r: Reg, k: ConstIdx) {
         self.push_code(LuaByteCode::LoadK(r, k))
     }
 
     #[inline]
     fn push_code(&mut self, code: LuaByteCode) {
-        debug!("LuaBackend: Push Code {:?}", code);
+        trace!("Code-Lua: {:?}", code);
         self.byte_codes.push(code)
     }
 
-    fn lookup_symbol(&mut self, sym: &StString) -> Option<(u8, LuaUpValue)> {
-        if !self.upvalue_table.contains_key(sym) {
-            let constant = self.add_constant(&LiteralValue::String(sym.origin_string().clone()));
-            self.upvalue_table.insert_full(sym.clone(), LuaUpValue { stack: 0, index: constant, kind: LuaVarKind::RDKCONST });
-        }
-
-        let (idx, _key, val) = self.upvalue_table.get_full(sym).unwrap();
-        Some((idx as u8, *val))
-    }
-
     #[inline]
-    fn add_constant(&mut self, v: &LiteralValue) -> ConstantIndex {
+    fn add_constant(&mut self, v: &LiteralValue) -> ConstIdx {
         match v {
             LiteralValue::String(s) => self.add_string_constant(s),
             LiteralValue::DInt(i) => self.add_integer_constant(*i as i64),
@@ -224,24 +211,24 @@ impl LuaBackend {
     }
 
     #[inline]
-    fn add_string_constant<S: AsRef<str>>(&mut self, s: S) -> ConstantIndex {
+    fn add_string_constant<S: AsRef<str>>(&mut self, s: S) -> ConstIdx {
         let constant = LuaConstants::String(s.as_ref().to_owned());
         let (idx, _inserted) = self.constants.insert_full(constant);
-        idx as ConstantIndex
+        idx as ConstIdx
     }
 
     #[inline]
-    fn add_integer_constant(&mut self, i: i64) -> ConstantIndex {
+    fn add_integer_constant(&mut self, i: i64) -> ConstIdx {
         let constant = LuaConstants::Integer(i);
         let (idx, _inserted) = self.constants.insert_full(constant);
-        idx as ConstantIndex
+        idx as ConstIdx
     }
 
     #[inline]
-    fn add_float_constant(&mut self, f: f64) -> ConstantIndex {
+    fn add_float_constant(&mut self, f: f64) -> ConstIdx {
         let constant = LuaConstants::Float(f);
         let (idx, _inserted) = self.constants.insert_full(constant);
-        idx as ConstantIndex
+        idx as ConstIdx
     }
 }
 
@@ -356,7 +343,7 @@ impl AstVisitorMut for LuaBackend {
 
             self.code_load(r, literal.literal());
         } else {
-            self.top_attribute().constant_index = Some(self.add_constant(literal.literal()))
+            self.top_attribute().const_idx = Some(self.add_constant(literal.literal()))
         }
     }
 
@@ -378,18 +365,16 @@ impl AstVisitorMut for LuaBackend {
 
                 let arg_regs = self.reg_mgr.alloc_hard_batch(arg_cnt);
                 self.top_attribute().registers = arg_regs.into();
-                self.top_attribute().upvalue = self.lookup_symbol(var_expr.name());
-                // self.top_attribute().constant_index =
-                //     Some(self.add_string_constant(var_expr.org_name()));
+                self.top_attribute().const_idx = Some(self.add_string_constant(var_expr.org_name()));
             }
-            // Read UpValue
-            LuaAccessMode::ReadUpValue => {
-                self.top_attribute().upvalue = self.lookup_symbol(var_expr.name());
+            // Read Symbol
+            LuaAccessMode::ReadSymbol => {
+                self.top_attribute().const_idx = Some(self.add_string_constant(var_expr.org_name()));
             }
             LuaAccessMode::WriteRegister => {
                 let dst = self.top_attribute().registers[0];
-                let upv = self.lookup_symbol(var_expr.name());
-                self.code_gettabup(dst, upv.unwrap().0);
+                let constant_index = self.add_string_constant(var_expr.org_name());
+                self.code_gettabup(dst, constant_index);
             }
             // Write register into stack
             LuaAccessMode::Write => {}
@@ -429,8 +414,8 @@ impl AstVisitorMut for LuaBackend {
         let arg_regs = callee_attr.registers;
         let callee_reg = arg_regs[0];
 
-        // TODO:
-        self.push_code(LuaByteCode::GetTabUp(callee_reg, 0, callee_attr.upvalue.unwrap().0));
+        // Load Callee from constant table into callee_reg
+        self.push_code(LuaByteCode::GetTabUp(callee_reg, 0, callee_attr.const_idx.unwrap()));
 
         // visit all arguments
         for (idx, arg) in call.arguments_mut().iter_mut().enumerate() {
@@ -524,15 +509,15 @@ impl AstVisitorMut for LuaBackend {
         let rhs = self.pop_attribute();
 
         // Get lhs register
-        self.push_access_attribute(LuaAccessMode::ReadUpValue);
+        self.push_access_attribute(LuaAccessMode::ReadSymbol);
         assign.left_mut().accept_mut(self);
-        let lhs_upv = self.pop_attribute().upvalue.unwrap();
+        let lhs_constant_index = self.pop_attribute().const_idx.unwrap();
         // let lhs_reg = self.pop_attribute().registers[0];
 
-        if let Some(constant_index) = rhs.constant_index {
+        if let Some(constant_index) = rhs.const_idx {
             assert_eq!(rhs.registers.len(), 0);
             // self.code_load_constant(lhs_reg, constant_index)
-            self.code_settabup(lhs_upv.0, RK::K(constant_index));
+            self.code_settabup(lhs_constant_index, RK::K(constant_index));
         } else {
             assert_eq!(1, rhs.registers.len());
             // assert_ne!(lhs_reg, rhs.registers[0]);

@@ -4,8 +4,8 @@ use std::hash::{Hash, Hasher};
 
 use crate::parser::StString;
 
-use super::register::{Register, RK};
-use super::{ConstantIndex, LuaType, LuaVarKind, UpValueIndex};
+use super::register::{Reg, RK};
+use super::{ConstIdx, LuaType, LuaVarKind};
 
 macro_rules! excess_k {
     ($v: expr, $k: expr) => {
@@ -204,34 +204,34 @@ impl Display for LuaConstants {
 #[derive(Debug)]
 pub enum LuaByteCode {
     /// A B: R[A] := R[B]
-    Move(Register, Register),
+    Move(Reg, Reg),
     /// A sBx: R[A] := sBx
-    LoadI(Register, i32),
+    LoadI(Reg, i32),
     /// A B: R[A] := K[Bx]
-    LoadK(Register, ConstantIndex),
+    LoadK(Reg, ConstIdx),
 
     /// A B C: R[A] := UpValue[B][K[C]:string]
-    GetTabUp(Register, u8, ConstantIndex),
+    GetTabUp(Reg, u8, ConstIdx),
     /// A B C: UpValue[A][K[B]:string] := RK(C)
-    SetTabUp(Register, UpValueIndex, RK),
+    SetTabUp(Reg, u8, RK),
 
     /// A B C: R[A] := R[B] + R[C]
-    Add(Register, Register, Register),
+    Add(Reg, Reg, Reg),
 
     /// A B k: if ((R[A] == R[B]) ~= k) then pc++
-    Eq(Register, Register, u8),
+    Eq(Reg, Reg, u8),
 
     /// A sB k: if ((R[A] > sB) ~= k) then pc++
-    Gti(Register, u8, u8),
+    Gti(Reg, u8, u8),
     /// A sB k: if ((R[A] >= sB) ~= k) then pc++
-    Gei(Register, u8, u8),
+    Gei(Reg, u8, u8),
 
     /// A B C: return R[A], ... ,R[A+B-2]
     Return(u8, u8, u8),
 
     /// Call k, v: k is callee symbol position, v is argument count, return value not included
     /// A B C: R[A], ... ,R[A+C-2] := R[A](R[A+1], ... ,R[A+B-1])
-    Call(Register, u8, u8),
+    Call(Reg, u8, u8),
 
     /// A (adjust vararg parameters)
     VarArgPrep(u8),
@@ -291,7 +291,7 @@ impl LuaByteCode {
             // A B RK
             LuaByteCode::SetTabUp(a, upv, rk) => {
                 let c = match rk {
-                    RK::R(Register::RealRegister(r)) => r as u32,
+                    RK::R(Reg::R(r)) => r as u32,
                     RK::K(k) => (k as u32) << 17 | 1u32 << 8,
                     _ => unreachable!(),
                 };
@@ -396,8 +396,7 @@ impl LuaCompiledCode {
                 write!(s, " ; K[{}] = {}", bx, self.constants[*bx as usize]).unwrap();
             }
             LuaByteCode::GetTabUp(a, b, k) => {
-                let (name, _upv) = self.upvalues.get_index(*k as usize).unwrap();
-                write!(s, " ; _ENV \"{}\"", name).unwrap()
+                write!(s, " ; _ENV \"{}\"", self.constants[*k as usize]).unwrap()
             }
             LuaByteCode::Call(a, b, c) => {
                 if *b == 0 {
@@ -453,14 +452,14 @@ impl Display for LuaCompiledCode {
 #[cfg(test)]
 mod test {
     use super::LuaByteCode;
-    use super::Register;
+    use super::Reg;
 
     #[test]
     fn test_encoding() {
-        let code = LuaByteCode::LoadI(Register::from_raw(0), 2);
+        let code = LuaByteCode::LoadI(Reg::from_raw(0), 2);
         assert_eq!(code.encode(), 0x80008001);
 
-        let code = LuaByteCode::LoadI(Register::from_raw(3), -65535);
+        let code = LuaByteCode::LoadI(Reg::from_raw(3), -65535);
         assert_eq!(code.encode(), 0x00000181);
 
         let code = LuaByteCode::Return(0, 1, 1);

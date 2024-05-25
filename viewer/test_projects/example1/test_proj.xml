@@ -23,7 +23,10 @@ end_program
             </interface>
             <body>
                 a := 1;
+
+                if a = 1 then
                 print(a);
+                end_if
             </body>
         </pou>
     </pou-list>

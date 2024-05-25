@@ -77,9 +77,24 @@ fn eval_string<S1: AsRef<str>, S2: AsRef<str>>(decl: S1, body: S2) -> String {
 
 #[test]
 fn test_print() {
+    // assignment
     let r = eval_string(
         "PROGRAM main: VAR a: int; END_VAR END_PROGRAM",
         "a := 1; print(a);",
     );
     assert_eq!(r, "1\n");
+
+    // assignment twice
+    let r = eval_string(
+        "PROGRAM main: VAR a: int; END_VAR END_PROGRAM",
+        "a := 3; a := 2; print(a);",
+    );
+    assert_eq!(r, "2\n");
+
+    // print string
+    let r = eval_string(
+        "PROGRAM main: VAR a: STRING; END_VAR END_PROGRAM",
+        "a := \"abc\"; print(a);",
+    );
+    assert_eq!(r, "abc\n");
 }

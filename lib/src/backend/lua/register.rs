@@ -6,34 +6,36 @@ use crate::parser::StString;
 
 const MAX_REGISTER_ID: u8 = 255;
 
+/// Register or ConstantIndex
 #[derive(PartialEq, Eq, Clone, Debug, Copy, Hash)]
 pub enum RK {
-    R(Register),
+    R(Reg),
     K(u8),
 }
 
+/// Register, VirtualRegister or RealRegister
 #[derive(PartialEq, Eq, Clone, Debug, Copy, Hash)]
-pub enum Register {
-    VirtualRegister(usize),
-    RealRegister(u8),
+pub enum Reg {
+    VR(usize),
+    R(u8),
 }
 
-impl Register {
+impl Reg {
     pub fn num(&self) -> u8 {
         match *self {
-            Self::RealRegister(x) => x,
-            Self::VirtualRegister(..) => panic!("Can't get number for virtual register"),
+            Self::R(x) => x,
+            Self::VR(..) => panic!("Can't get number for virtual register"),
         }
     }
 
     pub fn is_virtual(&self) -> bool {
-        matches!(*self, Self::VirtualRegister(..))
+        matches!(*self, Self::VR(..))
     }
 
     // for unit test
     #[cfg(test)]
     pub fn from_raw(n: u8) -> Self {
-        Self::RealRegister(n)
+        Self::R(n)
     }
 }
 
@@ -42,8 +44,8 @@ pub struct RegisterManager {
     virtual_register_cursor: usize,
     real_register_cursor: u8,
     used_real_registers: HashSet<u8>,
-    local_variable_register: SmallMap<StString, Register>,
-    local_variable_register_reverse: SmallMap<Register, StString>,
+    local_variable_register: SmallMap<StString, Reg>,
+    local_variable_register_reverse: SmallMap<Reg, StString>,
 }
 
 impl RegisterManager {
@@ -59,7 +61,7 @@ impl RegisterManager {
     }
 
     #[inline]
-    pub fn alloc_local_variable(&mut self, v: &StString) -> Register {
+    pub fn alloc_local_variable(&mut self, v: &StString) -> Reg {
         match self.local_variable_register.get(v) {
             Some(r) => *r,
             None => {
@@ -78,7 +80,7 @@ impl RegisterManager {
     pub fn check_and_reset(&mut self) -> bool {
         // free all local variable registers
         for (r, _) in self.local_variable_register_reverse.iter() {
-            if let Register::RealRegister(x) = r {
+            if let Reg::R(x) = r {
                 self.used_real_registers.remove(x);
             }
         }
@@ -97,20 +99,20 @@ impl RegisterManager {
         balanced
     }
 
-    pub fn alloc(&mut self) -> Register {
+    pub fn alloc(&mut self) -> Reg {
         let next = self.virtual_register_cursor;
         self.virtual_register_cursor += 1;
 
-        Register::VirtualRegister(next)
+        Reg::VR(next)
     }
 
-    pub fn alloc_hard(&mut self) -> Register {
+    pub fn alloc_hard(&mut self) -> Reg {
         // ensure has free register to allocate
         assert!(self.used_real_registers.len() <= MAX_REGISTER_ID as usize);
 
         loop {
             if self.used_real_registers.insert(self.real_register_cursor) {
-                return Register::RealRegister(self.real_register_cursor);
+                return Reg::R(self.real_register_cursor);
             }
 
             self.real_register_cursor += 1;
@@ -118,7 +120,7 @@ impl RegisterManager {
         }
     }
 
-    pub fn alloc_hard_batch(&mut self, count: usize) -> Vec<Register> {
+    pub fn alloc_hard_batch(&mut self, count: usize) -> Vec<Reg> {
         let cursor = self.real_register_cursor as usize;
         if cursor + count >= MAX_REGISTER_ID as usize {
             panic!("no more registers!")
@@ -128,7 +130,7 @@ impl RegisterManager {
 
         let mut r = Vec::with_capacity(count);
         for x in cursor..=cursor + count {
-            r.push(Register::RealRegister(x as u8));
+            r.push(Reg::R(x as u8));
             self.used_real_registers.insert(x as u8);
         }
 
@@ -136,17 +138,17 @@ impl RegisterManager {
     }
 
     #[inline]
-    pub fn free(&mut self, reg: &Register) {
+    pub fn free(&mut self, reg: &Reg) {
         // prevent free for local variable register
         if self.local_variable_register_reverse.contains_key(reg) {
             return;
         }
 
         match *reg {
-            Register::RealRegister(x) => {
+            Reg::R(x) => {
                 self.used_real_registers.remove(&x);
             }
-            Register::VirtualRegister(_) => {}
+            Reg::VR(_) => {}
         }
     }
 }
