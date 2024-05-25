@@ -62,7 +62,7 @@ fn eval_string<S1: AsRef<str>, S2: AsRef<str>>(decl: S1, body: S2) -> String {
     f.write_all(&buf).unwrap();
 
     // execute
-    let lua_cmd = "lua5.4";
+    let lua_cmd = "lua";
     let output = Command::new(lua_cmd)
         .arg(fp)
         .output()
