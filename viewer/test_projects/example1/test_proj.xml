@@ -22,11 +22,10 @@ end_program
 ]]>
             </interface>
             <body>
-                a := 1;
+                a := 2;
+                a := 3 + 2;
 
-                if a = 1 then
                 print(a);
-                end_if
             </body>
         </pou>
     </pou-list>

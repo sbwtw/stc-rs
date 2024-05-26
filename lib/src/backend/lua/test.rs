@@ -1,15 +1,12 @@
-use std::{fs, io::Write, process::Command};
-
-use tempfile::tempdir;
+use std::process::Command;
 
 use crate::{
-    analysis::TypeAnalyzer,
     backend::{CodeGenBackend, CodeGenDriver, LuaBackend},
     parser::*,
     prelude::*,
 };
 
-fn eval_string<S1: AsRef<str>, S2: AsRef<str>>(decl: S1, body: S2) -> String {
+fn eval_string<S1: AsRef<str>, S2: AsRef<str>>(decl: S1, body: S2) -> (String, String) {
     let mgr = UnitsManager::new();
     let ctx = ModuleContext::new(ModuleContextScope::Application);
     let lexer = StLexerBuilder::new().build_str(decl.as_ref());
@@ -23,78 +20,85 @@ fn eval_string<S1: AsRef<str>, S2: AsRef<str>>(decl: S1, body: S2) -> String {
     mgr.write().add_context(ctx.clone());
     mgr.write().set_active_application(Some(ctx.read().id()));
 
-    // Type analyze
-    let ctx_id = ctx.read().id();
-    let ctx_read = ctx.read();
-    let mut type_analyzer = TypeAnalyzer::new();
-    for proto in ctx_read.declarations() {
-        let proto_read = proto.read().unwrap();
-        let proto_id = proto_read.id();
-        let fun = ctx_read.get_function(proto_read.id());
-
-        if let Some(f) = fun {
-            let mut f = f.write();
-
-            let scope = Scope::new(Some(mgr.clone()), Some(ctx_id), Some(proto_id));
-            type_analyzer.analyze_statement(f.parse_tree_mut(), scope);
-        }
-    }
-
     // Build
+    let ctx_id = ctx.read().id();
     let mut code_gen: CodeGenDriver<LuaBackend> = CodeGenDriver::new(mgr.clone(), ctx_id).unwrap();
     code_gen.build_application().expect("build app failed");
 
-    let mut buf = vec![0u8; 0];
+    // Write to temporary file
+    let mut f = tempfile::Builder::new()
+        .tempfile()
+        .expect("create temp file failed");
     code_gen
         .backend()
-        .get_module_bytes(&mut buf)
+        .get_module_bytes(&mut f)
         .expect("get module bytes failed");
-
-    // Write to temporary file
-    let dir = tempdir().unwrap();
-    let fp = dir.path().join("test.o");
-    let mut f = fs::OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open(&fp)
-        .unwrap();
-    f.write_all(&buf).unwrap();
 
     // execute
     let lua_cmd = "lua";
     let output = Command::new(lua_cmd)
-        .arg(fp)
+        .arg(f.path())
         .output()
         .expect("lua exec failed");
 
     // get outputs
-    let s = String::from_utf8_lossy(&output.stdout).to_string();
-    drop(f);
+    let r = String::from_utf8_lossy(&output.stdout).to_string();
+    let e = String::from_utf8_lossy(&output.stderr).to_string();
 
-    s
+    (r, e)
 }
 
 #[test]
 fn test_print() {
     // assignment
-    let r = eval_string(
+    let (r, e) = eval_string(
         "PROGRAM main: VAR a: int; END_VAR END_PROGRAM",
         "a := 1; print(a);",
     );
-    assert_eq!(r, "1\n");
+    assert_eq!(r, "1\n", "Error: {}", e);
 
     // assignment twice
-    let r = eval_string(
+    let (r, e) = eval_string(
         "PROGRAM main: VAR a: int; END_VAR END_PROGRAM",
         "a := 3; a := 2; print(a);",
     );
-    assert_eq!(r, "2\n");
+    assert_eq!(r, "2\n", "Error: {}", e);
 
     // print string
-    let r = eval_string(
+    let (r, e) = eval_string(
         "PROGRAM main: VAR a: STRING; END_VAR END_PROGRAM",
         "a := \"abc\"; print(a);",
     );
-    assert_eq!(r, "abc\n");
+    assert_eq!(r, "abc\n", "Error: {}", e);
+}
+
+#[test]
+fn test_add() {
+    // R + R
+    let (r, e) = eval_string(
+        "PROGRAM main: VAR a: STRING; END_VAR END_PROGRAM",
+        "a := 2; a := a + a; print(a);",
+    );
+    assert_eq!(r, "4\n", "Error: {}", e);
+
+    // R + K
+    let (r, e) = eval_string(
+        "PROGRAM main: VAR a: STRING; END_VAR END_PROGRAM",
+        "a := 2; a := a + 1; print(a);",
+    );
+    assert_eq!(r, "3\n", "Error: {}", e);
+
+    // K + R
+    let (r, e) = eval_string(
+        "PROGRAM main: VAR a: STRING; END_VAR END_PROGRAM",
+        "a := 2; a := 1 + a; print(a);",
+    );
+    assert_eq!(r, "3\n", "Error: {}", e);
+
+    // K + K
+    let (r, e) = eval_string(
+        "PROGRAM main: VAR a: STRING; END_VAR END_PROGRAM",
+        "a := 2; a := 3 + 2; print(a);",
+    );
+    assert_eq!(r, "5\n", "Error: {}", e);
 }

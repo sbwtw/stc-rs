@@ -215,8 +215,18 @@ pub enum LuaByteCode {
     /// A B C: UpValue[A][K[B]:string] := RK(C)
     SetTabUp(Reg, u8, RK),
 
+    /// A B C: R[A] := R[B] + K[C]:number
+    AddK(Reg, Reg, ConstIdx),
+
     /// A B C: R[A] := R[B] + R[C]
     Add(Reg, Reg, Reg),
+
+    /// A B C call C metamethod over R[A] and R[B]
+    MMBin(Reg, Reg, ConstIdx),
+    /// A sB C k call C metamethod over R[A] and sB
+    MMBinI(Reg, i32, ConstIdx),
+    /// A B C k call C metamethod over R[A] and K[B]
+    MMBinK(Reg, ConstIdx, ConstIdx),
 
     /// A B k: if ((R[A] == R[B]) ~= k) then pc++
     Eq(Reg, Reg, u8),
@@ -247,6 +257,10 @@ impl LuaByteCode {
             LuaByteCode::Move(..) => "MOVE",
             LuaByteCode::LoadI(..) => "LOADI",
             LuaByteCode::Add(..) => "ADD",
+            LuaByteCode::AddK(..) => "ADDK",
+            LuaByteCode::MMBin(..) => "MMBIN",
+            LuaByteCode::MMBinI(..) => "MMBINI",
+            LuaByteCode::MMBinK(..) => "MMBINK",
             LuaByteCode::Gei(..) => "GEI",
             LuaByteCode::Gti(..) => "GTI",
             LuaByteCode::Eq(..) => "EQ",
@@ -263,6 +277,10 @@ impl LuaByteCode {
             LuaByteCode::LoadK(..) => LuaOpCode::OP_LOADK,
             LuaByteCode::Move(..) => LuaOpCode::OP_MOVE,
             LuaByteCode::LoadI(..) => LuaOpCode::OP_LOADI,
+            LuaByteCode::AddK(..) => LuaOpCode::OP_ADDK,
+            LuaByteCode::MMBin(..) => LuaOpCode::OP_MMBIN,
+            LuaByteCode::MMBinI(..) => LuaOpCode::OP_MMBINI,
+            LuaByteCode::MMBinK(..) => LuaOpCode::OP_MMBINK,
             LuaByteCode::Add(..) => LuaOpCode::OP_ADD,
             LuaByteCode::Gei(..) => LuaOpCode::OP_GEI,
             LuaByteCode::Gti(..) => LuaOpCode::OP_GTI,
@@ -281,12 +299,24 @@ impl LuaByteCode {
             // A B k
             LuaByteCode::Eq(a, b, k) => (k as u32) << 17 | (b.num() as u32) << 9 | a.num() as u32,
             // A sB k
-            | LuaByteCode::Gei(a, sb, c)
+            LuaByteCode::Gei(a, sb, c)
             | LuaByteCode::Gti(a, sb, c)
             | LuaByteCode::Call(a, sb, c) => (c as u32) << 17 | (sb as u32) << 9 | a.num() as u32,
             // A B K
             LuaByteCode::GetTabUp(a, upv, k) => {
                 (k as u32) << 17 | (upv as u32) << 9 | a.num() as u32
+            }
+            // RA, KB, KC with k
+            LuaByteCode::MMBinK(ra, kb, kc) => {
+                (kc as u32) << 17 | (kb as u32) << 9 | ra.num() as u32 | 1u32 << 8
+            }
+            // RA, sB, KC with k
+            LuaByteCode::MMBinI(ra, sb, k) => {
+                (k as u32) << 17 | excess_sbx!(sb) << 9 | ra.num() as u32 | 1u32 << 8
+            }
+            // RA, RB, KC
+            LuaByteCode::AddK(ra, rb, k) | LuaByteCode::MMBin(ra, rb, k) => {
+                (k as u32) << 17 | (rb.num() as u32) << 9 | ra.num() as u32
             }
             // A B RK
             LuaByteCode::SetTabUp(a, upv, rk) => {
@@ -297,11 +327,9 @@ impl LuaByteCode {
                 };
 
                 c | (upv as u32) << 9 | a.num() as u32
-            },
-            // A B C all literal
-            LuaByteCode::Return(a, b, c) => {
-                (c as u32) << 17 | (b as u32) << 9 | a as u32
             }
+            // A B C all literal
+            LuaByteCode::Return(a, b, c) => (c as u32) << 17 | (b as u32) << 9 | a as u32,
             // ABx
             LuaByteCode::LoadK(a, bx) => (bx as u32) << 8 | a.num() as u32,
             // AsBx
@@ -346,15 +374,25 @@ impl LuaCompiledCode {
             LuaByteCode::Add(a, b, c) => {
                 write!(s, "R{} R{} R{}", a.num(), b.num(), c.num()).unwrap();
             }
+            // RA, KB, KC with k
+            LuaByteCode::MMBinK(ra, kb, kc) => {
+                write!(s, "R{} {kb} {kc}", ra.num()).unwrap();
+            }
             // A B k
             LuaByteCode::Eq(a, b, k) => {
                 write!(s, "R{} R{} {k}", a.num(), b.num()).unwrap();
             }
             // A sB k
-            LuaByteCode::Gti(a, b, c)
-            | LuaByteCode::Gei(a, b, c)
-            | LuaByteCode::Call(a, b, c) => {
+            LuaByteCode::Gti(a, b, c) | LuaByteCode::Gei(a, b, c) | LuaByteCode::Call(a, b, c) => {
                 write!(s, "R{} {b} {c}", a.num()).unwrap();
+            }
+            // RA sB KC with k
+            LuaByteCode::MMBinI(ra, sb, kc) => {
+                write!(s, "R{} {sb} {kc}", ra.num()).unwrap();
+            }
+            // RegA, RegB, K
+            LuaByteCode::AddK(ra, rb, k) | LuaByteCode::MMBin(ra, rb, k) => {
+                write!(s, "R{} R{} {k}", ra.num(), rb.num()).unwrap();
             }
             // Reg, Upv, K
             LuaByteCode::GetTabUp(reg, upv, k) => {
@@ -367,8 +405,9 @@ impl LuaCompiledCode {
                 match rk {
                     RK::R(r) => write!(s, "{}", r.num()),
                     RK::K(k) => write!(s, "{}k", k),
-                }.unwrap();
-            },
+                }
+                .unwrap();
+            }
             // ABC with k
             LuaByteCode::Return(a, b, c) => {
                 write!(s, "{a} {b} {c}").unwrap();
@@ -392,6 +431,11 @@ impl LuaCompiledCode {
         }
 
         match code {
+            LuaByteCode::MMBin(_, _, k)
+            | LuaByteCode::MMBinI(_, _, k)
+            | LuaByteCode::MMBinK(_, _, k) => {
+                write!(s, " ; {}", self.constants[*k as usize]).unwrap();
+            }
             LuaByteCode::LoadK(a, bx) => {
                 write!(s, " ; K[{}] = {}", bx, self.constants[*bx as usize]).unwrap();
             }

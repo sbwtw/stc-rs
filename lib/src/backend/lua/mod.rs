@@ -22,7 +22,6 @@ use log::*;
 use smallvec::{smallvec, SmallVec};
 use std::mem;
 use std::rc::Rc;
-use crate::backend::lua::register::Reg::R;
 
 type ConstIdx = u8;
 
@@ -82,6 +81,18 @@ pub struct LuaBackendStates {
     access_mode: LuaAccessMode,
 }
 
+impl LuaBackendStates {
+    fn rk(&self) -> RK {
+        if !self.registers.is_empty() {
+            RK::R(self.registers[0])
+        } else if let Some(k) = self.const_idx {
+            RK::K(k)
+        } else {
+            unreachable!()
+        }
+    }
+}
+
 impl Default for LuaBackendStates {
     fn default() -> Self {
         Self {
@@ -117,7 +128,7 @@ impl LuaBackend {
 
     #[inline]
     fn code_settabup(&mut self, up_idx: u8, rk: RK) {
-        self.push_code(LuaByteCode::SetTabUp(R(0), up_idx, rk));
+        self.push_code(LuaByteCode::SetTabUp(Reg::R(0), up_idx, rk));
     }
 
     #[inline]
@@ -145,6 +156,32 @@ impl LuaBackend {
     fn push_code(&mut self, code: LuaByteCode) {
         trace!("Code-Lua: {:?}", code);
         self.byte_codes.push(code)
+    }
+
+    #[inline]
+    fn code_add(&mut self, dst: Reg, op0: RK, op1: RK) {
+        let addk = self.add_string_constant("__add");
+
+        match (op0, op1) {
+            (RK::K(k), RK::R(r)) | (RK::R(r), RK::K(k)) => {
+                self.push_code(LuaByteCode::AddK(dst, r, k));
+                self.push_code(LuaByteCode::MMBinK(dst, k, addk));
+            }
+            (RK::K(k1), RK::K(k2)) => {
+                self.push_code(LuaByteCode::LoadK(dst, k1));
+                self.push_code(LuaByteCode::AddK(dst, dst, k2));
+                self.push_code(LuaByteCode::MMBinK(dst, k2, addk));
+            }
+            (RK::R(r1), RK::R(r2)) => {
+                self.push_code(LuaByteCode::Add(dst, r1, r2));
+                self.push_code(LuaByteCode::MMBin(r1, r2, addk));
+            }
+        }
+    }
+
+    #[inline]
+    fn code_eq(&mut self, dst: Reg, op0: RK, op1: RK) {
+        todo!()
     }
 
     #[inline]
@@ -278,11 +315,14 @@ impl CodeGenBackend for LuaBackend {
         //     index: 0,
         //     kind: 0,
         // });
-        self.upvalue_table.insert(StString::empty(), LuaUpValue {
-            stack: 1,
-            index: 0,
-            kind: LuaVarKind::VDKREG,
-        });
+        self.upvalue_table.insert(
+            StString::empty(),
+            LuaUpValue {
+                stack: 1,
+                index: 0,
+                kind: LuaVarKind::VDKREG,
+            },
+        );
 
         let mut fun = f.write();
         self.push_attribute_with_scope(fun_scope);
@@ -329,22 +369,21 @@ impl AstVisitorMut for LuaBackend {
     fn visit_literal_mut(&mut self, literal: &mut LiteralExpression) {
         trace!("LuaGen: literal expression: {:?}", literal);
 
-        // // Literals can't WRITE
-        // assert!(!self.top_attribute().access_mode != LuaAccessMode::Write);
+        let access = self.top_attribute().access_mode;
 
-        if matches!(
-            self.top_attribute().access_mode,
-            LuaAccessMode::ReadRegisterOnly
-        ) {
-            let r = match self.top_attribute().registers.first() {
-                Some(r) => *r,
-                _ => self.reg_mgr.alloc_hard(),
-            };
+        // Literals can't WRITE
+        assert!(!matches!(access, LuaAccessMode::Write));
 
-            self.code_load(r, literal.literal());
-        } else {
-            self.top_attribute().const_idx = Some(self.add_constant(literal.literal()))
-        }
+        self.top_attribute().const_idx = Some(self.add_constant(literal.literal()))
+        // if matches!(access, LuaAccessMode::ReadRegisterOnly) {
+        //     let r = match self.top_attribute().registers.first() {
+        //         Some(r) => *r,
+        //         _ => self.reg_mgr.alloc_hard(),
+        //     };
+
+        //     self.code_load(r, literal.literal());
+        // } else {
+        // }
     }
 
     fn visit_variable_expression_mut(&mut self, var_expr: &mut VariableExpression) {
@@ -365,11 +404,13 @@ impl AstVisitorMut for LuaBackend {
 
                 let arg_regs = self.reg_mgr.alloc_hard_batch(arg_cnt);
                 self.top_attribute().registers = arg_regs.into();
-                self.top_attribute().const_idx = Some(self.add_string_constant(var_expr.org_name()));
+                self.top_attribute().const_idx =
+                    Some(self.add_string_constant(var_expr.org_name()));
             }
             // Read Symbol
             LuaAccessMode::ReadSymbol => {
-                self.top_attribute().const_idx = Some(self.add_string_constant(var_expr.org_name()));
+                self.top_attribute().const_idx =
+                    Some(self.add_string_constant(var_expr.org_name()));
             }
             LuaAccessMode::WriteRegister => {
                 let dst = self.top_attribute().registers[0];
@@ -382,14 +423,11 @@ impl AstVisitorMut for LuaBackend {
             LuaAccessMode::LoadNewRegister => {
                 let scope = self.top_attribute().scope.as_ref().unwrap();
                 if let Some(variable) = scope.find_variable(var_expr.name()) {
-                    self.top_attribute().registers =
-                        smallvec![self.reg_mgr.alloc_local_variable(variable.name())];
+                    let const_idx = self.add_string_constant(var_expr.org_name());
+                    let reg = self.reg_mgr.alloc_local_variable(variable.name());
 
-                    // let reg = self.reg_mgr.alloc_hard();
-                    // self.top_attribute().register = Some(reg);
-                    //
-                    // // TODO: initialize
-                    // self.push_code(LuaByteCode::LoadI(reg, 0));
+                    self.code_gettabup(reg, const_idx);
+                    self.top_attribute().registers = smallvec![reg];
                 } else {
                     // TODO: variable not found error
                 }
@@ -415,7 +453,11 @@ impl AstVisitorMut for LuaBackend {
         let callee_reg = arg_regs[0];
 
         // Load Callee from constant table into callee_reg
-        self.push_code(LuaByteCode::GetTabUp(callee_reg, 0, callee_attr.const_idx.unwrap()));
+        self.push_code(LuaByteCode::GetTabUp(
+            callee_reg,
+            0,
+            callee_attr.const_idx.unwrap(),
+        ));
 
         // visit all arguments
         for (idx, arg) in call.arguments_mut().iter_mut().enumerate() {
@@ -474,26 +516,23 @@ impl AstVisitorMut for LuaBackend {
 
                 self.push_access_attribute(LuaAccessMode::LoadNewRegister);
                 self.visit_expression_mut(&mut operands[0]);
-                let op0_reg = self.pop_attribute().registers[0];
+                let rk0 = self.pop_attribute().rk();
 
                 self.push_access_attribute(LuaAccessMode::LoadNewRegister);
                 self.visit_expression_mut(&mut operands[1]);
-                let op1_reg = self.pop_attribute().registers[0];
+                let rk1 = self.pop_attribute().rk();
 
                 // generate operators
                 match op {
                     // a + b
-                    Operator::Plus => self.push_code(LuaByteCode::Add(dest_reg, op0_reg, op1_reg)),
+                    Operator::Plus => self.code_add(dest_reg, rk0, rk1),
                     // a = b
-                    Operator::Equal => {
-                        // (op0 == op1) != 1
-                        self.push_code(LuaByteCode::Eq(op0_reg, op1_reg, 1))
-                    }
+                    Operator::Equal => self.code_eq(dest_reg, rk0, rk1),
                     _ => unreachable!(),
                 }
 
-                self.reg_mgr.free(&op0_reg);
-                self.reg_mgr.free(&op1_reg);
+                // self.reg_mgr.free(&rk0);
+                // self.reg_mgr.free(&rk1);
                 self.top_attribute().registers = smallvec![dest_reg];
             }
 
@@ -523,7 +562,7 @@ impl AstVisitorMut for LuaBackend {
             // assert_ne!(lhs_reg, rhs.registers[0]);
 
             self.reg_mgr.free(&rhs.registers[0]);
-            // self.code_move(rhs.registers[0], lhs_reg);
+            self.code_settabup(lhs_constant_index, RK::R(rhs.registers[0]));
         }
     }
 }
