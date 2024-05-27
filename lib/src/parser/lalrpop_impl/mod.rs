@@ -1,5 +1,6 @@
 use crate::ast::*;
 use crate::parser::*;
+use crate::parser::token::Token;
 use lalrpop_util::lalrpop_mod;
 
 lalrpop_mod!(st, "/parser/lalrpop_impl/st.rs");

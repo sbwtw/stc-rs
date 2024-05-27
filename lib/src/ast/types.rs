@@ -39,7 +39,6 @@ builtin_type_impl!(struct StringType, TypeClass::String);
 #[derive(Debug)]
 pub struct UserType {
     name: StString,
-    #[allow(dead_code)]
     decl_id: Option<usize>,
     class: Option<UserTypeClass>,
     attributes: Map<StString, String>,
@@ -64,7 +63,6 @@ impl UserType {
         }
     }
 
-    #[allow(unused)]
     pub fn name(&self) -> &StString {
         &self.name
     }
@@ -114,7 +112,6 @@ impl Type for EnumDeclare {
 }
 
 #[derive(Debug)]
-#[allow(unused)]
 pub struct AliasDeclare {
     name: StString,
     alias: Rc<Box<dyn Type>>,
@@ -137,7 +134,6 @@ impl Type for AliasDeclare {
 }
 
 #[derive(Debug)]
-#[allow(unused)]
 pub struct StructDeclare {
     name: StString,
     variables: SmallVec8<Rc<Variable>>,
@@ -156,7 +152,6 @@ impl StructDeclare {
         self.variables.as_slice()
     }
 
-    #[allow(dead_code)]
     pub fn variables_mut(&mut self) -> &mut [Rc<Variable>] {
         self.variables.as_mut_slice()
     }

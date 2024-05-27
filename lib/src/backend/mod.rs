@@ -1,7 +1,9 @@
 #[cfg(feature = "llvm_backend")]
 mod llvm;
+#[cfg(feature = "lua_backend")]
 mod lua;
 
+#[cfg(feature = "lua_backend")]
 pub use lua::LuaBackend;
 
 use crate::ast::{OperatorExpression, Variable};
@@ -97,7 +99,7 @@ where
     }
 
     pub fn build_application(&mut self) -> Result<(), CodeGenError> {
-        let mut decl_info: Vec<(_, _)> = self
+        let mut decl_info: Vec<_> = self
             .app
             .read()
             .declarations()

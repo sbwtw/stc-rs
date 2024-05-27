@@ -6,14 +6,14 @@ use std::rc::Rc;
 pub struct OperatorExpression {
     op: Operator,
     ty: Option<Rc<Box<dyn Type>>>,
-    operands: Vec<Expression>,
+    operands: SmallVec<[Expression; 2]>,
 }
 
 impl_ast_display!(OperatorExpression, visit_operator_expression);
 impl_into_expression!(OperatorExpression, |x| Expression::operator(Box::new(x)));
 
 impl OperatorExpression {
-    pub fn new(op: Operator, operands: Vec<Expression>) -> Self {
+    pub fn new(op: Operator, operands: SmallVec<[Expression; 2]>) -> Self {
         match operands.len() {
             1 => debug_assert!(op.is_unary_operator(), "'{:?}' is not a unary operator", op),
             2 => debug_assert!(
@@ -43,7 +43,7 @@ impl OperatorExpression {
         self.ty = ty;
     }
 
-    pub fn operands(&self) -> &Vec<Expression> {
+    pub fn operands(&self) -> &[Expression] {
         &self.operands
     }
 

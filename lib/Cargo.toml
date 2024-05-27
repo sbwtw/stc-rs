@@ -28,6 +28,7 @@ indexmap = "*"
 byteorder = "*"
 uuid = { version = "*", features = ["v4", "fast-rng", "macro-diagnostics", "serde"] }
 inkwell = { version = "*", optional = true, features = ["llvm17-0-no-llvm-linking"] }
+mlua = { version = "*", features = ["lua54", "macros", "async"], optional = true }
 
 [dev-dependencies]
 tempfile = "*"
@@ -38,6 +39,7 @@ lalrpop = { version = "*", optional = true }
 llvm-sys = { version = "170", optional = true, features = ["prefer-dynamic"] }
 
 [features]
-default = ["use_lalrpop"]
+default = ["use_lalrpop", "lua_backend"]
 use_lalrpop = ["lalrpop", "lalrpop-util"]
 llvm_backend = ["inkwell", "llvm-sys"]
+lua_backend = ["mlua"]

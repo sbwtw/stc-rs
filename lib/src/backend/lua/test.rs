@@ -1,14 +1,13 @@
+use std::io::Write;
 use std::process::Command;
+use mlua::{ChunkMode, Lua};
 
-use crate::{
-    backend::{CodeGenBackend, CodeGenDriver, LuaBackend},
-    parser::*,
-    prelude::*,
-};
+use crate::{parser::*, prelude::*,};
+use crate::backend::{CodeGenBackend, CodeGenDriver, LuaBackend};
 
-fn eval_string<S1: AsRef<str>, S2: AsRef<str>>(decl: S1, body: S2) -> (String, String) {
+fn generate_module<S1: AsRef<str>, S2: AsRef<str>>(decl: S1, body: S2, writer: &mut dyn Write) {
     let mgr = UnitsManager::new();
-    let ctx = ModuleContext::new(ModuleContextScope::Application);
+    let ctx = ModuleContext::new(ModuleKind::Application);
     let lexer = StLexerBuilder::new().build_str(decl.as_ref());
     let decl = StDeclarationParser::new().parse(lexer).unwrap();
     let fun_id = ctx.write().add_declaration(decl, Uuid::nil());
@@ -25,14 +24,20 @@ fn eval_string<S1: AsRef<str>, S2: AsRef<str>>(decl: S1, body: S2) -> (String, S
     let mut code_gen: CodeGenDriver<LuaBackend> = CodeGenDriver::new(mgr.clone(), ctx_id).unwrap();
     code_gen.build_application().expect("build app failed");
 
+    code_gen
+        .backend()
+        .get_module_bytes(writer)
+        .expect("get module bytes failed");
+}
+
+fn exec_binary<S1: AsRef<str>, S2: AsRef<str>>(decl: S1, body: S2) -> (String, String) {
     // Write to temporary file
     let mut f = tempfile::Builder::new()
         .tempfile()
         .expect("create temp file failed");
-    code_gen
-        .backend()
-        .get_module_bytes(&mut f)
-        .expect("get module bytes failed");
+
+    // generate
+    generate_module(decl, body, &mut f);
 
     // execute
     let lua_cmd = "lua";
@@ -51,21 +56,21 @@ fn eval_string<S1: AsRef<str>, S2: AsRef<str>>(decl: S1, body: S2) -> (String, S
 #[test]
 fn test_print() {
     // assignment
-    let (r, e) = eval_string(
+    let (r, e) = exec_binary(
         "PROGRAM main: VAR a: int; END_VAR END_PROGRAM",
         "a := 1; print(a);",
     );
     assert_eq!(r, "1\n", "Error: {}", e);
 
     // assignment twice
-    let (r, e) = eval_string(
+    let (r, e) = exec_binary(
         "PROGRAM main: VAR a: int; END_VAR END_PROGRAM",
         "a := 3; a := 2; print(a);",
     );
     assert_eq!(r, "2\n", "Error: {}", e);
 
     // print string
-    let (r, e) = eval_string(
+    let (r, e) = exec_binary(
         "PROGRAM main: VAR a: STRING; END_VAR END_PROGRAM",
         "a := \"abc\"; print(a);",
     );
@@ -73,32 +78,48 @@ fn test_print() {
 }
 
 #[test]
-fn test_add() {
+fn test_add_print() {
     // R + R
-    let (r, e) = eval_string(
+    let (r, e) = exec_binary(
         "PROGRAM main: VAR a: STRING; END_VAR END_PROGRAM",
         "a := 2; a := a + a; print(a);",
     );
     assert_eq!(r, "4\n", "Error: {}", e);
 
     // R + K
-    let (r, e) = eval_string(
+    let (r, e) = exec_binary(
         "PROGRAM main: VAR a: STRING; END_VAR END_PROGRAM",
         "a := 2; a := a + 1; print(a);",
     );
     assert_eq!(r, "3\n", "Error: {}", e);
 
     // K + R
-    let (r, e) = eval_string(
+    let (r, e) = exec_binary(
         "PROGRAM main: VAR a: STRING; END_VAR END_PROGRAM",
         "a := 2; a := 1 + a; print(a);",
     );
     assert_eq!(r, "3\n", "Error: {}", e);
 
     // K + K
-    let (r, e) = eval_string(
+    let (r, e) = exec_binary(
         "PROGRAM main: VAR a: STRING; END_VAR END_PROGRAM",
         "a := 2; a := 3 + 2; print(a);",
     );
     assert_eq!(r, "5\n", "Error: {}", e);
+}
+
+#[test]
+fn test_add() {
+    let decl = "PROGRAM main: VAR a: STRING; END_VAR END_PROGRAM";
+    let body = "a := 1 + 2;";
+
+    // Generate to buffer
+    let mut buf = vec![];
+    generate_module(decl, body, &mut buf);
+
+    let lua = Lua::new();
+    assert!(lua.load(buf).set_mode(ChunkMode::Binary).exec().is_ok());
+    
+    let r = lua.globals().get::<_, i32>("a");
+    assert_eq!(r.unwrap(), 3);
 }

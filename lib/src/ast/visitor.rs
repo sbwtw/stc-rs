@@ -10,76 +10,94 @@ use crate::ast::{
 
 // Mutable visitor
 pub trait DeclVisitorMut: Sized {
+    #[inline]
     fn visit_declaration_mut(&mut self, decl: &mut Declaration) {
         walk_declaration_mut(self, decl)
     }
 
+    #[inline]
     fn visit_function_declaration_mut(&mut self, decl: &mut FunctionDeclare) {
         walk_function_declaration_mut(self, decl)
     }
 
+    #[inline]
     fn visit_enum_declaration_mut(&mut self, decl: &mut EnumDeclare) {
         walk_enum_declaration_mut(self, decl)
     }
 
+    #[inline]
     fn visit_alias_declaration_mut(&mut self, decl: &mut AliasDeclare) {
         walk_alias_declaration_mut(self, decl)
     }
 
+    #[inline]
     fn visit_struct_declaration_mut(&mut self, decl: &mut StructDeclare) {
         walk_struct_declaration_mut(self, decl)
     }
 
+    #[inline]
     fn visit_global_variable_declaration_mut(&mut self, decl: &mut GlobalVariableDeclare) {
         walk_global_variable_declaration_mut(self, decl)
     }
 
+    #[inline]
     fn visit_variable_declaration_mut(&mut self, variable: &mut Variable) {
         walk_variable_declaration_mut(self, variable)
     }
 }
 
 pub trait AstVisitorMut: Sized {
+    #[inline]
     fn visit_literal_mut(&mut self, literal: &mut LiteralExpression) {
         walk_literal_mut(self, literal)
     }
 
+    #[inline]
     fn visit_variable_expression_mut(&mut self, variable: &mut VariableExpression) {
         walk_variable_expression_mut(self, variable)
     }
 
+    #[inline]
     fn visit_call_expression_mut(&mut self, call: &mut CallExpression) {
         walk_call_expression_mut(self, call)
     }
 
+    #[inline]
     fn visit_expression_mut(&mut self, expr: &mut Expression) {
         walk_expression_mut(self, expr)
     }
 
+    #[inline]
     fn visit_statement_mut(&mut self, stmt: &mut Statement) {
         walk_statement_mut(self, stmt)
     }
 
+    #[inline]
     fn visit_statement_list_mut(&mut self, stmts: &mut Vec<Statement>) {
         walk_statement_list_mut(self, stmts)
     }
 
+    #[inline]
     fn visit_expr_statement_mut(&mut self, expr: &mut ExprStatement) {
         walk_expr_statement_mut(self, expr)
     }
 
+    #[inline]
     fn visit_if_statement_mut(&mut self, ifst: &mut IfStatement) {
         walk_if_statement_mut(self, ifst)
     }
 
+    #[inline]
     fn visit_operator_expression_mut(&mut self, operator: &mut OperatorExpression) {
         walk_operator_expression_mut(self, operator)
     }
 
+    #[inline]
     fn visit_assign_expression_mut(&mut self, assign: &mut AssignExpression) {
         walk_assign_expression_mut(self, assign)
     }
 
+    #[inline]
     fn visit_compo_access_expression_mut(&mut self, compo: &mut CompoAccessExpression) {
         walk_compo_access_expression_mut(self, compo)
     }
@@ -206,76 +224,94 @@ fn walk_compo_access_expression_mut<V: AstVisitorMut>(
 // Immutable visitor
 
 pub trait DeclVisitor<'ast>: Sized {
+    #[inline]
     fn visit_declaration(&mut self, decl: &'ast Declaration) {
         walk_declaration(self, decl)
     }
 
+    #[inline]
     fn visit_function_declaration(&mut self, decl: &'ast FunctionDeclare) {
         walk_function_declaration(self, decl)
     }
 
+    #[inline]
     fn visit_enum_declaration(&mut self, decl: &'ast EnumDeclare) {
         walk_enum_declaration(self, decl)
     }
 
+    #[inline]
     fn visit_alias_declaration(&mut self, decl: &'ast AliasDeclare) {
         walk_alias_declaration(self, decl)
     }
 
+    #[inline]
     fn visit_struct_declaration(&mut self, decl: &'ast StructDeclare) {
         walk_struct_declaration(self, decl)
     }
 
+    #[inline]
     fn visit_global_variable_declaration(&mut self, decl: &'ast GlobalVariableDeclare) {
         walk_global_variable_declaration(self, decl)
     }
 
+    #[inline]
     fn visit_variable_declaration(&mut self, variable: &'ast Variable) {
         walk_variable_declaration(self, variable)
     }
 }
 
 pub trait AstVisitor<'ast>: Sized {
+    #[inline]
     fn visit_literal(&mut self, literal: &'ast LiteralExpression) {
         walk_literal(self, literal)
     }
 
+    #[inline]
     fn visit_variable_expression(&mut self, variable: &'ast VariableExpression) {
         walk_variable_expression(self, variable)
     }
 
+    #[inline]
     fn visit_call_expression(&mut self, call: &'ast CallExpression) {
         walk_call_expression(self, call)
     }
 
+    #[inline]
     fn visit_expression(&mut self, expr: &'ast Expression) {
         walk_expression(self, expr)
     }
 
+    #[inline]
     fn visit_statement(&mut self, stmt: &'ast Statement) {
         walk_statement(self, stmt)
     }
 
+    #[inline]
     fn visit_statement_list(&mut self, stmts: &'ast Vec<Statement>) {
         walk_statement_list(self, stmts)
     }
 
+    #[inline]
     fn visit_expr_statement(&mut self, expr: &'ast ExprStatement) {
         walk_expr_statement(self, expr)
     }
 
+    #[inline]
     fn visit_if_statement(&mut self, ifst: &'ast IfStatement) {
         walk_if_statement(self, ifst)
     }
 
+    #[inline]
     fn visit_operator_expression(&mut self, operator: &'ast OperatorExpression) {
         walk_operator_expression(self, operator)
     }
 
+    #[inline]
     fn visit_assign_expression(&mut self, assign: &'ast AssignExpression) {
         walk_assign_expression(self, assign)
     }
 
+    #[inline]
     fn visit_compo_access_expression(&mut self, compo: &'ast CompoAccessExpression) {
         walk_compo_access_expression(self, compo)
     }
@@ -323,7 +359,6 @@ fn walk_expr_statement<'a, V: AstVisitor<'a>>(vis: &mut V, expr: &'a ExprStateme
     vis.visit_expression(expr.expr())
 }
 
-#[inline]
 fn walk_if_statement<'a, V: AstVisitor<'a>>(vis: &mut V, ifst: &'a IfStatement) {
     vis.visit_expression(ifst.condition());
     if let Some(ctrl) = ifst.then_controlled() {

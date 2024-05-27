@@ -39,7 +39,7 @@ fn test_body_parse() {
 fn test_scope_lookup() {
     let mgr = UnitsManager::new();
     let mgr_ui_app = mgr.clone();
-    let app = ModuleContext::new(ModuleContextScope::Application);
+    let app = ModuleContext::new(ModuleKind::Application);
     let app_id = app.read().id();
     mgr.write().add_context(app);
     mgr.write().set_active_application(Some(app_id));

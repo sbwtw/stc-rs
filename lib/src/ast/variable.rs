@@ -15,7 +15,6 @@ pub struct Variable {
 }
 
 impl Variable {
-    #[allow(dead_code)]
     pub fn new(name: StString) -> Self {
         Self {
             name,

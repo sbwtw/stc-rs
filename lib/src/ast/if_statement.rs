@@ -19,7 +19,7 @@ impl IfStatement {
             condition,
             then_controlled: None,
             else_controlled: None,
-            else_if_list: vec![],
+            else_if_list: Vec::with_capacity(0),
         }
     }
 
@@ -28,7 +28,7 @@ impl IfStatement {
             condition,
             then_controlled: Some(then_control),
             else_controlled: None,
-            else_if_list: vec![],
+            else_if_list: Vec::with_capacity(0),
         }
     }
 
@@ -41,7 +41,7 @@ impl IfStatement {
             condition,
             then_controlled: Some(then_control),
             else_controlled: Some(else_control),
-            else_if_list: vec![],
+            else_if_list: Vec::with_capacity(0),
         }
     }
 

@@ -1,6 +1,37 @@
 use crate::parser::*;
 use std::fmt::{self, Display, Formatter};
 
+pub struct TokenPosition {
+    pub line: usize,
+    pub offset: usize,
+}
+
+pub struct Token {
+    pub kind: TokenKind,
+    pub length: usize,
+    pub pos: TokenPosition,
+}
+
+impl Token {
+    pub fn new(kind: TokenKind, start_pos: usize, end_pos: usize) -> Self {
+        Self {
+            kind,
+            length: 0,
+            pos: TokenPosition { line: 0, offset: 0 },
+        }
+    }
+}
+
+impl Default for Token {
+    fn default() -> Self {
+        Self {
+            kind: TokenKind::None,
+            length: 0,
+            pos: TokenPosition { line: 0, offset: 0 },
+        }
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum TokenKind {
     None,

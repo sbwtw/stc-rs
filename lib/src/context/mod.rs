@@ -6,12 +6,15 @@ pub use units_manager::UnitsManager;
 
 mod scope;
 mod task;
+mod library;
 
 pub use scope::Scope;
 
-pub enum ModuleContextScope {
+pub enum ModuleKind {
     Application,
     CompilerBuiltin,
     Library,
     // System,
 }
+
+pub trait Library {}

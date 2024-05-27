@@ -4,7 +4,6 @@ use crate::parser::StString;
 use std::rc::Rc;
 
 #[derive(Clone, Default)]
-#[allow(unused)]
 pub struct Scope {
     units_manager: Option<UnitsManager>,
     local_context: Option<ModuleContext>,

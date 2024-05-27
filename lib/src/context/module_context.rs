@@ -1,7 +1,7 @@
 use crate::ast::*;
 use crate::backend::CompiledCode;
 use crate::context::task::TaskInfo;
-use crate::context::ModuleContextScope;
+use crate::context::ModuleKind;
 use crate::parser::StString;
 use indexmap::IndexMap;
 use log::warn;
@@ -164,6 +164,7 @@ impl PrototypeImpl {
     }
 
     /// return false if Prototype is Function, like FB or Fun or Prg
+    #[inline]
     pub fn is_type_declaration(&self) -> bool {
         matches!(
             self.decl.kind,
@@ -289,11 +290,11 @@ impl PartialEq for ModuleContext {
 impl Eq for ModuleContext {}
 
 impl ModuleContext {
-    pub fn new(scope: ModuleContextScope) -> Self {
+    pub fn new(kind: ModuleKind) -> Self {
         Self {
             inner: Rc::new(RwLock::new(ModuleContextImpl {
                 id: get_next_context_id(),
-                scope,
+                kind,
                 declaration_id_map: IndexMap::new(),
                 declaration_name_map: HashMap::new(),
                 function_id_map: IndexMap::new(),
@@ -314,7 +315,7 @@ impl ModuleContext {
 
 pub struct ModuleContextImpl {
     id: usize,
-    scope: ModuleContextScope,
+    kind: ModuleKind,
     declaration_id_map: IndexMap<usize, Prototype>,
     declaration_name_map: HashMap<StString, Prototype>,
     function_id_map: IndexMap<usize, Function>,
@@ -327,8 +328,8 @@ impl ModuleContextImpl {
         self.id
     }
 
-    pub fn scope(&self) -> &ModuleContextScope {
-        &self.scope
+    pub fn scope(&self) -> &ModuleKind {
+        &self.kind
     }
 
     pub fn add_declaration(&mut self, decl: Declaration, id: Uuid) -> usize {
@@ -424,10 +425,10 @@ impl ModuleContextImpl {
 
 impl Display for ModuleContextImpl {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let scope = match self.scope {
-            ModuleContextScope::Application => "App",
-            ModuleContextScope::CompilerBuiltin => "Builtin",
-            ModuleContextScope::Library => "Library",
+        let scope = match self.kind {
+            ModuleKind::Application => "App",
+            ModuleKind::CompilerBuiltin => "Builtin",
+            ModuleKind::Library => "Library",
         };
 
         f.write_fmt(format_args!("{}_{}", scope, self.id))

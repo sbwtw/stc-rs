@@ -30,8 +30,8 @@ pub struct Application {
 impl From<Application> for ModuleContext {
     fn from(app: Application) -> Self {
         let ctx = match app.app_type {
-            AppType::App => ModuleContext::new(ModuleContextScope::Application),
-            AppType::Library => ModuleContext::new(ModuleContextScope::Library),
+            AppType::App => ModuleContext::new(ModuleKind::Application),
+            AppType::Library => ModuleContext::new(ModuleKind::Library),
         };
         let mut ctx_write = ctx.write();
 

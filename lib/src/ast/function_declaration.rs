@@ -1,6 +1,5 @@
 use crate::impl_ast_display;
 use crate::prelude::*;
-use smallvec::SmallVec;
 use std::rc::Rc;
 
 #[derive(Debug)]
@@ -8,7 +7,7 @@ pub struct FunctionDeclare {
     name: StString,
     decl_class: DeclareClass,
     return_type: Option<Rc<Box<dyn Type>>>,
-    parameters: SmallVec<[Rc<Variable>; 8]>,
+    parameters: SmallVec8<Rc<Variable>>,
 }
 
 impl_ast_display!(FunctionDeclare, visit_function_declaration);
@@ -18,7 +17,7 @@ impl FunctionDeclare {
         name: StString,
         class: DeclareClass,
         ty: Option<Rc<Box<dyn Type>>>,
-        variables: SmallVec<[Rc<Variable>; 8]>,
+        variables: SmallVec8<Rc<Variable>>,
     ) -> Self {
         Self {
             name,
