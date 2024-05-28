@@ -99,7 +99,7 @@ impl AstVisitorMut for TypeAnalyzer {
         };
 
         variable.set_ty(ty.clone());
-        attr.derived_type = ty.clone();
+        attr.derived_type.clone_from(&ty);
     }
 
     fn visit_operator_expression_mut(&mut self, expr: &mut OperatorExpression) {
@@ -123,7 +123,7 @@ impl AstVisitorMut for TypeAnalyzer {
             }
 
             if result_type.is_none() {
-                *result_type = attr.derived_type.clone();
+                result_type.clone_from(&attr.derived_type);
                 continue;
             }
         }
