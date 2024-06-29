@@ -19,15 +19,15 @@ impl CodeGenBackend for LLVMBackend {
         todo!()
     }
 
-    fn get_module_bytes(&mut self, w: &mut dyn Write) -> io::Result<()> {
-        todo!()
-    }
-
     fn gen_function(&mut self, func: usize) -> Result<Box<dyn CompiledCode>, CodeGenError> {
         todo!()
     }
 
-    fn define_label<S: AsRef<str>>(&mut self, label: Option<S>) -> Self::Label {
+    fn create_label<S: AsRef<str>>(&mut self, label: S) -> Self::Label {
+        todo!()
+    }
+
+    fn insert_label<S: AsRef<str>>(&mut self, label: S) {
         todo!()
     }
 
@@ -36,6 +36,10 @@ impl CodeGenBackend for LLVMBackend {
     }
 
     fn gen_operator(&mut self, operator: &mut OperatorExpression) {
+        todo!()
+    }
+
+    fn get_module_bytes(&mut self, w: &mut dyn Write) -> io::Result<()> {
         todo!()
     }
 }

@@ -102,7 +102,7 @@ fn test_add_print() {
 
     // K + K
     let (r, e) = exec_binary(
-        "PROGRAM main: VAR a: STRING; END_VAR END_PROGRAM",
+        "PROGRAM main: VAR a: INT; END_VAR END_PROGRAM",
         "a := 2; a := 3 + 2; print(a);",
     );
     assert_eq!(r, "5\n", "Error: {}", e);
@@ -110,7 +110,7 @@ fn test_add_print() {
 
 #[test]
 fn test_add() {
-    let decl = "PROGRAM main: VAR a: STRING; END_VAR END_PROGRAM";
+    let decl = "PROGRAM main: VAR a: INT; END_VAR END_PROGRAM";
     let body = "a := 1 + 2;";
 
     // Generate to buffer
@@ -122,4 +122,20 @@ fn test_add() {
     
     let r = lua.globals().get::<_, i32>("a");
     assert_eq!(r.unwrap(), 3);
+}
+
+#[test]
+fn test_if_statement() {
+    let decl = "PROGRAM main: VAR a: INT; END_VAR END_PROGRAM";
+    let body = "a := 1; if a = 1 then a := 0; end_if";
+
+    // Generate to buffer
+    let mut buf = vec![];
+    generate_module(decl, body, &mut buf);
+
+    // let lua = Lua::new();
+    // assert!(lua.load(buf).set_mode(ChunkMode::Binary).exec().is_ok());
+    // 
+    // let r = lua.globals().get::<_, i32>("a");
+    // assert_eq!(r.unwrap(), 0);
 }

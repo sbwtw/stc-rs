@@ -33,7 +33,8 @@ pub trait CodeGenBackend {
 
     fn new(mgr: UnitsManager, app: ModuleContext) -> Self;
     fn gen_function(&mut self, func: usize) -> Result<Box<dyn CompiledCode>, CodeGenError>;
-    fn define_label<S: AsRef<str>>(&mut self, label: Option<S>) -> Self::Label;
+    fn create_label<S: AsRef<str>>(&mut self, label: S) -> Self::Label;
+    fn insert_label<S: AsRef<str>>(&mut self, label: S);
     fn gen_variable_load(&mut self, variable: &mut Variable);
     fn gen_operator(&mut self, operator: &mut OperatorExpression);
     fn get_module_bytes(&mut self, w: &mut dyn Write) -> io::Result<()>;

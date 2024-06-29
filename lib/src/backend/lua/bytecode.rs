@@ -8,7 +8,7 @@ use super::register::{Reg, RK};
 use super::{ConstIdx, LuaType, LuaVarKind};
 
 macro_rules! excess_k {
-    ($v: expr, $k: expr) => {
+    ($v: expr, $k: literal) => {
         ($v as u32).wrapping_add(((2u32.pow($k) - 1) / 2)) & (2u32.pow($k) - 1)
     };
 }
@@ -16,6 +16,12 @@ macro_rules! excess_k {
 macro_rules! excess_sbx {
     ($v: expr) => {
         excess_k!($v, 17)
+    };
+}
+
+macro_rules! excess_sj {
+    ($v: expr) => {
+        excess_k!($v, 25)
     };
 }
 
@@ -228,11 +234,15 @@ pub enum LuaByteCode {
     /// A B C k call C metamethod over R[A] and K[B]
     MMBinK(Reg, ConstIdx, ConstIdx),
 
+    /// sJ: pc += sJ
+    Jmp(i32),
     /// A B k: if ((R[A] == R[B]) ~= k) then pc++
     Eq(Reg, Reg, u8),
 
+    /// A sB k	if ((R[A] == sB) ~= k) then pc++
+    Eqi(Reg, i8, bool),
     /// A sB k: if ((R[A] > sB) ~= k) then pc++
-    Gti(Reg, u8, u8),
+    Gti(Reg, i32, ConstIdx),
     /// A sB k: if ((R[A] >= sB) ~= k) then pc++
     Gei(Reg, u8, u8),
 
@@ -261,8 +271,10 @@ impl LuaByteCode {
             LuaByteCode::MMBin(..) => "MMBIN",
             LuaByteCode::MMBinI(..) => "MMBINI",
             LuaByteCode::MMBinK(..) => "MMBINK",
+            LuaByteCode::Eqi(..) => "EQI",
             LuaByteCode::Gei(..) => "GEI",
             LuaByteCode::Gti(..) => "GTI",
+            LuaByteCode::Jmp(..) => "JMP",
             LuaByteCode::Eq(..) => "EQ",
             LuaByteCode::Return(..) => "RETURN",
             LuaByteCode::VarArgPrep(..) => "VARARGPREP",
@@ -282,8 +294,10 @@ impl LuaByteCode {
             LuaByteCode::MMBinI(..) => LuaOpCode::OP_MMBINI,
             LuaByteCode::MMBinK(..) => LuaOpCode::OP_MMBINK,
             LuaByteCode::Add(..) => LuaOpCode::OP_ADD,
+            LuaByteCode::Eqi(..) => LuaOpCode::OP_EQI,
             LuaByteCode::Gei(..) => LuaOpCode::OP_GEI,
             LuaByteCode::Gti(..) => LuaOpCode::OP_GTI,
+            LuaByteCode::Jmp(..) => LuaOpCode::OP_JMP,
             LuaByteCode::Eq(..) => LuaOpCode::OP_EQ,
             LuaByteCode::Return(..) => LuaOpCode::OP_RETURN,
             LuaByteCode::VarArgPrep(..) => LuaOpCode::OP_VARARGPREP,
@@ -298,10 +312,17 @@ impl LuaByteCode {
             }
             // A B k
             LuaByteCode::Eq(a, b, k) => (k as u32) << 17 | (b.num() as u32) << 9 | a.num() as u32,
+            // A sB8 K(flag)
+            LuaByteCode::Eqi(a, sb8, k) => {
+                (excess_k!(sb8, 8)) << 9 | a.num() as u32 | (k as u32) << 8
+            }
             // A sB k
-            LuaByteCode::Gei(a, sb, c)
-            | LuaByteCode::Gti(a, sb, c)
-            | LuaByteCode::Call(a, sb, c) => (c as u32) << 17 | (sb as u32) << 9 | a.num() as u32,
+            LuaByteCode::Gti(a, sb, k) => {
+                (k as u32) << 17 | excess_sbx!(sb) << 9 | a.num() as u32 | 1u32 << 8
+            }
+            LuaByteCode::Gei(a, sb, c) | LuaByteCode::Call(a, sb, c) => {
+                (c as u32) << 17 | (sb as u32) << 9 | a.num() as u32
+            }
             // A B K
             LuaByteCode::GetTabUp(a, upv, k) => {
                 (k as u32) << 17 | (upv as u32) << 9 | a.num() as u32
@@ -338,6 +359,8 @@ impl LuaByteCode {
             LuaByteCode::Move(a, b) => (b.num() as u32) << 9 | a.num() as u32,
             // A only
             LuaByteCode::VarArgPrep(a) => (a as u32) << 8,
+            // sJ
+            LuaByteCode::Jmp(sj) => excess_sj!(sj),
         };
 
         let op = self.opcode() as u32;
@@ -372,32 +395,29 @@ impl LuaCompiledCode {
         match code {
             // ABC
             LuaByteCode::Add(a, b, c) => {
-                write!(s, "R{} R{} R{}", a.num(), b.num(), c.num()).unwrap();
+                write!(s, "R{} R{} R{}", a.num(), b.num(), c.num()).unwrap()
+            }
+            // A sB8 K(flag)
+            LuaByteCode::Eqi(a, sb8, k) => {
+                write!(s, "R{} {sb8} {}", a.num(), *k as usize).unwrap()
             }
             // RA, KB, KC with k
-            LuaByteCode::MMBinK(ra, kb, kc) => {
-                write!(s, "R{} {kb} {kc}", ra.num()).unwrap();
-            }
+            LuaByteCode::MMBinK(ra, kb, kc) => write!(s, "R{} {kb} {kc}", ra.num()).unwrap(),
             // A B k
-            LuaByteCode::Eq(a, b, k) => {
-                write!(s, "R{} R{} {k}", a.num(), b.num()).unwrap();
-            }
+            LuaByteCode::Eq(a, b, k) => write!(s, "R{} R{} {k}", a.num(), b.num()).unwrap(),
             // A sB k
-            LuaByteCode::Gti(a, b, c) | LuaByteCode::Gei(a, b, c) | LuaByteCode::Call(a, b, c) => {
-                write!(s, "R{} {b} {c}", a.num()).unwrap();
+            LuaByteCode::Gti(a, b, c) => write!(s, "R{} {b} {c}", a.num()).unwrap(),
+            LuaByteCode::Gei(a, b, c) | LuaByteCode::Call(a, b, c) => {
+                write!(s, "R{} {b} {c}", a.num()).unwrap()
             }
             // RA sB KC with k
-            LuaByteCode::MMBinI(ra, sb, kc) => {
-                write!(s, "R{} {sb} {kc}", ra.num()).unwrap();
-            }
+            LuaByteCode::MMBinI(ra, sb, kc) => write!(s, "R{} {sb} {kc}", ra.num()).unwrap(),
             // RegA, RegB, K
             LuaByteCode::AddK(ra, rb, k) | LuaByteCode::MMBin(ra, rb, k) => {
-                write!(s, "R{} R{} {k}", ra.num(), rb.num()).unwrap();
+                write!(s, "R{} R{} {k}", ra.num(), rb.num()).unwrap()
             }
             // Reg, Upv, K
-            LuaByteCode::GetTabUp(reg, upv, k) => {
-                write!(s, "R{} {upv} {k}", reg.num()).unwrap();
-            }
+            LuaByteCode::GetTabUp(reg, upv, k) => write!(s, "R{} {upv} {k}", reg.num()).unwrap(),
             // Reg, Upv, RK
             LuaByteCode::SetTabUp(reg, upv, rk) => {
                 write!(s, "R{} {upv} ", reg.num()).unwrap();
@@ -409,25 +429,17 @@ impl LuaCompiledCode {
                 .unwrap();
             }
             // ABC with k
-            LuaByteCode::Return(a, b, c) => {
-                write!(s, "{a} {b} {c}").unwrap();
-            }
+            LuaByteCode::Return(a, b, c) => write!(s, "{a} {b} {c}").unwrap(),
             // ABx
-            LuaByteCode::LoadK(a, bx) => {
-                write!(s, "R{} {bx}", a.num()).unwrap();
-            }
+            LuaByteCode::LoadK(a, bx) => write!(s, "R{} {bx}", a.num()).unwrap(),
             // AsBx
-            LuaByteCode::LoadI(a, sbx) => {
-                write!(s, "R{} {sbx}", a.num()).unwrap();
-            }
+            LuaByteCode::LoadI(a, sbx) => write!(s, "R{} {sbx}", a.num()).unwrap(),
             // A B
-            LuaByteCode::Move(a, b) => {
-                write!(s, "R{} R{}", a.num(), b.num()).unwrap();
-            }
+            LuaByteCode::Move(a, b) => write!(s, "R{} R{}", a.num(), b.num()).unwrap(),
             // A only
-            LuaByteCode::VarArgPrep(a) => {
-                write!(s, "{a}").unwrap();
-            }
+            LuaByteCode::VarArgPrep(a) => write!(s, "{a}").unwrap(),
+            // sJ
+            LuaByteCode::Jmp(sj) => write!(s, "{sj}").unwrap(),
         }
 
         match code {

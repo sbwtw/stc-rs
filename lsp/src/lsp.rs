@@ -30,9 +30,16 @@ fn semantic_token_type_id(tok: &TokenKind) -> (u32, u32) {
     }
 }
 
-#[derive(Debug)]
 pub struct StcLsp {
-    pub client: Client,
+    _client: Client,
+}
+
+impl StcLsp {
+    pub fn new(c: Client) -> Self {
+        Self {
+            _client: c,
+        }
+    }
 }
 
 #[tower_lsp::async_trait]

@@ -15,6 +15,9 @@ pub use operator::Operator;
 mod token;
 pub use token::TokenKind;
 
+#[cfg(test)]
+mod test;
+
 #[derive(Clone)]
 pub struct StChar(char);
 
@@ -166,6 +169,12 @@ impl Ord for StString {
 impl Display for StString {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_str(self.origin_string())
+    }
+}
+
+impl Default for StString {
+    fn default() -> Self {
+        Self::Origin(String::new())
     }
 }
 

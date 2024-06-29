@@ -3,25 +3,31 @@ mod bytecode;
 use bytecode::*;
 
 mod dump;
+use dump::lua_dump_module;
+
 mod register;
+use register::*;
+
+mod utils;
+use utils::*;
+
+mod vm;
+mod label;
+use label::InstLabel;
+
 #[cfg(test)]
 mod test;
-mod utils;
-mod vm;
 
 use crate::backend::*;
-use crate::parser::{LiteralValue, Operator};
+use crate::parser::{BitValue, LiteralValue, Operator};
 use crate::prelude::*;
-
-use self::dump::lua_dump_module;
-use self::register::*;
-use self::utils::*;
 
 use indexmap::{IndexMap, IndexSet};
 use log::*;
 use smallvec::{smallvec, SmallVec};
 use std::mem;
 use std::rc::Rc;
+use std::collections::HashMap;
 
 type ConstIdx = u8;
 
@@ -44,7 +50,7 @@ bitflags! {
 
 bitflags! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-    pub struct LuaVarKind: u8 {
+    pub(crate) struct LuaVarKind: u8 {
         // regular
         const VDKREG        = 0;
         // constant
@@ -72,7 +78,7 @@ enum LuaAccessMode {
 }
 
 #[derive(Clone)]
-pub struct LuaBackendStates {
+struct LuaBackendStates {
     variable: Option<Rc<Variable>>,
     registers: SmallVec8<Reg>,
     const_idx: Option<ConstIdx>,
@@ -118,6 +124,7 @@ pub struct LuaBackend {
     // tmp values for generating function
     upvalue_table: IndexMap<StString, LuaUpValue>,
     constants: IndexSet<LuaConstants>,
+    labels: HashMap<StString, InstLabel>,
 }
 
 impl LuaBackend {
@@ -181,13 +188,16 @@ impl LuaBackend {
 
     #[inline]
     fn code_eq(&mut self, dst: Reg, op0: RK, op1: RK) {
-        todo!()
+        self.code_load(Reg::R(1), &LiteralValue::Byte(1));
+        self.push_code(LuaByteCode::Eqi(Reg::R(1), 1, false));
     }
 
     #[inline]
     fn add_constant(&mut self, v: &LiteralValue) -> ConstIdx {
         match v {
             LiteralValue::String(s) => self.add_string_constant(s),
+            LiteralValue::Bit(BitValue::Zero) => self.add_integer_constant(0),
+            LiteralValue::Bit(BitValue::One) => self.add_integer_constant(1),
             LiteralValue::DInt(i) => self.add_integer_constant(*i as i64),
             LiteralValue::UInt(i) => self.add_integer_constant(*i as i64),
             LiteralValue::Real(s) | LiteralValue::LReal(s) => {
@@ -270,19 +280,20 @@ impl LuaBackend {
 }
 
 impl CodeGenBackend for LuaBackend {
-    type Label = usize;
+    type Label = InstLabel;
 
     fn new(mgr: UnitsManager, app: ModuleContext) -> Self {
         Self {
             mgr,
             app,
-            byte_codes: vec![],
+            byte_codes: Vec::with_capacity(1024 * 2), // 2KiB
             states: smallvec![],
             local_function: None,
             local_proto: None,
             constants: IndexSet::new(),
             upvalue_table: IndexMap::new(),
             reg_mgr: RegisterManager::new(),
+            labels: HashMap::new(),
         }
     }
 
@@ -346,8 +357,26 @@ impl CodeGenBackend for LuaBackend {
         }))
     }
 
-    fn define_label<S: AsRef<str>>(&mut self, label: Option<S>) -> Self::Label {
-        0
+    /// create a new label
+    fn create_label<S: AsRef<str>>(&mut self, label: S) -> InstLabel {
+        let label_name: StString = label.as_ref().into();
+        let lbl = InstLabel::new(label_name.clone());
+
+        self.labels.entry(label_name).or_insert(lbl).clone()
+    }
+
+    /// insert label, record current insert position
+    fn insert_label<S: AsRef<str>>(&mut self, label: S) {
+        let label_name: StString = label.as_ref().into();
+
+        let label = self.labels.entry(label_name.clone()).or_insert(InstLabel::new(label_name));
+
+        // ensure label is not inserted
+        debug_assert!(label.inst_index.is_some());
+
+        // record insert location
+        let inst_index = self.byte_codes.len();
+        label.inst_index = Some(inst_index)
     }
 
     fn gen_variable_load(&mut self, variable: &mut Variable) {
@@ -484,14 +513,18 @@ impl AstVisitorMut for LuaBackend {
     fn visit_if_statement_mut(&mut self, ifst: &mut IfStatement) {
         trace!("LuaGen: if statement: {}", ifst.condition());
 
-        let cond_true = self.define_label(Some("if-true"));
-        let cond_false = self.define_label(Some("if-false"));
+        let cond_true = self.create_label("if-true");
+        let cond_false = self.create_label("if-false");
 
+        self.push_default_attribute();
         self.visit_expression_mut(ifst.condition_mut());
+        let attr = self.pop_attribute();
 
         if let Some(then_ctrl) = ifst.then_controlled_mut() {
             self.visit_statement_mut(then_ctrl);
         }
+
+        self.reg_mgr.free(&attr.registers[0]);
     }
 
     fn visit_operator_expression_mut(&mut self, operator: &mut OperatorExpression) {
@@ -531,8 +564,12 @@ impl AstVisitorMut for LuaBackend {
                     _ => unreachable!(),
                 }
 
-                // self.reg_mgr.free(&rk0);
-                // self.reg_mgr.free(&rk1);
+                if let RK::R(r0) = rk0 {
+                    self.reg_mgr.free(&r0);
+                }
+                if let RK::R(r1) = rk1 {
+                    self.reg_mgr.free(&r1);
+                }
                 self.top_attribute().registers = smallvec![dest_reg];
             }
 

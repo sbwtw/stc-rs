@@ -15,17 +15,14 @@ program main: int
 VAR
     a: BYTE;
 END_VAR
-VAR_TEMP
-    b: INT;
-END_VAR
 end_program
 ]]>
             </interface>
             <body>
-                a := 2;
-                a := 3 + 2;
-
-                print(a);
+                a := 1;
+                if A = 2 then
+                a := 0;
+                end_if
             </body>
         </pou>
     </pou-list>
