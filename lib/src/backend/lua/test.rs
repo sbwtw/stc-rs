@@ -1,9 +1,9 @@
+use mlua::{ChunkMode, Lua};
 use std::io::Write;
 use std::process::Command;
-use mlua::{ChunkMode, Lua};
 
-use crate::{parser::*, prelude::*,};
 use crate::backend::{CodeGenBackend, CodeGenDriver, LuaBackend};
+use crate::{parser::*, prelude::*};
 
 fn generate_module<S1: AsRef<str>, S2: AsRef<str>>(decl: S1, body: S2, writer: &mut dyn Write) {
     let mgr = UnitsManager::new();
@@ -119,7 +119,7 @@ fn test_add() {
 
     let lua = Lua::new();
     assert!(lua.load(buf).set_mode(ChunkMode::Binary).exec().is_ok());
-    
+
     let r = lua.globals().get::<_, i32>("a");
     assert_eq!(r.unwrap(), 3);
 }
@@ -133,9 +133,9 @@ fn test_if_statement() {
     let mut buf = vec![];
     generate_module(decl, body, &mut buf);
 
-    // let lua = Lua::new();
-    // assert!(lua.load(buf).set_mode(ChunkMode::Binary).exec().is_ok());
-    // 
-    // let r = lua.globals().get::<_, i32>("a");
-    // assert_eq!(r.unwrap(), 0);
+    let lua = Lua::new();
+    assert!(lua.load(buf).set_mode(ChunkMode::Binary).exec().is_ok());
+
+    let r = lua.globals().get::<_, i32>("a");
+    assert_eq!(r.unwrap(), 0);
 }

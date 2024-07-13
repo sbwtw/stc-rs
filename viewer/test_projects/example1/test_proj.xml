@@ -18,11 +18,12 @@ END_VAR
 end_program
 ]]>
             </interface>
-            <body>
-                a := 1;
-                if A = 2 then
-                a := 0;
-                end_if
+            <body><![CDATA[
+a := 1;
+if A = 2 then
+    a := 0;
+end_if
+]]>
             </body>
         </pou>
     </pou-list>

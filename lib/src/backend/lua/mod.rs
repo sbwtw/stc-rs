@@ -11,8 +11,8 @@ use register::*;
 mod utils;
 use utils::*;
 
-mod vm;
 mod label;
+mod vm;
 use label::InstLabel;
 
 #[cfg(test)]
@@ -25,9 +25,9 @@ use crate::prelude::*;
 use indexmap::{IndexMap, IndexSet};
 use log::*;
 use smallvec::{smallvec, SmallVec};
+use std::collections::HashMap;
 use std::mem;
 use std::rc::Rc;
-use std::collections::HashMap;
 
 type ConstIdx = u8;
 
@@ -85,6 +85,7 @@ struct LuaBackendStates {
     scope: Option<Scope>,
     error: bool,
     access_mode: LuaAccessMode,
+    expr_exit_label: Option<InstLabel>,
 }
 
 impl LuaBackendStates {
@@ -108,6 +109,7 @@ impl Default for LuaBackendStates {
             error: false,
             access_mode: LuaAccessMode::None,
             const_idx: None,
+            expr_exit_label: None,
         }
     }
 }
@@ -157,6 +159,12 @@ impl LuaBackend {
     #[inline]
     fn code_load_constant(&mut self, r: Reg, k: ConstIdx) {
         self.push_code(LuaByteCode::LoadK(r, k))
+    }
+
+    #[inline]
+    fn code_jmp(&mut self, offset: i32) -> usize {
+        self.push_code(LuaByteCode::Jmp(offset));
+        self.byte_codes.len()
     }
 
     #[inline]
@@ -235,6 +243,16 @@ impl LuaBackend {
     fn push_default_attribute(&mut self) {
         let attr = LuaBackendStates {
             scope: self.top_attribute().scope.clone(),
+            ..Default::default()
+        };
+
+        self.states.push(attr);
+    }
+
+    fn push_exit_label(&mut self, exit_label: InstLabel) {
+        let attr = LuaBackendStates {
+            scope: self.top_attribute().scope.clone(),
+            expr_exit_label: Some(exit_label),
             ..Default::default()
         };
 
@@ -369,7 +387,10 @@ impl CodeGenBackend for LuaBackend {
     fn insert_label<S: AsRef<str>>(&mut self, label: S) {
         let label_name: StString = label.as_ref().into();
 
-        let label = self.labels.entry(label_name.clone()).or_insert(InstLabel::new(label_name));
+        let label = self
+            .labels
+            .entry(label_name.clone())
+            .or_insert(InstLabel::new(label_name));
 
         // ensure label is not inserted
         debug_assert!(label.inst_index.is_some());
@@ -513,10 +534,9 @@ impl AstVisitorMut for LuaBackend {
     fn visit_if_statement_mut(&mut self, ifst: &mut IfStatement) {
         trace!("LuaGen: if statement: {}", ifst.condition());
 
-        let cond_true = self.create_label("if-true");
-        let cond_false = self.create_label("if-false");
+        let if_exit_label = self.create_label("if-exit");
 
-        self.push_default_attribute();
+        self.push_exit_label(if_exit_label);
         self.visit_expression_mut(ifst.condition_mut());
         let attr = self.pop_attribute();
 
@@ -546,6 +566,7 @@ impl AstVisitorMut for LuaBackend {
                     Some(r) => *r,
                     _ => self.reg_mgr.alloc_hard(),
                 };
+                let cond = self.top_attribute().expr_exit_label.clone();
 
                 self.push_access_attribute(LuaAccessMode::LoadNewRegister);
                 self.visit_expression_mut(&mut operands[0]);
@@ -562,6 +583,11 @@ impl AstVisitorMut for LuaBackend {
                     // a = b
                     Operator::Equal => self.code_eq(dest_reg, rk0, rk1),
                     _ => unreachable!(),
+                }
+
+                // conditional jump
+                if let Some(lbl) = cond {
+                    let fixup = self.code_jmp(0);
                 }
 
                 if let RK::R(r0) = rk0 {
