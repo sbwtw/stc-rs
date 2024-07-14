@@ -208,6 +208,7 @@ impl Display for LuaConstants {
 }
 
 #[derive(Debug)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum LuaByteCode {
     /// A B: R[A] := R[B]
     Move(Reg, Reg),
@@ -239,8 +240,8 @@ pub enum LuaByteCode {
     /// A B k: if ((R[A] == R[B]) ~= k) then pc++
     Eq(Reg, Reg, u8),
 
-    /// A sB k	if ((R[A] == sB) ~= k) then pc++
-    Eqi(Reg, i8, bool),
+    /// A sB k if ((R[A] == sB) ~= k) then pc++
+    EQI(Reg, i8, bool),
     /// A sB k: if ((R[A] > sB) ~= k) then pc++
     Gti(Reg, i32, ConstIdx),
     /// A sB k: if ((R[A] >= sB) ~= k) then pc++
@@ -271,7 +272,7 @@ impl LuaByteCode {
             LuaByteCode::MMBin(..) => "MMBIN",
             LuaByteCode::MMBinI(..) => "MMBINI",
             LuaByteCode::MMBinK(..) => "MMBINK",
-            LuaByteCode::Eqi(..) => "EQI",
+            LuaByteCode::EQI(..) => "EQI",
             LuaByteCode::Gei(..) => "GEI",
             LuaByteCode::Gti(..) => "GTI",
             LuaByteCode::Jmp(..) => "JMP",
@@ -294,7 +295,7 @@ impl LuaByteCode {
             LuaByteCode::MMBinI(..) => LuaOpCode::OP_MMBINI,
             LuaByteCode::MMBinK(..) => LuaOpCode::OP_MMBINK,
             LuaByteCode::Add(..) => LuaOpCode::OP_ADD,
-            LuaByteCode::Eqi(..) => LuaOpCode::OP_EQI,
+            LuaByteCode::EQI(..) => LuaOpCode::OP_EQI,
             LuaByteCode::Gei(..) => LuaOpCode::OP_GEI,
             LuaByteCode::Gti(..) => LuaOpCode::OP_GTI,
             LuaByteCode::Jmp(..) => LuaOpCode::OP_JMP,
@@ -313,7 +314,7 @@ impl LuaByteCode {
             // A B k
             LuaByteCode::Eq(a, b, k) => (k as u32) << 17 | (b.num() as u32) << 9 | a.num() as u32,
             // A sB8 K(flag)
-            LuaByteCode::Eqi(a, sb8, k) => {
+            LuaByteCode::EQI(a, sb8, k) => {
                 (excess_k!(sb8, 8)) << 9 | a.num() as u32 | (k as u32) << 8
             }
             // A sB k
@@ -398,9 +399,7 @@ impl LuaCompiledCode {
                 write!(s, "R{} R{} R{}", a.num(), b.num(), c.num()).unwrap()
             }
             // A sB8 K(flag)
-            LuaByteCode::Eqi(a, sb8, k) => {
-                write!(s, "R{} {sb8} {}", a.num(), *k as usize).unwrap()
-            }
+            LuaByteCode::EQI(a, sb8, k) => write!(s, "R{} {sb8} {}", a.num(), *k as usize).unwrap(),
             // RA, KB, KC with k
             LuaByteCode::MMBinK(ra, kb, kc) => write!(s, "R{} {kb} {kc}", ra.num()).unwrap(),
             // A B k

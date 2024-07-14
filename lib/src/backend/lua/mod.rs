@@ -145,7 +145,15 @@ impl LuaBackend {
         self.push_code(LuaByteCode::Move(to, from))
     }
 
-    fn code_load(&mut self, r: Reg, v: &LiteralValue) {
+    #[inline]
+    fn code_load(&mut self, dst: Reg, rk: RK) {
+        match rk {
+            RK::R(r) => self.code_move(r, dst),
+            RK::K(v) => self.code_load_literal(dst, &LiteralValue::Byte(v)),
+        }
+    }
+
+    fn code_load_literal(&mut self, r: Reg, v: &LiteralValue) {
         // if literal can use LoadI instructions
         if let Some(v) = try_fit_sbx(v) {
             self.push_code(LuaByteCode::LoadI(r, v));
@@ -196,8 +204,21 @@ impl LuaBackend {
 
     #[inline]
     fn code_eq(&mut self, dst: Reg, op0: RK, op1: RK) {
-        self.code_load(Reg::R(1), &LiteralValue::Byte(1));
-        self.push_code(LuaByteCode::Eqi(Reg::R(1), 1, false));
+        self.code_load(dst, op0);
+
+        match op1 {
+            RK::R(r) => self.push_code(LuaByteCode::Eq(dst, r, 0)),
+            RK::K(k) => {
+                let r = self.reg_mgr.alloc_hard();
+
+                self.code_load_constant(r, k);
+                self.push_code(LuaByteCode::Eq(dst, r, 0));
+                self.reg_mgr.free(&r);
+
+                // TODO: convert constants to I8 value
+                // self.push_code(LuaByteCode::EQI(dst, kv, false))
+            }
+        }
     }
 
     #[inline]
@@ -486,7 +507,7 @@ impl AstVisitorMut for LuaBackend {
                 let r = self.top_attribute().registers[0];
 
                 // TODO: Load variable value into register
-                self.code_load(r, &LiteralValue::SInt(0))
+                self.code_load_literal(r, &LiteralValue::SInt(0))
             }
             _ => unreachable!("{:?}", access_mode),
         }
@@ -587,7 +608,7 @@ impl AstVisitorMut for LuaBackend {
 
                 // conditional jump
                 if let Some(lbl) = cond {
-                    let fixup = self.code_jmp(0);
+                    let fixup = self.code_jmp(1);
                 }
 
                 if let RK::R(r0) = rk0 {

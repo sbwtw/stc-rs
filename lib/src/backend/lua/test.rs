@@ -127,7 +127,28 @@ fn test_add() {
 #[test]
 fn test_if_statement() {
     let decl = "PROGRAM main: VAR a: INT; END_VAR END_PROGRAM";
-    let body = "a := 1; if a = 1 then a := 0; end_if";
+    let body = "\
+a := 1; \
+if a = 1 then \
+    a := 0; \
+end_if";
+
+    // Generate to buffer
+    let mut buf = vec![];
+    generate_module(decl, body, &mut buf);
+
+    let lua = Lua::new();
+    assert!(lua.load(buf).set_mode(ChunkMode::Binary).exec().is_ok());
+
+    let r = lua.globals().get::<_, i32>("a");
+    assert_eq!(r.unwrap(), 0);
+
+    let decl = "PROGRAM main: VAR a: INT; END_VAR END_PROGRAM";
+    let body = "\
+a := 0; \
+if a = 1 then \
+    a := 1; \
+end_if";
 
     // Generate to buffer
     let mut buf = vec![];
