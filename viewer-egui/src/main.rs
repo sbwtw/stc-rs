@@ -59,7 +59,7 @@ fn main() -> Result<(), eframe::Error> {
             // for images support
             // egui_extras::install_image_loaders(&cc.egui_ctx);
 
-            Box::<StcViewer>::default()
+            Ok(Box::<StcViewer>::default())
         }),
     )
 }
