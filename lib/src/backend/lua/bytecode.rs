@@ -1,8 +1,8 @@
+use crate::parser::StString;
+
 use indexmap::{IndexMap, IndexSet};
 use std::fmt::{Display, Formatter, Write};
 use std::hash::{Hash, Hasher};
-
-use crate::parser::StString;
 
 use super::register::{Reg, RK};
 use super::{ConstIdx, LuaType, LuaVarKind};
@@ -161,6 +161,13 @@ impl LuaConstants {
             Self::Function(..) => LuaType::FUNCTION,
             Self::String(..) => LuaType::STRING,
             Self::Float(..) | Self::Integer(..) => LuaType::NUMBER,
+        }
+    }
+
+    pub fn as_lua_i8(&self) -> Option<i8> {
+        match *self {
+            Self::Integer(i) if i >= i8::MIN as i64 && i <= i8::MAX as i64 => Some(i as i8),
+            _ => None,
         }
     }
 }
@@ -343,7 +350,7 @@ impl LuaByteCode {
             // A B RK
             LuaByteCode::SetTabUp(a, upv, rk) => {
                 let c = match rk {
-                    RK::R(Reg::R(r)) => r as u32,
+                    RK::R(Reg::R(r)) => (r as u32) << 17,
                     RK::K(k) => (k as u32) << 17 | 1u32 << 8,
                     _ => unreachable!(),
                 };

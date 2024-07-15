@@ -1,8 +1,8 @@
+use crate::backend::lua::ConstIdx;
+use crate::parser::StString;
 use log::warn;
 use smallmap::Map as SmallMap;
 use std::collections::HashSet;
-
-use crate::parser::StString;
 
 const MAX_REGISTER_ID: u8 = 255;
 
@@ -10,7 +10,7 @@ const MAX_REGISTER_ID: u8 = 255;
 #[derive(PartialEq, Eq, Clone, Debug, Copy, Hash)]
 pub enum RK {
     R(Reg),
-    K(u8),
+    K(ConstIdx),
 }
 
 /// Register, VirtualRegister or RealRegister

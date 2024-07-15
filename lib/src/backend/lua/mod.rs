@@ -209,14 +209,17 @@ impl LuaBackend {
         match op1 {
             RK::R(r) => self.push_code(LuaByteCode::Eq(dst, r, 0)),
             RK::K(k) => {
-                let r = self.reg_mgr.alloc_hard();
+                // Test constants can load into i8
+                if let Some(ki8) = self.constants[k as usize].as_lua_i8() {
+                    self.push_code(LuaByteCode::EQI(dst, ki8, false))
+                } else {
+                    // use extra register to compare
+                    let r = self.reg_mgr.alloc_hard();
 
-                self.code_load_constant(r, k);
-                self.push_code(LuaByteCode::Eq(dst, r, 0));
-                self.reg_mgr.free(&r);
-
-                // TODO: convert constants to I8 value
-                // self.push_code(LuaByteCode::EQI(dst, kv, false))
+                    self.code_load_constant(r, k);
+                    self.push_code(LuaByteCode::Eq(dst, r, 0));
+                    self.reg_mgr.free(&r);
+                }
             }
         }
     }

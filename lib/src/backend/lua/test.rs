@@ -126,10 +126,11 @@ fn test_add() {
 
 #[test]
 fn test_if_statement() {
-    let decl = "PROGRAM main: VAR a: INT; END_VAR END_PROGRAM";
+    let decl = "PROGRAM main: VAR a,b: INT; END_VAR END_PROGRAM";
     let body = "\
 a := 1; \
 if a = 1 then \
+    b := a + 1; \
     a := 0; \
 end_if";
 
@@ -142,6 +143,8 @@ end_if";
 
     let r = lua.globals().get::<_, i32>("a");
     assert_eq!(r.unwrap(), 0);
+    let r = lua.globals().get::<_, i32>("b");
+    assert_eq!(r.unwrap(), 2);
 
     let decl = "PROGRAM main: VAR a: INT; END_VAR END_PROGRAM";
     let body = "\
