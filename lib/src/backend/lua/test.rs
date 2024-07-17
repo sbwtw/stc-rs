@@ -150,7 +150,8 @@ end_if";
     let body = "\
 a := 0; \
 if a = 1 then \
-    a := 1; \
+    a := a + 1; \
+    a := a + 1; \
 end_if";
 
     // Generate to buffer

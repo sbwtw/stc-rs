@@ -1,6 +1,10 @@
-use smallvec::smallvec;
 use crate::ast::SmallVec8;
 use crate::parser::StString;
+use smallvec::smallvec;
+use std::cell::RefCell;
+use std::rc::Rc;
+
+pub type LabelPtr = Rc<RefCell<InstLabel>>;
 
 /// Unresolved offset placeholder
 #[derive(Default, Debug, Clone)]
@@ -14,12 +18,11 @@ pub struct InstLabel {
 }
 
 impl InstLabel {
-    pub fn new(name: StString) -> Self {
-        Self {
+    pub fn new(name: StString) -> LabelPtr {
+        Rc::new(RefCell::new(Self {
             inst_index: None,
             name,
             fixup_instructions: smallvec![],
-        }
+        }))
     }
 }
-

@@ -27,7 +27,7 @@ impl CodeGenBackend for LLVMBackend {
         todo!()
     }
 
-    fn insert_label<S: AsRef<str>>(&mut self, label: S) {
+    fn insert_label(&mut self, label: Self::Label) {
         todo!()
     }
 

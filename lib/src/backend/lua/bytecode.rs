@@ -520,11 +520,13 @@ mod test {
     fn test_encoding() {
         let code = LuaByteCode::LoadI(Reg::from_raw(0), 2);
         assert_eq!(code.encode(), 0x80008001);
-
         let code = LuaByteCode::LoadI(Reg::from_raw(3), -65535);
         assert_eq!(code.encode(), 0x00000181);
 
         let code = LuaByteCode::Return(0, 1, 1);
         assert_eq!(code.encode(), 0x01010046);
+
+        let code = LuaByteCode::Jmp(6);
+        assert_eq!(code.encode(), 0x800002B8);
     }
 }

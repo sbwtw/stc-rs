@@ -13,7 +13,7 @@ use utils::*;
 
 mod label;
 mod vm;
-use label::InstLabel;
+use label::{InstLabel, LabelPtr};
 
 #[cfg(test)]
 mod test;
@@ -25,7 +25,6 @@ use crate::prelude::*;
 use indexmap::{IndexMap, IndexSet};
 use log::*;
 use smallvec::{smallvec, SmallVec};
-use std::collections::HashMap;
 use std::mem;
 use std::rc::Rc;
 
@@ -85,7 +84,7 @@ struct LuaBackendStates {
     scope: Option<Scope>,
     error: bool,
     access_mode: LuaAccessMode,
-    expr_exit_label: Option<InstLabel>,
+    expr_exit_label: Option<LabelPtr>,
 }
 
 impl LuaBackendStates {
@@ -126,7 +125,7 @@ pub struct LuaBackend {
     // tmp values for generating function
     upvalue_table: IndexMap<StString, LuaUpValue>,
     constants: IndexSet<LuaConstants>,
-    labels: HashMap<StString, InstLabel>,
+    labels: SmallVec<[LabelPtr; 32]>,
 }
 
 impl LuaBackend {
@@ -170,9 +169,21 @@ impl LuaBackend {
     }
 
     #[inline]
-    fn code_jmp(&mut self, offset: i32) -> usize {
+    fn code_jmp_fixed(&mut self, offset: i32) -> usize {
         self.push_code(LuaByteCode::Jmp(offset));
-        self.byte_codes.len()
+        self.byte_codes.len() - 1
+    }
+
+    #[inline]
+    fn code_jmp(&mut self, label: LabelPtr) {
+        let fixup = self.code_jmp_fixed(0);
+        label.borrow_mut().fixup_instructions.push(fixup);
+    }
+
+    #[inline]
+    fn code_fixup_jmp(&mut self, index: usize, offset: i32) {
+        let new_code = LuaByteCode::Jmp(offset);
+        let _ = mem::replace(&mut self.byte_codes[index], new_code);
     }
 
     #[inline]
@@ -273,7 +284,7 @@ impl LuaBackend {
         self.states.push(attr);
     }
 
-    fn push_exit_label(&mut self, exit_label: InstLabel) {
+    fn push_exit_label(&mut self, exit_label: LabelPtr) {
         let attr = LuaBackendStates {
             scope: self.top_attribute().scope.clone(),
             expr_exit_label: Some(exit_label),
@@ -322,7 +333,7 @@ impl LuaBackend {
 }
 
 impl CodeGenBackend for LuaBackend {
-    type Label = InstLabel;
+    type Label = LabelPtr;
 
     fn new(mgr: UnitsManager, app: ModuleContext) -> Self {
         Self {
@@ -335,7 +346,7 @@ impl CodeGenBackend for LuaBackend {
             constants: IndexSet::new(),
             upvalue_table: IndexMap::new(),
             reg_mgr: RegisterManager::new(),
-            labels: HashMap::new(),
+            labels: smallvec![],
         }
     }
 
@@ -385,6 +396,16 @@ impl CodeGenBackend for LuaBackend {
         // generate return
         self.push_code(LuaByteCode::Return(0, 1, 1));
 
+        // jmp relocate
+        let labels = mem::take(&mut self.labels);
+        for label in labels {
+            let label_offset = label.borrow().inst_index.unwrap();
+            for inst_offset in &label.borrow().fixup_instructions {
+                let fix_offset = label_offset as i32 - (*inst_offset as i32) - 1;
+                self.code_fixup_jmp(*inst_offset, fix_offset);
+            }
+        }
+
         let byte_codes = mem::take(&mut self.byte_codes);
         let constants = mem::replace(&mut self.constants, IndexSet::new());
         let upvalues = mem::replace(&mut self.upvalue_table, IndexMap::new());
@@ -400,28 +421,22 @@ impl CodeGenBackend for LuaBackend {
     }
 
     /// create a new label
-    fn create_label<S: AsRef<str>>(&mut self, label: S) -> InstLabel {
+    fn create_label<S: AsRef<str>>(&mut self, label: S) -> Self::Label {
         let label_name: StString = label.as_ref().into();
         let lbl = InstLabel::new(label_name.clone());
 
-        self.labels.entry(label_name).or_insert(lbl).clone()
+        self.labels.push(lbl.clone());
+        lbl
     }
 
     /// insert label, record current insert position
-    fn insert_label<S: AsRef<str>>(&mut self, label: S) {
-        let label_name: StString = label.as_ref().into();
-
-        let label = self
-            .labels
-            .entry(label_name.clone())
-            .or_insert(InstLabel::new(label_name));
-
+    fn insert_label(&mut self, label: Self::Label) {
         // ensure label is not inserted
-        debug_assert!(label.inst_index.is_some());
+        debug_assert!(label.borrow().inst_index.is_none());
 
         // record insert location
         let inst_index = self.byte_codes.len();
-        label.inst_index = Some(inst_index)
+        label.borrow_mut().inst_index = Some(inst_index)
     }
 
     fn gen_variable_load(&mut self, variable: &mut Variable) {
@@ -560,7 +575,7 @@ impl AstVisitorMut for LuaBackend {
 
         let if_exit_label = self.create_label("if-exit");
 
-        self.push_exit_label(if_exit_label);
+        self.push_exit_label(if_exit_label.clone());
         self.visit_expression_mut(ifst.condition_mut());
         let attr = self.pop_attribute();
 
@@ -568,6 +583,7 @@ impl AstVisitorMut for LuaBackend {
             self.visit_statement_mut(then_ctrl);
         }
 
+        self.insert_label(if_exit_label);
         self.reg_mgr.free(&attr.registers[0]);
     }
 
@@ -611,7 +627,7 @@ impl AstVisitorMut for LuaBackend {
 
                 // conditional jump
                 if let Some(lbl) = cond {
-                    let fixup = self.code_jmp(1);
+                    self.code_jmp(lbl);
                 }
 
                 if let RK::R(r0) = rk0 {
