@@ -482,7 +482,7 @@ impl AstVisitorMut for LuaBackend {
         trace!(
             "LuaGen: variable expression: {}: {:?}",
             var_expr,
-            var.and_then(|x| x.ty())
+            var.as_ref().and_then(|x| x.ty())
         );
 
         let access_mode = self.top_attribute().access_mode;

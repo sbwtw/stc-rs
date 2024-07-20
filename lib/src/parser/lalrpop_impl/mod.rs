@@ -35,11 +35,13 @@ where
     }
 }
 
-pub struct StDeclarationParser {
+pub struct LalrpopDeclParser {
     inner: st::DeclarationParser,
 }
 
-impl StDeclarationParser {
+impl ParserTrait for LalrpopDeclParser {}
+
+impl LalrpopDeclParser {
     pub fn new() -> Self {
         Default::default()
     }
@@ -54,7 +56,7 @@ impl StDeclarationParser {
     }
 }
 
-impl Default for StDeclarationParser {
+impl Default for LalrpopDeclParser {
     fn default() -> Self {
         Self {
             inner: st::DeclarationParser::new(),
@@ -62,11 +64,11 @@ impl Default for StDeclarationParser {
     }
 }
 
-pub struct StFunctionParser {
+pub struct LalrpopParser {
     inner: st::StFunctionParser,
 }
 
-impl StFunctionParser {
+impl LalrpopParser {
     pub fn new() -> Self {
         Default::default()
     }
@@ -81,7 +83,7 @@ impl StFunctionParser {
     }
 }
 
-impl Default for StFunctionParser {
+impl Default for LalrpopParser {
     fn default() -> Self {
         Self {
             inner: st::StFunctionParser::new(),

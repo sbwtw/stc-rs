@@ -13,7 +13,7 @@ struct TypeAnalyzerAttribute {
     #[allow(unused)]
     derived_declaration: Option<Arc<RwLock<Declaration>>>,
     /// the analysis result of current type
-    derived_type: Option<Rc<Box<dyn Type>>>,
+    derived_type: Option<Type>,
 }
 
 #[derive(Default)]
@@ -128,7 +128,7 @@ impl AstVisitorMut for TypeAnalyzer {
             }
         }
 
-        expr.set_ty(result_type.clone());
+        expr.set_ty(result_type.map(|x| x.as_ref().clone()));
     }
 
     fn visit_assign_expression_mut(&mut self, assign: &mut AssignExpression) {
@@ -140,7 +140,7 @@ impl AstVisitorMut for TypeAnalyzer {
         self.visit_expression_mut(assign.left_mut());
         let attr = self.pop();
 
-        assign.set_ty(attr.derived_type)
+        assign.set_ty(attr.derived_type.clone())
     }
 
     fn visit_compo_access_expression_mut(&mut self, compo: &mut CompoAccessExpression) {

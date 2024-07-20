@@ -1,6 +1,5 @@
 use crate::ast::*;
 use crate::{impl_ast_display, impl_into_expression};
-use std::rc::Rc;
 
 #[derive(Debug)]
 pub enum AssignType {
@@ -19,7 +18,7 @@ pub struct AssignExpression {
     left: Expression,
     right: Expression,
     assign_type: AssignType,
-    ty: Option<Rc<Box<dyn Type>>>,
+    ty: Option<Box<dyn Type>>,
 }
 
 impl_ast_display!(AssignExpression, visit_assign_expression);
@@ -60,11 +59,11 @@ impl AssignExpression {
         &mut self.right
     }
 
-    pub fn ty(&self) -> Option<Rc<Box<dyn Type>>> {
-        self.ty.clone()
+    pub fn ty(&self) -> Option<&Box<dyn Type>> {
+        self.ty.as_ref()
     }
 
-    pub fn set_ty(&mut self, ty: Option<Rc<Box<dyn Type>>>) {
+    pub fn set_ty(&mut self, ty: Option<Box<dyn Type>>) {
         self.ty = ty
     }
 }

@@ -9,11 +9,11 @@ fn generate_module<S1: AsRef<str>, S2: AsRef<str>>(decl: S1, body: S2, writer: &
     let mgr = UnitsManager::new();
     let ctx = ModuleContext::new(ModuleKind::Application);
     let lexer = StLexerBuilder::new().build_str(decl.as_ref());
-    let decl = StDeclarationParser::new().parse(lexer).unwrap();
+    let decl = LalrpopDeclParser::new().parse(lexer).unwrap();
     let fun_id = ctx.write().add_declaration(decl, Uuid::nil());
 
     let lexer = StLexerBuilder::new().build_str(body.as_ref());
-    let body = StFunctionParser::new().parse(lexer).unwrap();
+    let body = LalrpopParser::new().parse(lexer).unwrap();
     ctx.write().add_function(fun_id, body);
 
     mgr.write().add_context(ctx.clone());

@@ -9,7 +9,7 @@ use std::rc::Rc;
 pub struct Variable {
     attributes: Map<StString, String>,
     name: StString,
-    ty: Option<Rc<Box<dyn Type>>>,
+    ty: Option<Type>,
     flags: VariableFlags,
     initial: Option<Box<Expression>>,
 }
@@ -22,7 +22,7 @@ impl Variable {
         }
     }
 
-    pub fn with_type(name: StString, ty: Rc<Box<dyn Type>>) -> Self {
+    pub fn with_type(name: StString, ty: Type) -> Self {
         Self {
             name,
             ty: Some(ty),
@@ -41,7 +41,7 @@ impl Variable {
     /// comma split variable declare list, like: a, b, c: INT;
     pub fn multiple_variable_with_type(
         names: SmallVec8<StString>,
-        ty: Rc<Box<dyn Type>>,
+        ty: Type,
     ) -> SmallVec8<Rc<Self>> {
         names
             .iter()
@@ -60,12 +60,12 @@ impl Variable {
     }
 
     #[inline]
-    pub fn ty(&self) -> Option<Rc<Box<dyn Type>>> {
-        self.ty.clone()
+    pub fn ty(&self) -> Option<&Type> {
+        self.ty.as_ref()
     }
 
     #[inline]
-    pub fn set_ty(&mut self, ty: Option<Rc<Box<dyn Type>>>) {
+    pub fn set_ty(&mut self, ty: Option<Type>) {
         self.ty = ty
     }
 

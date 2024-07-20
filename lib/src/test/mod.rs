@@ -1,10 +1,10 @@
-use crate::parser::{self, StDeclarationParser, StLexerBuilder, StString};
+use crate::parser::{self, LalrpopDeclParser, StLexerBuilder, StString};
 use crate::prelude::*;
 use std::fs;
 
 #[test]
 fn test_decl_parse() {
-    let parser = StDeclarationParser::new();
+    let parser = LalrpopDeclParser::new();
 
     for entry in fs::read_dir("src/test/test_decl_parse").unwrap() {
         let f = entry.unwrap().path();
@@ -20,7 +20,7 @@ fn test_decl_parse() {
 
 #[test]
 fn test_body_parse() {
-    let parser = parser::StFunctionParser::new();
+    let parser = parser::LalrpopParser::new();
 
     for entry in fs::read_dir("src/test/test_body_parse").unwrap() {
         let f = entry.unwrap().path();
@@ -46,12 +46,12 @@ fn test_scope_lookup() {
 
     let app_ctx = mgr.write().get_context(app_id).unwrap();
     let global = StLexerBuilder::new().build_str("VAR_GLOBAL END_VAR VAR_GLOBAL g1: REAL; END_VAR");
-    let global = StDeclarationParser::new().parse(global).unwrap();
+    let global = LalrpopDeclParser::new().parse(global).unwrap();
     let _global_id = app_ctx.write().add_declaration(global, Uuid::nil());
 
     let test_func =
         StLexerBuilder::new().build_str("program prg: int VAR g1: BYTE; END_VAR end_program");
-    let test_fun_decl = StDeclarationParser::new().parse(test_func).unwrap();
+    let test_fun_decl = LalrpopDeclParser::new().parse(test_func).unwrap();
     let test_fun_decl_id = app_ctx.write().add_declaration(test_fun_decl, Uuid::nil());
 
     let scope = Scope::new(Some(mgr.clone()), Some(app_id), Some(test_fun_decl_id));

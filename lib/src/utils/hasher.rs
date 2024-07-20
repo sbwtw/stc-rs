@@ -41,7 +41,7 @@ impl MyHash for Variable {
         self.name().hash(state);
         self.flags().hash(state);
         if let Some(ty) = self.ty() {
-            MyHash::hash(ty.as_ref(), state)
+            MyHash::hash(ty, state)
         }
     }
 }

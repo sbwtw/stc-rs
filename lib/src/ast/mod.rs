@@ -1,6 +1,7 @@
 use bitflags::bitflags;
 use smallvec::SmallVec;
 use std::fmt::{self, Debug, Display, Formatter};
+use std::rc::Rc;
 
 use crate::parser::{LiteralValue, Operator, StString};
 
@@ -147,14 +148,29 @@ impl_into_expression!(LiteralValue, |x| Expression::literal(Box::new(
     LiteralExpression::new(x)
 )));
 
-pub trait Type: Debug {
-    fn type_class(&self) -> TypeClass;
+#[derive(Clone)]
+pub struct Type {
+    inner: Rc<TypeImpl>,
 }
 
-impl Display for dyn Type {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.type_class())
+impl Type {
+    pub fn from_class(class: TypeClass) -> Self {
+        Self {
+            inner: TypeImpl {
+                class,
+            }
+        }
     }
+}
+
+impl Display for Type {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", *self.inner)
+    }
+}
+
+struct TypeImpl {
+    class: TypeClass
 }
 
 bitflags! {

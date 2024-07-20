@@ -1,6 +1,7 @@
 use crate::ast::*;
 use crate::impl_has_attribute;
 use smallmap::Map;
+use std::convert::Into;
 use std::rc::Rc;
 
 macro_rules! builtin_type_impl {
@@ -9,14 +10,8 @@ macro_rules! builtin_type_impl {
         pub struct $name;
 
         impl $name {
-            pub fn new() -> Self {
-                Self {}
-            }
-        }
-
-        impl Type for $name {
-            fn type_class(&self) -> TypeClass {
-                $class
+            pub fn new() -> Type {
+                Type::from_class($class)
             }
         }
     };
@@ -68,27 +63,25 @@ impl UserType {
     }
 }
 
-impl Type for UserType {
-    fn type_class(&self) -> TypeClass {
-        TypeClass::UserType(self.name.clone(), self.class.clone())
-    }
-}
+impl Into<Type> for UserType {}
+
+// impl Type for UserType {
+//     fn type_class(&self) -> TypeClass {
+//         TypeClass::UserType(self.name.clone(), self.class.clone())
+//     }
+// }
 
 impl_has_attribute!(UserType, attributes);
 
 #[derive(Debug)]
 pub struct EnumDeclare {
     name: StString,
-    ty: Option<Rc<Box<dyn Type>>>,
+    ty: Option<Type>,
     fields: SmallVec8<Rc<Variable>>,
 }
 
 impl EnumDeclare {
-    pub fn new(
-        name: StString,
-        ty: Option<Rc<Box<dyn Type>>>,
-        fields: SmallVec8<Rc<Variable>>,
-    ) -> Self {
+    pub fn new(name: StString, ty: Option<Type>, fields: SmallVec8<Rc<Variable>>) -> Self {
         Self { name, ty, fields }
     }
 
@@ -96,8 +89,8 @@ impl EnumDeclare {
         &self.name
     }
 
-    pub fn ty(&self) -> Option<Rc<Box<dyn Type>>> {
-        self.ty.clone()
+    pub fn ty(&self) -> &Option<Type> {
+        &self.ty
     }
 
     pub fn fields(&self) -> &[Rc<Variable>] {
@@ -105,20 +98,20 @@ impl EnumDeclare {
     }
 }
 
-impl Type for EnumDeclare {
-    fn type_class(&self) -> TypeClass {
-        TypeClass::UserType(self.name.clone(), Some(UserTypeClass::Enum))
-    }
-}
+// impl Type for EnumDeclare {
+//     fn type_class(&self) -> TypeClass {
+//         TypeClass::UserType(self.name.clone(), Some(UserTypeClass::Enum))
+//     }
+// }
 
 #[derive(Debug)]
 pub struct AliasDeclare {
     name: StString,
-    alias: Rc<Box<dyn Type>>,
+    alias: Type,
 }
 
 impl AliasDeclare {
-    pub fn new(name: StString, alias: Rc<Box<dyn Type>>) -> Self {
+    pub fn new(name: StString, alias: Type) -> Self {
         Self { name, alias }
     }
 
@@ -127,11 +120,11 @@ impl AliasDeclare {
     }
 }
 
-impl Type for AliasDeclare {
-    fn type_class(&self) -> TypeClass {
-        TypeClass::UserType(self.name.clone(), Some(UserTypeClass::Alias))
-    }
-}
+// impl Type for AliasDeclare {
+//     fn type_class(&self) -> TypeClass {
+//         TypeClass::UserType(self.name.clone(), Some(UserTypeClass::Alias))
+//     }
+// }
 
 #[derive(Debug)]
 pub struct StructDeclare {
@@ -157,8 +150,8 @@ impl StructDeclare {
     }
 }
 
-impl Type for StructDeclare {
-    fn type_class(&self) -> TypeClass {
-        TypeClass::UserType(self.name.clone(), Some(UserTypeClass::Struct))
-    }
-}
+// impl Type for StructDeclare {
+//     fn type_class(&self) -> TypeClass {
+//         TypeClass::UserType(self.name.clone(), Some(UserTypeClass::Struct))
+//     }
+// }

@@ -262,12 +262,12 @@ EnumFieldDecl: Rc<Variable> = {
 }
 
 /// Type
-Type: Rc<Box<dyn Type>> = {
-    "INT" => Rc::new(Box::new(IntType::new())),
-    "BOOL" => Rc::new(Box::new(BoolType::new())),
-    "BYTE" => Rc::new(Box::new(ByteType::new())),
-    "REAL" => Rc::new(Box::new(RealType::new())),
-    "IDENTIFIER" => Rc::new(Box::new(UserType::from_name(<>))),
+Type: Box<dyn Type> = {
+    "INT" => Box::new(IntType::new()),
+    "BOOL" => Box::new(BoolType::new()),
+    "BYTE" => Box::new(ByteType::new()),
+    "REAL" => Box::new(RealType::new()),
+    "IDENTIFIER" => Box::new(UserType::from_name(<>)),
 }
 
 /// Variable declare groups flat

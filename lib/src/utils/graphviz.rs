@@ -213,7 +213,7 @@ impl<W: Write> GraphvizExporter<W> {
     }
 }
 
-fn display_type(ty: Option<Rc<Box<dyn Type>>>) -> String {
+fn display_type(ty: Option<&Box<dyn Type>>) -> String {
     ty.map(|x| x.to_string()).unwrap_or_default()
 }
 

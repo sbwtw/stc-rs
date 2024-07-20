@@ -1,12 +1,25 @@
 use crate::ast::{AstVisitor, Type};
 use crate::impl_ast_display;
 use crate::parser::StString;
-use std::rc::Rc;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct VariableExpression {
     name: StString,
-    ty: Option<Rc<Box<dyn Type>>>,
+    ty: Option<Box<dyn Type>>,
+}
+
+impl Clone for VariableExpression {
+    fn clone(&self) -> Self {
+        let ty = match &self.ty {
+            Some(t) => Some(t.as_ref().clone()),
+            _ => None,
+        };
+
+        Self {
+            name: self.name.clone(),
+            ty,
+        }
+    }
 }
 
 impl_ast_display!(VariableExpression, visit_variable_expression);
@@ -31,12 +44,12 @@ impl VariableExpression {
     }
 
     #[inline]
-    pub fn ty(&self) -> Option<Rc<Box<dyn Type>>> {
-        self.ty.clone()
+    pub fn ty(&self) -> Option<&Box<dyn Type>> {
+        self.ty.as_ref()
     }
 
     #[inline]
-    pub fn set_ty(&mut self, ty: Option<Rc<Box<dyn Type>>>) {
+    pub fn set_ty(&mut self, ty: Option<Box<dyn Type>>) {
         self.ty = ty
     }
 }

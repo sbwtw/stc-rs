@@ -5,7 +5,7 @@ use std::rc::Rc;
 #[derive(Debug)]
 pub struct OperatorExpression {
     op: Operator,
-    ty: Option<Rc<Box<dyn Type>>>,
+    ty: Option<Box<dyn Type>>,
     operands: SmallVec<[Expression; 2]>,
 }
 
@@ -35,11 +35,11 @@ impl OperatorExpression {
         &self.op
     }
 
-    pub fn ty(&self) -> Option<Rc<Box<dyn Type>>> {
-        self.ty.clone()
+    pub fn ty(&self) -> Option<&Box<dyn Type>> {
+        self.ty.as_ref()
     }
 
-    pub fn set_ty(&mut self, ty: Option<Rc<Box<dyn Type>>>) {
+    pub fn set_ty(&mut self, ty: Option<Box<dyn Type>>) {
         self.ty = ty;
     }
 
