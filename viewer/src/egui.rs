@@ -44,7 +44,7 @@ impl eframe::App for StcViewer {
     }
 }
 
-fn main() -> Result<(), eframe::Error> {
+pub fn main() -> Result<(), eframe::Error> {
     pretty_env_logger::init();
 
     let options = eframe::NativeOptions {

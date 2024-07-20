@@ -1,8 +1,6 @@
-mod column_object;
-mod stc_viewer;
-mod storage;
-
 use crate::stc_viewer::{StcViewerApp, UIMessages, STC_VIEWER_COLUMN_NAME};
+use crate::storage;
+
 use glib::MainContext;
 use gtk4::gdk::ffi::GDK_BUTTON_SECONDARY;
 use gtk4::gdk::Rectangle;
@@ -16,7 +14,7 @@ use stc::prelude::*;
 use std::rc::Rc;
 use std::sync::Mutex;
 
-fn main() {
+pub fn main() {
     pretty_env_logger::init();
 
     let mgr = UnitsManager::new();
