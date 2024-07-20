@@ -17,11 +17,15 @@ use std::rc::Rc;
 type ParseResult<T> = Result<Option<T>, ParseError>;
 
 /// declaration parser wrapper
-pub struct StDeclarationParser {}
+pub struct DefaultDeclParser {}
 
-impl ParserTrait for StDeclarationParser {}
+impl DeclParserTrait for DefaultDeclParser {
+    fn parse(&self, lexer: &mut StLexer) -> Result<Declaration, ParseError> {
+        self.parse(lexer)
+    }
+}
 
-impl StDeclarationParser {
+impl DefaultDeclParser {
     pub fn new() -> Self {
         Self {}
     }
@@ -35,10 +39,15 @@ impl StDeclarationParser {
 }
 
 /// function parser wrapper
-#[allow(unused)]
-pub struct StFunctionParser {}
+pub struct DefaultStmtParser {}
 
-impl StFunctionParser {
+impl StmtParserTrait for DefaultStmtParser {
+    fn parse(&self, lexer: &mut StLexer) -> Result<Statement, ParseError> {
+        self.parse(lexer)
+    }
+}
+
+impl DefaultStmtParser {
     pub fn new() -> Self {
         Self {}
     }

@@ -39,7 +39,11 @@ pub struct LalrpopDeclParser {
     inner: st::DeclarationParser,
 }
 
-impl ParserTrait for LalrpopDeclParser {}
+impl DeclParserTrait for LalrpopDeclParser {
+    fn parse(&self, lexer: &mut StLexer) -> Result<Declaration, ParseError> {
+        self.parse(lexer)
+    }
+}
 
 impl LalrpopDeclParser {
     pub fn new() -> Self {
@@ -66,6 +70,12 @@ impl Default for LalrpopDeclParser {
 
 pub struct LalrpopParser {
     inner: st::StFunctionParser,
+}
+
+impl StmtParserTrait for LalrpopParser {
+    fn parse(&self, lexer: &mut StLexer) -> Result<Statement, ParseError> {
+        self.parse(lexer)
+    }
 }
 
 impl LalrpopParser {

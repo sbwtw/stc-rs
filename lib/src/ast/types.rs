@@ -60,7 +60,7 @@ impl UserType {
 
 impl From<UserType> for Type {
     fn from(value: UserType) -> Self {
-        let class = TypeClass::UserType(value.name, None);
+        let class = TypeClass::UserType(value.name);
 
         Type::from_class(class)
     }

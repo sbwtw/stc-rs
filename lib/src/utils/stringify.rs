@@ -299,7 +299,7 @@ mod test {
 
     fn parse_string<S: AsRef<str>>(s: S) -> String {
         let lexer = StLexerBuilder::new().build_str(s.as_ref());
-        let r = LalrpopParser::new().parse(lexer).unwrap();
+        let r = ParserBuilder::new().build().parse_stmt(lexer).unwrap();
 
         let mut buf = vec![];
         let mut stringify = StringifyVisitor::new(&mut buf);

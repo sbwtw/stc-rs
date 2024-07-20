@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-stc-rs = { path = "../lib", features = ["use_lalrpop"] }
+stc-rs = { path = "../lib", features = ["lalrpop_parser"] }
 pretty_env_logger = "*"
 log = "*"
 once_cell = "*"

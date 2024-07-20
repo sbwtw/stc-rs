@@ -1,3 +1,5 @@
+use crate::prelude::{Declaration, Statement};
+
 mod buffer;
 
 pub use buffer::*;
@@ -34,7 +36,7 @@ impl ParseError {
     }
 }
 
-#[cfg(feature = "use_lalrpop")]
+#[cfg(feature = "lalrpop_parser")]
 impl From<lalrpop_util::ParseError<usize, TokenKind, LexicalError>> for ParseError {
     fn from(e: lalrpop_util::ParseError<usize, TokenKind, LexicalError>) -> Self {
         match e {
@@ -58,33 +60,61 @@ impl From<lalrpop_util::ParseError<usize, TokenKind, LexicalError>> for ParseErr
 }
 
 pub struct Parser {
-    inner: Box<dyn ParserTrait>,
+    decl_parser: Box<dyn DeclParserTrait>,
+    stmt_parser: Box<dyn StmtParserTrait>,
+}
+
+impl Parser {
+    pub fn parse(&self, mut lexer: StLexer) -> Result<Declaration, ParseError> {
+        self.decl_parser.parse(&mut lexer)
+    }
+
+    pub fn parse_stmt(&self, mut lexer: StLexer) -> Result<Statement, ParseError> {
+        self.stmt_parser.parse(&mut lexer)
+    }
 }
 
 pub struct ParserBuilder {}
 
 impl ParserBuilder {
-    #[cfg(feature = "use_lalrpop")]
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    #[cfg(feature = "lalrpop_parser")]
     pub fn build(self) -> Parser {
         Parser {
-            inner: Box::new(LalrpopDeclParser::new()),
+            decl_parser: Box::new(LalrpopDeclParser::new()),
+            stmt_parser: Box::new(LalrpopParser::new()),
         }
     }
 
-    #[cfg(not(feature = "use_lalrpop"))]
+    #[cfg(feature = "default_parser")]
     pub fn build(self) -> Parser {
         Parser {
-            inner: Box::new(StDeclarationParser::new()),
+            decl_parser: Box::new(DefaultDeclParser::new()),
+            stmt_parser: Box::new(DefaultStmtParser::new()),
         }
     }
 }
 
-trait ParserTrait {}
+trait DeclParserTrait {
+    fn parse(&self, lexer: &mut StLexer) -> Result<Declaration, ParseError>;
+}
 
-#[cfg(feature = "use_lalrpop")]
+trait StmtParserTrait {
+    fn parse(&self, lexer: &mut StLexer) -> Result<Statement, ParseError>;
+}
+
+#[cfg(feature = "lalrpop_parser")]
 mod lalrpop_impl;
-#[cfg(feature = "use_lalrpop")]
-pub use lalrpop_impl::{LalrpopDeclParser, LalrpopParser};
+#[cfg(feature = "lalrpop_parser")]
+use lalrpop_impl::{LalrpopDeclParser, LalrpopParser};
 
+#[cfg(feature = "default_parser")]
 mod default_impl;
-pub use default_impl::{StDeclarationParser, StFunctionParser};
+#[cfg(feature = "default_parser")]
+use default_impl::{DefaultDeclParser, DefaultStmtParser};
+
+#[cfg(all(feature = "default_parser", feature = "lalrpop_parser"))]
+compile_error!("Feature 1 and 2 are mutually exclusive and cannot be enabled together");

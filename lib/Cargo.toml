@@ -34,7 +34,8 @@ lalrpop = { version = "*", optional = true }
 llvm-sys = { version = "170", optional = true, features = ["prefer-dynamic"] }
 
 [features]
-default = ["use_lalrpop", "lua_backend"]
-use_lalrpop = ["lalrpop", "lalrpop-util"]
+default = ["lua_backend", "lalrpop_parser"]
+lalrpop_parser = ["lalrpop", "lalrpop-util"]
 llvm_backend = ["inkwell", "llvm-sys"]
 lua_backend = ["mlua"]
+default_parser = []

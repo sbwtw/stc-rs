@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use stc::parser::{LalrpopDeclParser, LalrpopParser, StLexerBuilder};
+use stc::parser::{ParserBuilder, StLexerBuilder};
 use stc::prelude::*;
 use std::str::FromStr;
 
@@ -37,7 +37,7 @@ impl From<Application> for ModuleContext {
 
         for pou in app.pou_list.pou {
             let lexer = StLexerBuilder::new().build_str(&pou.interface.content);
-            let decl = LalrpopDeclParser::new().parse(lexer).unwrap();
+            let decl = ParserBuilder::new().build().parse(lexer).unwrap();
             let func = ctx_write.add_declaration(
                 decl,
                 pou.uuid_text
@@ -47,7 +47,7 @@ impl From<Application> for ModuleContext {
 
             if let Some(body) = pou.body {
                 let lexer = StLexerBuilder::new().build_str(&body.content);
-                let body = LalrpopParser::new().parse(lexer).unwrap();
+                let body = ParserBuilder::new().build().parse_stmt(lexer).unwrap();
                 ctx_write.add_function(func, body);
             }
         }

@@ -163,6 +163,10 @@ impl Type {
     pub fn type_class(&self) -> &TypeClass {
         &self.inner.class
     }
+
+    pub fn cast<T>(self) -> T {
+        todo!()
+    }
 }
 
 impl Display for Type {
@@ -319,7 +323,7 @@ pub enum TypeClass {
     /// 'STRING' string type
     String,
     /// UserType
-    UserType(StString, Option<UserTypeClass>),
+    UserType(StString),
 }
 
 impl Display for TypeClass {
@@ -338,7 +342,7 @@ impl Display for TypeClass {
             TypeClass::Real => write!(f, "REAL"),
             TypeClass::LReal => write!(f, "LREAL"),
             TypeClass::String => write!(f, "STRING"),
-            TypeClass::UserType(s, _) => write!(f, "{}", s.origin_string()),
+            TypeClass::UserType(s) => write!(f, "{}", s.origin_string()),
         }
     }
 }
