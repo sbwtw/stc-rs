@@ -3,13 +3,24 @@ name = "viewer"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "viewer"
+path = "src/bin.rs"
+
 [dependencies]
 stc-rs = { path = "../lib" }
 pretty_env_logger = "*"
 log = "*"
-gtk4 = { version = "*" }
-glib = { version = "*" }
+gtk4 = { version = "*", optional = true }
+glib = { version = "*", optional = true }
 once_cell = "*"
 async-channel = "*"
 quick-xml = { version = "*", features = ["serialize"] }
 serde = { version = "*", features = ["derive"] }
+eframe = { version = "*", features = ["default"], optional = true }
+egui_extras = { version = "*", features = ["default", "image"], optional = true }
+
+[features]
+default = ["gui-gtk4"]
+gui-egui = ["eframe", "egui_extras"]
+gui-gtk4 = ["gtk4", "glib"]

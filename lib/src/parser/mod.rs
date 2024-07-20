@@ -117,4 +117,4 @@ mod default_impl;
 use default_impl::{DefaultDeclParser, DefaultStmtParser};
 
 #[cfg(all(feature = "default_parser", feature = "lalrpop_parser"))]
-compile_error!("Feature 1 and 2 are mutually exclusive and cannot be enabled together");
+compile_error!("Feature default_parser and lalrpop_parser are mutually exclusive and cannot be enabled together");
