@@ -10,7 +10,7 @@ extern {
     type Error = LexicalError;
 
     enum TokenKind {
-        "." => TokenKind::Access,
+        "." => TokenKind::DotAccess,
         "+" => TokenKind::Plus,
         "-" => TokenKind::Minus,
         "*" => TokenKind::Multiply,

@@ -1,6 +1,6 @@
 use crate::ast::*;
-use crate::parser::*;
 use crate::parser::token::Token;
+use crate::parser::*;
 use lalrpop_util::lalrpop_mod;
 
 lalrpop_mod!(st, "/parser/lalrpop_impl/st.rs");
@@ -10,7 +10,7 @@ type LalrPopLexerResult = Result<LalrPopLexerItem, LexicalError>;
 
 impl From<Token> for LalrPopLexerItem {
     fn from(tok: Token) -> Self {
-        (tok.pos.line, tok.kind, tok.pos.offset)
+        (tok.pos.mark, tok.kind, tok.pos.offset)
     }
 }
 

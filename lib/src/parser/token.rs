@@ -1,11 +1,13 @@
 use crate::parser::*;
 use std::fmt::{self, Display, Formatter};
 
+#[derive(Debug)]
 pub struct TokenPosition {
-    pub line: usize,
+    pub mark: usize,
     pub offset: usize,
 }
 
+#[derive(Debug)]
 pub struct Token {
     pub kind: TokenKind,
     pub length: usize,
@@ -17,7 +19,7 @@ impl Token {
         Self {
             kind,
             length: 0,
-            pos: TokenPosition { line: 0, offset: 0 },
+            pos: TokenPosition { mark: 0, offset: 0 },
         }
     }
 }
@@ -27,7 +29,7 @@ impl Default for Token {
         Self {
             kind: TokenKind::None,
             length: 0,
-            pos: TokenPosition { line: 0, offset: 0 },
+            pos: TokenPosition { mark: 0, offset: 0 },
         }
     }
 }
@@ -38,7 +40,9 @@ pub enum TokenKind {
     /// ' ' or '\n', etc.
     Whitespace,
     /// '.'
-    Access,
+    DotAccess,
+    /// '..'
+    DotRange,
     /// '+'
     Plus,
     /// '-'
@@ -53,6 +57,10 @@ pub enum TokenKind {
     LeftParentheses,
     /// ')'
     RightParentheses,
+    /// '['
+    LeftBracket,
+    /// ']'
+    RightBracket,
     /// ','
     Comma,
     /// ';'
@@ -224,7 +232,8 @@ impl From<&TokenKind> for String {
         let s = match value {
             TokenKind::None => "!!!NONE!!!",
             TokenKind::Whitespace => " ",
-            TokenKind::Access => ".",
+            TokenKind::DotAccess => ".",
+            TokenKind::DotRange => "..",
             TokenKind::Plus => "+",
             TokenKind::Minus => "-",
             TokenKind::Multiply => "*",
@@ -232,6 +241,8 @@ impl From<&TokenKind> for String {
             TokenKind::Division => "/",
             TokenKind::LeftParentheses => "(",
             TokenKind::RightParentheses => ")",
+            TokenKind::LeftBracket => "[",
+            TokenKind::RightBracket => "]",
             TokenKind::Comma => ",",
             TokenKind::Semicolon => ";",
             TokenKind::Colon => ":",

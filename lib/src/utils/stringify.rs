@@ -278,7 +278,7 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
 
     fn visit_compo_access_expression(&mut self, compo: &CompoAccessExpression) {
         self.visit_expression(compo.left());
-        self.write(format_args!("{}", TokenKind::Access));
+        self.write(format_args!("{}", TokenKind::DotAccess));
         self.visit_expression(compo.right());
     }
 }

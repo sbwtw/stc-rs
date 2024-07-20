@@ -71,6 +71,8 @@ impl Buffer for StringBuffer<'_> {
     }
 
     fn peek(&mut self, n: usize) -> Option<char> {
+        debug_assert!(n > 0);
+
         while self.peek_buffer.len() <= n {
             match self.chars.next() {
                 Some(c) => self.peek_buffer.push(c),
@@ -78,7 +80,7 @@ impl Buffer for StringBuffer<'_> {
             }
         }
 
-        Some(self.peek_buffer[n])
+        Some(self.peek_buffer[n - 1])
     }
 
     fn current_line(&self) -> usize {

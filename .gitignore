@@ -1,5 +1,6 @@
 /target
 .idea/
+.vscode/
 *.h
 *.dot
 *.svg

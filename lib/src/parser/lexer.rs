@@ -1,6 +1,6 @@
 use crate::ast::*;
-use crate::parser::{Buffer, StreamBuffer, StringBuffer, TokenKind};
 use crate::parser::token::{Token, TokenPosition};
+use crate::parser::{Buffer, StreamBuffer, StringBuffer, TokenKind};
 use crate::prelude::StString;
 use smallmap::Map;
 use std::fmt::{self, Display, Formatter};
@@ -174,6 +174,7 @@ impl StLexerBuilder {
             TokenKind::Mod,
             TokenKind::Not,
             TokenKind::If,
+            TokenKind::Of,
             TokenKind::Else,
             TokenKind::Then,
             TokenKind::ElseIf,
@@ -195,6 +196,7 @@ impl StLexerBuilder {
             TokenKind::Persistent,
             TokenKind::Type,
             TokenKind::EndType,
+            TokenKind::Bit,
             TokenKind::Int,
             TokenKind::Bool,
             TokenKind::Byte,
@@ -253,12 +255,14 @@ impl<'input> StLexer<'input> {
         }
     }
 
+    /// 123^.456
     fn parse_floating(&mut self, mut tok: Token, mut s: String) -> Option<LexerResult> {
         let mut dot = false;
 
         loop {
             match self.buffer.peek1() {
-                Some('.') if !dot => {
+                // avoid range like 1..3
+                Some('.') if !dot && self.buffer.peek(2) != Some('.') => {
                     self.buffer.consume1();
                     dot = true;
                     s.push('.');
@@ -445,7 +449,7 @@ impl<'input> StLexer<'input> {
         let mut tok = Token {
             length: 1,
             pos: TokenPosition {
-                line: self.buffer.current_line(),
+                mark: self.buffer.current_line(),
                 offset: self.buffer.current_offset(),
             },
             ..Default::default()
@@ -458,8 +462,17 @@ impl<'input> StLexer<'input> {
             }
             Some('.') => {
                 self.buffer.consume1();
-                tok.kind = TokenKind::Access;
-                Some(Ok(tok))
+                match self.buffer.peek1() {
+                    Some('.') => {
+                        self.buffer.consume1();
+                        tok.kind = TokenKind::DotRange;
+                        Some(Ok(tok))
+                    }
+                    _ => {
+                        tok.kind = TokenKind::DotAccess;
+                        Some(Ok(tok))
+                    }
+                }
             }
             Some('+') => {
                 self.buffer.consume1();
@@ -486,6 +499,16 @@ impl<'input> StLexer<'input> {
                 tok.kind = TokenKind::RightParentheses;
                 Some(Ok(tok))
             }
+            Some('[') => {
+                self.buffer.consume1();
+                tok.kind = TokenKind::LeftBracket;
+                Some(Ok(tok))
+            }
+            Some(']') => {
+                self.buffer.consume1();
+                tok.kind = TokenKind::RightBracket;
+                Some(Ok(tok))
+            }
             Some(',') => {
                 self.buffer.consume1();
                 tok.kind = TokenKind::Comma;
@@ -499,6 +522,11 @@ impl<'input> StLexer<'input> {
             Some('&') => {
                 self.buffer.consume1();
                 tok.kind = TokenKind::BitAnd;
+                Some(Ok(tok))
+            }
+            Some('^') => {
+                self.buffer.consume1();
+                tok.kind = TokenKind::Deref;
                 Some(Ok(tok))
             }
             Some('\"') => {
@@ -592,7 +620,7 @@ mod test {
 
         let x = lexer.next().unwrap().unwrap();
         assert_eq!(x.pos.offset, 0);
-        assert_eq!(x.pos.line, 0);
+        assert_eq!(x.pos.mark, 0);
         assert_eq!(x.length, 2);
         assert_eq!(x.kind, TokenKind::If);
 
@@ -620,7 +648,7 @@ mod test {
         assert!(matches!(x.kind, TokenKind::Plus));
 
         let x = lexer.next().unwrap().unwrap();
-        assert_eq!(x.pos.line, 1);
+        assert_eq!(x.pos.mark, 1);
         assert_eq!(x.pos.offset, 0);
         assert_eq!(x.length, 1);
         assert!(matches!(x.kind, TokenKind::Identifier(_)));
@@ -671,5 +699,28 @@ mod test {
         assert_eq!(x.pos.offset, 0);
         assert_eq!(x.length, 5);
         assert!(matches!(x.kind, TokenKind::Literal(LiteralValue::LReal(_))));
+    }
+
+    #[test]
+    fn test_array() {
+        let s = "array[0..1] of bit";
+        let mut lexer = StLexerBuilder::new().build_str(s);
+
+        let x = lexer.next().unwrap().unwrap();
+        assert!(matches!(x.kind, TokenKind::Identifier(..)));
+        let x = lexer.next().unwrap().unwrap();
+        assert!(matches!(x.kind, TokenKind::LeftBracket));
+        let x = lexer.next().unwrap().unwrap();
+        assert!(matches!(x.kind, TokenKind::Literal(..)));
+        let x = lexer.next().unwrap().unwrap();
+        assert!(matches!(x.kind, TokenKind::DotRange));
+        let x = lexer.next().unwrap().unwrap();
+        assert!(matches!(x.kind, TokenKind::Literal(..)));
+        let x = lexer.next().unwrap().unwrap();
+        assert!(matches!(x.kind, TokenKind::RightBracket));
+        let x = lexer.next().unwrap().unwrap();
+        assert!(matches!(x.kind, TokenKind::Of));
+        let x = lexer.next().unwrap().unwrap();
+        assert!(matches!(x.kind, TokenKind::Bit));
     }
 }

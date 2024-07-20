@@ -5,11 +5,6 @@ authors = ["石博文 <sbw@sbw.so>"]
 edition = "2021"
 build = "src/build.rs"
 
-#[[bin]]
-#name = "stc"
-#path = "src/main.rs"
-#
-
 [lib]
 name = "stc"
 path = "src/lib.rs"
@@ -28,7 +23,7 @@ indexmap = "*"
 byteorder = "*"
 uuid = { version = "*", features = ["v4", "fast-rng", "macro-diagnostics", "serde"] }
 inkwell = { version = "*", optional = true, features = ["llvm17-0-no-llvm-linking"] }
-mlua = { version = "*", features = ["lua54", "macros", "async"], optional = true }
+mlua = { version = "*", features = ["lua54", "macros", "async", "vendored"], optional = true }
 
 [dev-dependencies]
 tempfile = "*"
