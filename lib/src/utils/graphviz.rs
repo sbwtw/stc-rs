@@ -6,7 +6,6 @@ use std::borrow::Cow;
 use std::fmt::Arguments;
 use std::io::Write;
 use std::iter::FromIterator;
-use std::rc::Rc;
 
 /// Graphviz Labels Group
 enum GraphvizLabelGroup {
@@ -213,7 +212,7 @@ impl<W: Write> GraphvizExporter<W> {
     }
 }
 
-fn display_type(ty: Option<&Box<dyn Type>>) -> String {
+fn display_type(ty: Option<&Type>) -> String {
     ty.map(|x| x.to_string()).unwrap_or_default()
 }
 

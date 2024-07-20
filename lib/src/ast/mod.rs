@@ -148,7 +148,7 @@ impl_into_expression!(LiteralValue, |x| Expression::literal(Box::new(
     LiteralExpression::new(x)
 )));
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Type {
     inner: Rc<TypeImpl>,
 }
@@ -156,10 +156,12 @@ pub struct Type {
 impl Type {
     pub fn from_class(class: TypeClass) -> Self {
         Self {
-            inner: TypeImpl {
-                class,
-            }
+            inner: Rc::new(TypeImpl { class }),
         }
+    }
+
+    pub fn type_class(&self) -> &TypeClass {
+        &self.inner.class
     }
 }
 
@@ -169,8 +171,15 @@ impl Display for Type {
     }
 }
 
+#[derive(Debug)]
 struct TypeImpl {
-    class: TypeClass
+    class: TypeClass,
+}
+
+impl Display for TypeImpl {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!("{:?}", self.class))
+    }
 }
 
 bitflags! {

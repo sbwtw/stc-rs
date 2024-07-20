@@ -73,7 +73,7 @@ impl TypeAnalyzer {
 
 impl AstVisitorMut for TypeAnalyzer {
     fn visit_literal_mut(&mut self, literal: &mut LiteralExpression) {
-        self.top_mut().derived_type = Some(Rc::new(literal.literal().ty()))
+        self.top_mut().derived_type = Some(literal.literal().ty())
     }
 
     fn visit_variable_expression_mut(&mut self, variable: &mut VariableExpression) {
@@ -87,11 +87,11 @@ impl AstVisitorMut for TypeAnalyzer {
 
         let attr = self.top_mut();
         let ty = match (derived_variable, derived_declaration) {
-            (Some(v), None) => v.ty().clone(),
+            (Some(v), None) => v.ty().cloned(),
             (None, Some(decl)) => {
                 // update scope to inner declaration
                 attr.scope = decl_scope;
-                decl.read().unwrap().create_user_type().clone()
+                decl.read().unwrap().create_user_type()
             }
 
             // TODO: Ambiguity ?
@@ -111,24 +111,23 @@ impl AstVisitorMut for TypeAnalyzer {
             operands_attr.push(self.pop());
         }
 
-        let result_type = &mut self.top_mut().derived_type;
-        for attr in operands_attr {
-            if let Some(true) = attr
-                .derived_type
-                .as_deref()
-                .zip(result_type.as_deref())
-                .map(|(t1, t2)| t1.type_class() == t2.type_class())
-            {
-                continue;
-            }
-
-            if result_type.is_none() {
-                result_type.clone_from(&attr.derived_type);
-                continue;
-            }
-        }
-
-        expr.set_ty(result_type.map(|x| x.as_ref().clone()));
+        // let ref mut result_type = self.top_mut().derived_type;
+        // for attr in operands_attr {
+        //     if let Some(true) = attr
+        //         .derived_type
+        //         .zip(result_type)
+        //         .map(|(t1, t2)| t1.type_class() == t2.type_class())
+        //     {
+        //         continue;
+        //     }
+        //
+        //     if result_type.is_none() {
+        //         result_type.clone_from(&attr.derived_type);
+        //         continue;
+        //     }
+        // }
+        //
+        // expr.set_ty(result_type.map(|x| x.clone()));
     }
 
     fn visit_assign_expression_mut(&mut self, assign: &mut AssignExpression) {

@@ -1,8 +1,6 @@
-use crate::ast::*;
-use crate::impl_has_attribute;
-use smallmap::Map;
-use std::convert::Into;
 use std::rc::Rc;
+
+use crate::ast::*;
 
 macro_rules! builtin_type_impl {
     (struct $name:ident, $class:expr) => {
@@ -10,7 +8,7 @@ macro_rules! builtin_type_impl {
         pub struct $name;
 
         impl $name {
-            pub fn new() -> Type {
+            pub fn new_type() -> Type {
                 Type::from_class($class)
             }
         }
@@ -36,7 +34,6 @@ pub struct UserType {
     name: StString,
     decl_id: Option<usize>,
     class: Option<UserTypeClass>,
-    attributes: Map<StString, String>,
 }
 
 impl UserType {
@@ -45,7 +42,6 @@ impl UserType {
             name,
             decl_id: None,
             class: None,
-            attributes: Map::new(),
         }
     }
 
@@ -54,7 +50,6 @@ impl UserType {
             name,
             decl_id: Some(proto),
             class: None,
-            attributes: Map::new(),
         }
     }
 
@@ -63,15 +58,13 @@ impl UserType {
     }
 }
 
-impl Into<Type> for UserType {}
+impl From<UserType> for Type {
+    fn from(value: UserType) -> Self {
+        let class = TypeClass::UserType(value.name, None);
 
-// impl Type for UserType {
-//     fn type_class(&self) -> TypeClass {
-//         TypeClass::UserType(self.name.clone(), self.class.clone())
-//     }
-// }
-
-impl_has_attribute!(UserType, attributes);
+        Type::from_class(class)
+    }
+}
 
 #[derive(Debug)]
 pub struct EnumDeclare {

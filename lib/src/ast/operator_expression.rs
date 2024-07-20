@@ -1,11 +1,10 @@
 use crate::ast::*;
 use crate::{impl_ast_display, impl_into_expression};
-use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct OperatorExpression {
     op: Operator,
-    ty: Option<Box<dyn Type>>,
+    ty: Option<Type>,
     operands: SmallVec<[Expression; 2]>,
 }
 
@@ -35,11 +34,11 @@ impl OperatorExpression {
         &self.op
     }
 
-    pub fn ty(&self) -> Option<&Box<dyn Type>> {
+    pub fn ty(&self) -> Option<&Type> {
         self.ty.as_ref()
     }
 
-    pub fn set_ty(&mut self, ty: Option<Box<dyn Type>>) {
+    pub fn set_ty(&mut self, ty: Option<Type>) {
         self.ty = ty;
     }
 

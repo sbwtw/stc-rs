@@ -61,6 +61,7 @@ extern {
         "BOOL" => TokenKind::Bool,
         "REAL" => TokenKind::Real,
         "BYTE" => TokenKind::Byte,
+        "BIT" => TokenKind::Bit,
         "LITERAL" => TokenKind::Literal(<LiteralValue>),
         "IDENTIFIER" => TokenKind::Identifier(<StString>),
     }
@@ -262,12 +263,13 @@ EnumFieldDecl: Rc<Variable> = {
 }
 
 /// Type
-Type: Box<dyn Type> = {
-    "INT" => Box::new(IntType::new()),
-    "BOOL" => Box::new(BoolType::new()),
-    "BYTE" => Box::new(ByteType::new()),
-    "REAL" => Box::new(RealType::new()),
-    "IDENTIFIER" => Box::new(UserType::from_name(<>)),
+Type: Type = {
+    "BIT" => BitType::new_type(),
+    "INT" => IntType::new_type(),
+    "BOOL" => BoolType::new_type(),
+    "BYTE" => ByteType::new_type(),
+    "REAL" => RealType::new_type(),
+    "IDENTIFIER" => UserType::from_name(<>).into(),
 }
 
 /// Variable declare groups flat

@@ -6,7 +6,7 @@ use std::rc::Rc;
 pub struct FunctionDeclare {
     name: StString,
     decl_class: DeclareClass,
-    return_type: Option<Box<dyn Type>>,
+    return_type: Option<Type>,
     parameters: SmallVec8<Rc<Variable>>,
 }
 
@@ -16,7 +16,7 @@ impl FunctionDeclare {
     pub fn new(
         name: StString,
         class: DeclareClass,
-        ty: Option<Box<dyn Type>>,
+        ty: Option<Type>,
         variables: SmallVec8<Rc<Variable>>,
     ) -> Self {
         Self {
@@ -35,7 +35,7 @@ impl FunctionDeclare {
         &self.decl_class
     }
 
-    pub fn return_type(&self) -> &Option<Box<dyn Type>> {
+    pub fn return_type(&self) -> &Option<Type> {
         &self.return_type
     }
 

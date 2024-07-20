@@ -18,7 +18,7 @@ pub struct AssignExpression {
     left: Expression,
     right: Expression,
     assign_type: AssignType,
-    ty: Option<Box<dyn Type>>,
+    ty: Option<Type>,
 }
 
 impl_ast_display!(AssignExpression, visit_assign_expression);
@@ -59,11 +59,11 @@ impl AssignExpression {
         &mut self.right
     }
 
-    pub fn ty(&self) -> Option<&Box<dyn Type>> {
+    pub fn ty(&self) -> Option<&Type> {
         self.ty.as_ref()
     }
 
-    pub fn set_ty(&mut self, ty: Option<Box<dyn Type>>) {
+    pub fn set_ty(&mut self, ty: Option<Type>) {
         self.ty = ty
     }
 }

@@ -7,8 +7,8 @@ edition = "2021"
 stc-rs = { path = "../lib", features = ["use_lalrpop"] }
 pretty_env_logger = "*"
 log = "*"
-gtk4 = { version = "*", optional = true }
-glib = { version = "*", optional = true }
+gtk4 = { version = "*" }
+glib = { version = "*" }
 once_cell = "*"
 async-channel = "*"
 quick-xml = { version = "*", features = ["serialize"] }

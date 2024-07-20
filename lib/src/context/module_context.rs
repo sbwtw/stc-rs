@@ -147,7 +147,7 @@ impl PrototypeImpl {
         self.decl.variables()
     }
 
-    pub fn create_user_type(&self) -> Option<Rc<Box<dyn Type>>> {
+    pub fn create_user_type(&self) -> Option<Type> {
         // Only Structure types can be created as UserType
         match self.decl.kind {
             DeclKind::Struct(_) | DeclKind::Alias(_) | DeclKind::Enum(_) => {}
@@ -155,7 +155,7 @@ impl PrototypeImpl {
         }
 
         let user_ty = UserType::from_proto(self.decl.identifier().clone(), self.id);
-        Some(Rc::new(Box::new(user_ty)))
+        Some(user_ty.into())
     }
 
     /// Get return value of prototype

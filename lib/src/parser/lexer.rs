@@ -32,21 +32,21 @@ pub enum LiteralValue {
 }
 
 impl LiteralValue {
-    pub fn ty(&self) -> Box<dyn Type> {
+    pub fn ty(&self) -> Type {
         match self {
-            LiteralValue::Bit(_) => Box::new(BitType::new()),
-            LiteralValue::Bool(_) => Box::new(BoolType::new()),
-            LiteralValue::Byte(_) => Box::new(ByteType::new()),
-            LiteralValue::SInt(_) => Box::new(SIntType::new()),
-            LiteralValue::Int(_) => Box::new(IntType::new()),
-            LiteralValue::UInt(_) => Box::new(UIntType::new()),
-            LiteralValue::DInt(_) => Box::new(DIntType::new()),
-            LiteralValue::UDInt(_) => Box::new(UDIntType::new()),
-            LiteralValue::LInt(_) => Box::new(LIntType::new()),
-            LiteralValue::ULInt(_) => Box::new(ULIntType::new()),
-            LiteralValue::Real(_) => Box::new(RealType::new()),
-            LiteralValue::LReal(_) => Box::new(LRealType::new()),
-            LiteralValue::String(_) => Box::new(StringType::new()),
+            LiteralValue::Bit(_) => BitType::new_type(),
+            LiteralValue::Bool(_) => BoolType::new_type(),
+            LiteralValue::Byte(_) => ByteType::new_type(),
+            LiteralValue::SInt(_) => SIntType::new_type(),
+            LiteralValue::Int(_) => IntType::new_type(),
+            LiteralValue::UInt(_) => UIntType::new_type(),
+            LiteralValue::DInt(_) => DIntType::new_type(),
+            LiteralValue::UDInt(_) => UDIntType::new_type(),
+            LiteralValue::LInt(_) => LIntType::new_type(),
+            LiteralValue::ULInt(_) => ULIntType::new_type(),
+            LiteralValue::Real(_) => RealType::new_type(),
+            LiteralValue::LReal(_) => LRealType::new_type(),
+            LiteralValue::String(_) => StringType::new_type(),
         }
     }
 }

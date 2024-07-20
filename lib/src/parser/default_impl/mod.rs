@@ -202,9 +202,9 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let token = self.next_token()?;
 
         match &token.kind {
-            TokenKind::Int => Ok(Some(Box::new(IntType::new()))),
-            TokenKind::Bool => Ok(Some(Box::new(BoolType::new()))),
-            TokenKind::Identifier(ident) => Ok(Some(Box::new(UserType::from_name(ident.clone())))),
+            TokenKind::Int => Ok(Some(IntType::new_type())),
+            TokenKind::Bool => Ok(Some(BoolType::new_type())),
+            TokenKind::Identifier(ident) => Ok(Some(UserType::from_name(ident.clone()).into())),
             _ => {
                 self.next = pos;
                 Ok(None)

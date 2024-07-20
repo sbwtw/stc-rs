@@ -5,13 +5,13 @@ use crate::parser::StString;
 #[derive(Debug)]
 pub struct VariableExpression {
     name: StString,
-    ty: Option<Box<dyn Type>>,
+    ty: Option<Type>,
 }
 
 impl Clone for VariableExpression {
     fn clone(&self) -> Self {
         let ty = match &self.ty {
-            Some(t) => Some(t.as_ref().clone()),
+            Some(t) => Some(t.clone()),
             _ => None,
         };
 
@@ -44,12 +44,12 @@ impl VariableExpression {
     }
 
     #[inline]
-    pub fn ty(&self) -> Option<&Box<dyn Type>> {
+    pub fn ty(&self) -> Option<&Type> {
         self.ty.as_ref()
     }
 
     #[inline]
-    pub fn set_ty(&mut self, ty: Option<Box<dyn Type>>) {
+    pub fn set_ty(&mut self, ty: Option<Type>) {
         self.ty = ty
     }
 }

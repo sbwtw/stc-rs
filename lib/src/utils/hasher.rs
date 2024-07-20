@@ -46,18 +46,17 @@ impl MyHash for Variable {
     }
 }
 
-impl MyHash for &dyn Type {
+impl MyHash for Type {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let type_class = format!("{}", self.type_class());
-        type_class.hash(state)
+        todo!()
     }
 }
 
-impl MyHash for Box<dyn Type> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.as_ref().hash(state)
-    }
-}
+// impl MyHash for Box<dyn Type> {
+//     fn hash<H: Hasher>(&self, state: &mut H) {
+//         self.as_ref().hash(state)
+//     }
+// }
 
 #[allow(dead_code)]
 pub struct AstHasher<H: Hasher> {

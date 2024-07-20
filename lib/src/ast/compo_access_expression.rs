@@ -1,12 +1,11 @@
 use crate::ast::*;
 use crate::{impl_ast_display, impl_into_expression};
-use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct CompoAccessExpression {
     left: Expression,
     right: Expression,
-    ty: Option<Rc<Box<dyn Type>>>,
+    ty: Option<Type>,
 }
 
 impl_ast_display!(CompoAccessExpression, visit_compo_access_expression);
@@ -37,11 +36,11 @@ impl CompoAccessExpression {
         &mut self.right
     }
 
-    pub fn ty(&self) -> Option<Rc<Box<dyn Type>>> {
+    pub fn ty(&self) -> Option<Type> {
         self.ty.clone()
     }
 
-    pub fn set_ty(&mut self, ty: Option<Rc<Box<dyn Type>>>) {
+    pub fn set_ty(&mut self, ty: Option<Type>) {
         self.ty = ty
     }
 }
