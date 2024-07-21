@@ -202,7 +202,6 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let tok = self.next_token()?;
         for want in tokens {
             if tok.kind.kind_match(want) {
-                dbg!("except:", tok, want);
                 return Ok(tok);
             }
         }
