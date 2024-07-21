@@ -9,6 +9,10 @@ build = "src/build.rs"
 name = "stc"
 path = "src/lib.rs"
 
+[[bin]]
+name = "test"
+path = "src/test_file.rs"
+
 [dependencies]
 lalrpop-util = { version = "*", optional = true }
 bitflags = "*"

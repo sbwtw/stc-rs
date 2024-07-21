@@ -198,6 +198,37 @@ impl TokenKind {
         matches!(self, TokenKind::Int | TokenKind::Bool)
     }
 
+    pub fn kind_match(&self, rhs: &TokenKind) -> bool {
+        match *self {
+            TokenKind::AssignRight => matches!(rhs, TokenKind::AssignRight),
+            TokenKind::Assign => matches!(rhs, TokenKind::Assign),
+            TokenKind::Int => matches!(rhs, TokenKind::Int),
+            TokenKind::Byte => matches!(rhs, TokenKind::Byte),
+            TokenKind::Function => matches!(rhs, TokenKind::Function),
+            TokenKind::EndFunction => matches!(rhs, TokenKind::EndFunction),
+            TokenKind::Program => matches!(rhs, TokenKind::EndProgram),
+            TokenKind::Colon => matches!(rhs, TokenKind::Colon),
+            TokenKind::Comma => matches!(rhs, TokenKind::Comma),
+            TokenKind::Semicolon => matches!(rhs, TokenKind::Semicolon),
+            TokenKind::Type => matches!(rhs, TokenKind::Type),
+            TokenKind::EndType => matches!(rhs, TokenKind::EndType),
+            TokenKind::Var => matches!(rhs, TokenKind::Var),
+            TokenKind::VarGlobal => matches!(rhs, TokenKind::VarGlobal),
+            TokenKind::EndVar => matches!(rhs, TokenKind::EndVar),
+            TokenKind::Struct => matches!(rhs, TokenKind::Struct),
+            TokenKind::EndStruct => matches!(rhs, TokenKind::EndStruct),
+            TokenKind::LeftParentheses => matches!(rhs, TokenKind::LeftParentheses),
+            TokenKind::RightParentheses => matches!(rhs, TokenKind::RightParentheses),
+            TokenKind::If => matches!(rhs, TokenKind::If),
+            TokenKind::Then => matches!(rhs, TokenKind::Then),
+            TokenKind::Else => matches!(rhs, TokenKind::Else),
+            TokenKind::ElseIf => matches!(rhs, TokenKind::ElseIf),
+            TokenKind::EndIf => matches!(rhs, TokenKind::EndIf),
+            TokenKind::Identifier(..) => matches!(rhs, TokenKind::Identifier(..)),
+            _ => false,
+        }
+    }
+
     pub fn is_operator(&self) -> bool {
         matches!(
             self,

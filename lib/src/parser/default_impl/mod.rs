@@ -3,7 +3,6 @@ use crate::parser::token::Token;
 use crate::parser::*;
 
 use smallvec::smallvec;
-use std::borrow::Borrow;
 use std::rc::Rc;
 
 ///
@@ -108,7 +107,6 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     /// parse a function
-    #[allow(unused)]
     fn parse_function(&mut self) -> Result<Statement, ParseError> {
         let stmts = match self.parse_statement_list()? {
             Some(stmts) => stmts,
@@ -119,21 +117,22 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         // ensure file end
         match self.next()? {
             None => {}
-            _ => return Err(ParseError::InvalidToken(self.next)),
+            Some(tok) => return Err(ParseError::InvalidTokenAt(format!("{:?}", tok))),
         }
 
         Ok(stmts)
     }
 
     /// parse a declaration
-    #[allow(unused)]
     fn parse_declaration(&mut self) -> Result<Declaration, ParseError> {
-        match self.except_one_of(&[
+        let except_token = self.except_one_of(&[
             TokenKind::Type,
             TokenKind::Function,
             TokenKind::Program,
             TokenKind::VarGlobal,
-        ])? {
+        ])?;
+
+        match except_token.kind.clone() {
             // pure global variables declare
             TokenKind::VarGlobal => {
                 let global_vars = self
@@ -168,7 +167,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
                 let vars = self.parse_variable_declare_factor()?;
 
                 // type class
-                let class = if matches!(tok, &TokenKind::Function) {
+                let class = if matches!(tok, TokenKind::Function) {
                     let _ = self.except_one_of(&[TokenKind::EndFunction])?;
                     DeclareClass::Function
                 } else {
@@ -189,17 +188,22 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
     fn except_identifier(&mut self) -> Result<StString, ParseError> {
         let tok = self.next_token()?;
-        match tok.kind.borrow() {
+        match &tok.kind {
             TokenKind::Identifier(ident) => Ok(ident.clone()),
             _ => Err(ParseError::InvalidToken(0)),
         }
     }
 
-    fn except_one_of<'a>(&mut self, tokens: &'a [TokenKind]) -> Result<&'a TokenKind, ParseError> {
+    fn except_one(&mut self, token: TokenKind) -> Result<&Token, ParseError> {
+        self.except_one_of(&[token])
+    }
+
+    fn except_one_of(&mut self, tokens: &[TokenKind]) -> Result<&Token, ParseError> {
         let tok = self.next_token()?;
         for want in tokens {
-            if matches!(&tok.kind, want) {
-                return Ok(want);
+            if tok.kind.kind_match(want) {
+                dbg!("except:", tok, want);
+                return Ok(tok);
             }
         }
 
@@ -211,6 +215,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let token = self.next_token()?;
 
         match &token.kind {
+            TokenKind::Byte => Ok(Some(ByteType::new_type())),
             TokenKind::Int => Ok(Some(IntType::new_type())),
             TokenKind::Bool => Ok(Some(BoolType::new_type())),
             TokenKind::Identifier(ident) => Ok(Some(UserType::from_name(ident.clone()).into())),
@@ -251,7 +256,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
                 // possible ',' and next field
                 loop {
                     let pos = self.next;
-                    if !matches!(&*self.next_kind()?, TokenKind::Comma) {
+                    if !matches!(*self.next_kind()?, TokenKind::Comma) {
                         self.next = pos;
                         break;
                     }
@@ -277,7 +282,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         }
 
         // struct decl
-        if matches!(&*tok, TokenKind::Struct) {
+        if matches!(tok, TokenKind::Struct) {
             let fields = self.except_variable_declare_list()?;
             let _ = self.except_one_of(&[TokenKind::EndStruct])?;
 
@@ -286,14 +291,14 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             )))));
         }
 
-        Err(ParseError::UnexpectedToken(0, vec![]))
+        Err(ParseError::UnexpectedToken(0, vec![format!("{:?}", tok)]))
     }
 
     fn parse_enum_field_decl(&mut self) -> ParseResult<Rc<Variable>> {
         let field_name = self.except_identifier()?;
         let pos = self.next;
 
-        if matches!(&*self.next_kind()?, TokenKind::Assign) {
+        if matches!(*self.next_kind()?, TokenKind::Assign) {
             match &*self.next_kind()? {
                 TokenKind::Literal(literal) => {
                     return Ok(Some(Rc::new(Variable::with_initial(
@@ -324,7 +329,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let pos = self.next;
         let tok = self.next_kind()?;
 
-        if !matches!(&*tok, TokenKind::VarGlobal) {
+        if !matches!(*tok, TokenKind::VarGlobal) {
             self.next = pos;
             return Ok(None);
         }
@@ -368,7 +373,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     fn parse_variable_group_start(&mut self) -> ParseResult<VariableFlags> {
-        let x = match &*self.next_kind()? {
+        let x = match *self.next_kind()? {
             TokenKind::Var => VariableFlags::NONE,
             TokenKind::VarGlobal => VariableFlags::GLOBAL,
             TokenKind::VarInput => VariableFlags::INPUT,
@@ -384,7 +389,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
     fn parse_variable_declare_group_annotation(&mut self) -> ParseResult<VariableFlags> {
         let pos = self.next;
-        let x = match &*self.next_kind()? {
+        let x = match *self.next_kind()? {
             TokenKind::Retain => VariableFlags::RETAIN,
             TokenKind::Persistent => VariableFlags::PERSISTENT,
             _ => {
@@ -394,7 +399,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         };
 
         let pos = self.next;
-        let y = match (x, &*self.next_kind()?) {
+        let y = match (x, self.next_kind()?) {
             (VariableFlags::RETAIN, TokenKind::Persistent)
             | (VariableFlags::PERSISTENT, TokenKind::Retain) => VariableFlags::RETAINPERSISTENT,
             _ => {
@@ -418,7 +423,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
     fn expect_single_line_variable_declare(&mut self) -> ParseResult<SmallVec8<Rc<Variable>>> {
         let pos = self.next;
-        let mut name_list = match &*self.next_kind()? {
+        let mut name_list = match self.next_kind()? {
             TokenKind::Identifier(s) => smallvec![s.to_owned()],
             _ => {
                 self.next = pos;
@@ -428,7 +433,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         loop {
             let pos = self.next;
-            if !matches!(&*self.next_kind()?, TokenKind::Comma) {
+            if !matches!(self.next_kind()?, TokenKind::Comma) {
                 self.next = pos;
                 break;
             }
@@ -451,13 +456,25 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let mut statements: Vec<_> = vec![];
 
         loop {
-            match self.parse_statement() {
-                Ok(Some(stmt)) => statements.push(stmt),
-                Ok(None) => break,
-                Err(e) => return Err(e),
+            let p = self.next;
+            match self.next_token() {
+                Err(ParseError::UnexpectedEnd) => {
+                    break;
+                }
+                _ => {
+                    self.next = p;
+                }
+            }
+
+            match self.parse_statement()? {
+                Some(stmt) => {
+                    statements.push(stmt);
+                }
+                None => break,
             }
         }
 
+        // extract statement list to single statement
         if statements.len() == 1 {
             return Ok(Some(statements.remove(0)));
         }
@@ -471,12 +488,12 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let tok = self.next_kind()?;
 
         // IF statement
-        if matches!(&*tok, TokenKind::If) {
+        if matches!(tok, TokenKind::If) {
             let if_stmt = self.expect_if_statement()?;
             return Ok(Some(if_stmt));
         }
-        self.next = pos;
 
+        self.next = pos;
         if let Some(expr) = self.parse_expr_statement()? {
             return Ok(Some(expr));
         }
@@ -523,7 +540,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         };
 
         let pos = self.next;
-        match &*self.next_kind()? {
+        match self.next_kind()? {
             // IF .. THEN .. END_IF
             TokenKind::EndIf => {
                 return Ok(Statement::if_stmt(Box::new(IfStatement::from_then(
@@ -537,7 +554,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
                     // TODO: error type
                     _ => return Err(ParseError::UnexpectedEnd),
                 };
-                let _ = self.except_one_of(&[TokenKind::EndIf])?;
+                let _ = self.except_one(TokenKind::EndIf)?;
 
                 return Ok(Statement::if_stmt(Box::new(IfStatement::from_then_else(
                     cond, then_ctrl, else_ctrl,
@@ -1109,6 +1126,15 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
     fn parse_term_expr(&mut self) -> ParseResult<Expression> {
         if let Some(val) = self.parse_variable_expr()? {
+            let p = self.next;
+            let tk = self.next_kind()?;
+
+            // val ^ (...
+            if matches!(tk, TokenKind::LeftParentheses) {
+                return self.parse_call_expr_args(val);
+            }
+
+            self.next = p;
             return Ok(Some(val));
         }
 
@@ -1126,6 +1152,90 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         self.next = pos;
         Ok(None)
+    }
+
+    // function name is already taken: fun( ^ ...)
+    fn parse_call_expr_args(&mut self, callee: Expression) -> ParseResult<Expression> {
+        let origin_pos = self.next;
+
+        // last token is comma
+        // let mut comma = false;
+        let mut args: SmallVec8<Expression> = smallvec![];
+        loop {
+            let p = self.next;
+            let nk = self.next_kind()?;
+            if matches!(nk, TokenKind::RightParentheses) {
+                return Ok(Some(Expression::call(Box::new(
+                    CallExpression::with_arguments(callee, args),
+                ))));
+            }
+
+            self.next = p;
+            // argument is needed
+            if let Ok(Some(arg_assign)) = self.parse_argument_expression() {
+                // comma = false;
+                args.push(arg_assign);
+
+                // after argument been eaten, a Comma is necessary
+                let nk = self.next_kind()?;
+                match nk {
+                    // continue to eat new argument expr
+                    // TokenKind::Comma if !comma => {
+                    //     comma = true;
+                    //     continue;
+                    // }
+                    TokenKind::Comma => {
+                        // TODO: dup comma
+                        continue;
+                    }
+                    // call finished
+                    TokenKind::RightParentheses => {
+                        return Ok(Some(Expression::call(Box::new(
+                            CallExpression::with_arguments(callee, args),
+                        ))));
+                    }
+                    _ => break,
+                }
+            } else {
+                break;
+            }
+        }
+
+        self.next = origin_pos;
+        Ok(None)
+    }
+
+    fn parse_argument_expression(&mut self) -> ParseResult<Expression> {
+        Ok(self
+            .parse_literal_expr()?
+            .or(self.parse_argument_assign_expr()?))
+    }
+
+    // a => b
+    // a := b
+    fn parse_argument_assign_expr(&mut self) -> ParseResult<Expression> {
+        let pos = self.next;
+
+        let lhs = self.parse_variable_expr()?;
+        if lhs.is_none() {
+            self.next = pos;
+            return Ok(None);
+        }
+
+        let pos = self.next;
+        let assign_type = match self.next_kind()? {
+            TokenKind::Assign => AssignType::Assign,
+            TokenKind::AssignRight => AssignType::AssignRight,
+            _ => {
+                self.next = pos;
+                return Ok(lhs);
+            }
+        };
+
+        let rhs = self.parse_expression()?;
+        Ok(Some(Expression::assign(Box::new(
+            AssignExpression::with_type(lhs.unwrap(), rhs.unwrap(), assign_type),
+        ))))
     }
 
     fn parse_literal_expr(&mut self) -> ParseResult<Expression> {

@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::parser::TokenKind;
 use crate::{impl_ast_display, impl_into_expression};
 
 #[derive(Debug)]
@@ -11,6 +12,16 @@ pub enum AssignType {
     Set,
     /// R=
     Reset,
+}
+
+impl Display for AssignType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match *self {
+            AssignType::Assign => f.write_fmt(format_args!("{}", TokenKind::Assign)),
+            AssignType::AssignRight => f.write_fmt(format_args!("{}", TokenKind::AssignRight)),
+            _ => unreachable!(),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -41,6 +52,10 @@ impl AssignExpression {
             assign_type: aty,
             ty: None,
         }
+    }
+
+    pub fn assign_type(&self) -> &AssignType {
+        &self.assign_type
     }
 
     pub fn left(&self) -> &Expression {

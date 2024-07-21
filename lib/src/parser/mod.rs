@@ -25,6 +25,7 @@ pub enum ParseError {
     #[allow(dead_code)]
     UnexpectedEnd,
     InvalidToken(usize),
+    InvalidTokenAt(String),
     UnexpectedToken(usize, Vec<String>),
 }
 

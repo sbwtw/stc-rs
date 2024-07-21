@@ -272,7 +272,7 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
 
     fn visit_assign_expression(&mut self, assign: &AssignExpression) {
         self.visit_expression(assign.left());
-        self.write(format_args!(" {} ", TokenKind::Assign));
+        self.write(format_args!(" {} ", assign.assign_type()));
         self.visit_expression(assign.right());
     }
 
