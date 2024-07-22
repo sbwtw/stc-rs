@@ -1,5 +1,7 @@
 use crate::prelude::{Declaration, Statement};
 
+use once_cell::sync::Lazy;
+
 mod buffer;
 
 pub use buffer::*;
@@ -61,8 +63,8 @@ impl From<lalrpop_util::ParseError<usize, TokenKind, LexicalError>> for ParseErr
 }
 
 pub struct Parser {
-    decl_parser: Box<dyn DeclParserTrait>,
-    stmt_parser: Box<dyn StmtParserTrait>,
+    decl_parser: Lazy<Box<dyn DeclParserTrait>>,
+    stmt_parser: Lazy<Box<dyn StmtParserTrait>>,
 }
 
 impl Parser {
@@ -82,16 +84,16 @@ impl ParserBuilder {
     #[cfg(feature = "lalrpop_parser")]
     pub fn build(self) -> Parser {
         Parser {
-            decl_parser: Box::new(LalrpopDeclParser::new()),
-            stmt_parser: Box::new(LalrpopParser::new()),
+            decl_parser: Lazy::new(|| Box::new(LalrpopDeclParser::new())),
+            stmt_parser: Lazy::new(|| Box::new(LalrpopParser::new())),
         }
     }
 
     #[cfg(feature = "default_parser")]
     pub fn build(self) -> Parser {
         Parser {
-            decl_parser: Box::new(DefaultDeclParser::new()),
-            stmt_parser: Box::new(DefaultStmtParser::new()),
+            decl_parser: Lazy::new(|| Box::new(DefaultDeclParser::new())),
+            stmt_parser: Lazy::new(|| Box::new(DefaultStmtParser::new())),
         }
     }
 }

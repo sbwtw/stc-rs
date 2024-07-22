@@ -7,6 +7,9 @@ pub use graphviz::GraphvizExporter;
 mod hasher;
 pub use hasher::{AstHasher, Crc32Hasher};
 
+mod attrmap;
+pub use attrmap::{AttrMap, AttrMap8, HasAttribute};
+
 use crate::ast::Statement;
 use std::fs::OpenOptions;
 use std::process::Command;

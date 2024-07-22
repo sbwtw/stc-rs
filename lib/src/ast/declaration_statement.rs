@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::utils::HasAttribute;
 use std::rc::Rc;
 
 const EMPTY_VARIABLES: &[Rc<Variable>] = &[];
@@ -19,31 +20,49 @@ pub struct Declaration {
     pub kind: DeclKind,
 }
 
+macro_rules! decl_call {
+    (mut $obj:ident, $op:ident $(,$args:tt)*) => {
+        match $obj.kind {
+            DeclKind::Fun(ref mut f) => f.$op($($args)*),
+            DeclKind::FB(ref mut f) => f.$op($($args)*),
+            DeclKind::Prg(ref mut f) => f.$op($($args)*),
+            DeclKind::Struct(ref mut s) => s.$op($($args)*),
+            DeclKind::Enum(ref mut e) => e.$op($($args)*),
+            DeclKind::GlobalVar(ref mut g) => g.$op($($args)*),
+            DeclKind::Alias(ref mut a) => a.$op($($args)*),
+        }
+    };
+    ($obj:ident, $op:ident $(,$args:tt)*) => {
+        match $obj.kind {
+            DeclKind::Fun(ref f) => f.$op($($args)*),
+            DeclKind::FB(ref f) => f.$op($($args)*),
+            DeclKind::Prg(ref f) => f.$op($($args)*),
+            DeclKind::Struct(ref s) => s.$op($($args)*),
+            DeclKind::Enum(ref e) => e.$op($($args)*),
+            DeclKind::GlobalVar(ref g) => g.$op($($args)*),
+            DeclKind::Alias(ref a) => a.$op($($args)*),
+        }
+    };
+}
+
 impl HasAttribute for Declaration {
-    fn set_attribute<K: AsRef<StString>, V: Into<String>>(&mut self, k: K, v: V) {
+    fn remove_attribute(&mut self, k: &StString) -> Option<Option<String>> {
+        // impl_decl_kind!(mut self, remove_attribute, k)
         todo!()
     }
 
-    fn get_attribute_value<S: AsRef<StString>>(&self, attr: &S) -> Option<&String> {
+    fn set_attribute<V: Into<Option<String>>>(&mut self, k: StString, v: V) {
         todo!()
     }
 
-    fn remove_attribute<K: AsRef<StString>>(&mut self, k: K) -> Option<String> {
+    fn get_attribute_value(&self, attr: &StString) -> Option<&Option<String>> {
         todo!()
     }
 }
 
 impl Declaration {
     pub fn identifier(&self) -> &StString {
-        match self.kind {
-            DeclKind::Fun(ref fun) => fun.name(),
-            DeclKind::FB(ref fun) => fun.name(),
-            DeclKind::Prg(ref fun) => fun.name(),
-            DeclKind::Alias(ref alias) => alias.name(),
-            DeclKind::Struct(ref struct_) => struct_.name(),
-            DeclKind::Enum(ref enum_) => enum_.name(),
-            DeclKind::GlobalVar(ref gv) => gv.name(),
-        }
+        decl_call!(self, name)
     }
 
     pub fn variables(&self) -> &[Rc<Variable>] {

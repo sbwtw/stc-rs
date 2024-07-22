@@ -60,31 +60,6 @@ pub type SmallVec8<T> = SmallVec<[T; 8]>;
 
 pub trait HasSourcePosition {}
 
-pub trait HasAttribute {
-    fn set_attribute<K: AsRef<StString>, V: Into<String>>(&mut self, k: K, v: V);
-    fn get_attribute_value<S: AsRef<StString>>(&self, attr: &S) -> Option<&String>;
-    fn remove_attribute<K: AsRef<StString>>(&mut self, k: K) -> Option<String>;
-}
-
-#[macro_export]
-macro_rules! impl_has_attribute {
-    ($ty:ident, $storage:ident) => {
-        impl HasAttribute for $ty {
-            fn set_attribute<K: AsRef<StString>, V: Into<String>>(&mut self, k: K, v: V) {
-                self.$storage.insert(k.as_ref().clone(), v.into());
-            }
-
-            fn get_attribute_value<S: AsRef<StString>>(&self, attr: &S) -> Option<&String> {
-                self.$storage.get(&attr.as_ref())
-            }
-
-            fn remove_attribute<K: AsRef<StString>>(&mut self, k: K) -> Option<String> {
-                self.$storage.remove(k.as_ref())
-            }
-        }
-    };
-}
-
 #[macro_export]
 macro_rules! impl_ast_display {
     ($ty:ident, $fun:ident) => {

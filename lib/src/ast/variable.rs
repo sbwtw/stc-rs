@@ -1,13 +1,13 @@
 use crate::ast::*;
 use crate::impl_has_attribute;
 use crate::parser::StString;
-use smallmap::Map;
+use crate::utils::AttrMap8;
 use std::default::Default;
 use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct Variable {
-    attributes: Map<StString, String>,
+    attributes: AttrMap8,
     name: StString,
     ty: Option<Type>,
     flags: VariableFlags,
@@ -93,7 +93,7 @@ impl Variable {
 impl Default for Variable {
     fn default() -> Self {
         Self {
-            attributes: Map::with_capacity(8),
+            attributes: AttrMap8::new(),
             name: StString::empty(),
             ty: None,
             flags: VariableFlags::NONE,

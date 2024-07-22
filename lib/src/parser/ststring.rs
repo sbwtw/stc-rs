@@ -111,12 +111,6 @@ impl<'a> From<&'a StString> for &'a str {
     }
 }
 
-impl AsRef<str> for StString {
-    fn as_ref(&self) -> &str {
-        self.into()
-    }
-}
-
 impl PartialEq for StString {
     fn eq(&self, other: &Self) -> bool {
         self.string().eq(other.string())

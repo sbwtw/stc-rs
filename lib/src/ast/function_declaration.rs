@@ -1,5 +1,7 @@
 use crate::impl_ast_display;
+use crate::impl_has_attribute;
 use crate::prelude::*;
+use crate::utils::AttrMap8;
 use std::rc::Rc;
 
 #[derive(Debug)]
@@ -8,8 +10,10 @@ pub struct FunctionDeclare {
     decl_class: DeclareClass,
     return_type: Option<Type>,
     parameters: SmallVec8<Rc<Variable>>,
+    attributes: AttrMap8,
 }
 
+impl_has_attribute!(FunctionDeclare, attributes);
 impl_ast_display!(FunctionDeclare, visit_function_declaration);
 
 impl FunctionDeclare {
@@ -24,6 +28,7 @@ impl FunctionDeclare {
             decl_class: class,
             return_type: ty,
             parameters: variables,
+            attributes: AttrMap8::new(),
         }
     }
 
