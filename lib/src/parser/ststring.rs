@@ -158,3 +158,9 @@ impl Default for StString {
         Self::Origin(String::new())
     }
 }
+
+impl AsRef<str> for StString {
+    fn as_ref(&self) -> &str {
+        self.origin_string().as_str()
+    }
+}
