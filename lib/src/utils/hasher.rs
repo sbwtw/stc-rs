@@ -4,12 +4,10 @@ use crc::{Crc, Digest, CRC_32_ISO_HDLC};
 use std::cell::RefCell;
 use std::hash::{Hash, Hasher};
 
-#[allow(unused)]
 const CRC32: Crc<u32> = Crc::<u32>::new(&CRC_32_ISO_HDLC);
 
 /// ensure different statement has different hash code
 #[derive(Hash)]
-#[allow(dead_code)]
 enum VisitType {
     Literal,
     Variable,
@@ -58,12 +56,10 @@ impl MyHash for Type {
 //     }
 // }
 
-#[allow(dead_code)]
 pub struct AstHasher<H: Hasher> {
     hasher: H,
 }
 
-#[allow(dead_code)]
 impl<H: Hasher> AstHasher<H> {
     pub fn new(hasher: H) -> Self {
         Self { hasher }
@@ -80,7 +76,6 @@ impl<H: Hasher> AstHasher<H> {
     }
 }
 
-#[allow(dead_code)]
 pub struct Crc32Hasher<'a> {
     digest: RefCell<Digest<'a, u32>>,
 }

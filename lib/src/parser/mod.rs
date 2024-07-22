@@ -75,13 +75,10 @@ impl Parser {
     }
 }
 
+#[derive(Default)]
 pub struct ParserBuilder {}
 
 impl ParserBuilder {
-    pub fn new() -> Self {
-        Self {}
-    }
-
     #[cfg(feature = "lalrpop_parser")]
     pub fn build(self) -> Parser {
         Parser {

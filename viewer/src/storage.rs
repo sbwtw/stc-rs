@@ -37,7 +37,7 @@ impl From<Application> for ModuleContext {
 
         for pou in app.pou_list.pou {
             let lexer = StLexerBuilder::new().build_str(&pou.interface.content);
-            let decl = ParserBuilder::new().build().parse(lexer).unwrap();
+            let decl = ParserBuilder::default().build().parse(lexer).unwrap();
             let func = ctx_write.add_declaration(
                 decl,
                 pou.uuid_text
@@ -47,7 +47,7 @@ impl From<Application> for ModuleContext {
 
             if let Some(body) = pou.body {
                 let lexer = StLexerBuilder::new().build_str(&body.content);
-                let body = ParserBuilder::new().build().parse_stmt(lexer).unwrap();
+                let body = ParserBuilder::default().build().parse_stmt(lexer).unwrap();
                 ctx_write.add_function(func, body);
             }
         }

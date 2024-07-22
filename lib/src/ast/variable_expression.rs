@@ -2,24 +2,10 @@ use crate::ast::{AstVisitor, Type};
 use crate::impl_ast_display;
 use crate::parser::StString;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct VariableExpression {
     name: StString,
     ty: Option<Type>,
-}
-
-impl Clone for VariableExpression {
-    fn clone(&self) -> Self {
-        let ty = match &self.ty {
-            Some(t) => Some(t.clone()),
-            _ => None,
-        };
-
-        Self {
-            name: self.name.clone(),
-            ty,
-        }
-    }
 }
 
 impl_ast_display!(VariableExpression, visit_variable_expression);

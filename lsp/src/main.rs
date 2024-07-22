@@ -17,6 +17,6 @@ async fn main() {
     let read = tokio::io::stdin();
     let write = tokio::io::stdout();
 
-    let (service, socket) = LspService::new(|c| StcLsp::new(c));
+    let (service, socket) = LspService::new(StcLsp::new);
     Server::new(read, write, socket).serve(service).await;
 }

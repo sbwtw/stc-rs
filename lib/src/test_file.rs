@@ -6,7 +6,7 @@ fn main() {
     let code = fs::read_to_string(f).unwrap();
     let lexer = StLexerBuilder::new().build_str(&code);
 
-    let parser = ParserBuilder::new().build();
+    let parser = ParserBuilder::default().build();
     match parser.parse(lexer) {
         Ok(r) => {
             println!("{:?}", r);

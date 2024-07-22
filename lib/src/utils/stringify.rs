@@ -21,7 +21,6 @@ impl StringifyAttribute {
     }
 }
 
-#[allow(dead_code)]
 pub struct StringifyVisitor<W: Write> {
     writer: W,
     indent: usize,
@@ -37,28 +36,34 @@ impl<W: Write> StringifyVisitor<W> {
         }
     }
 
+    #[inline]
     fn write_indent(&mut self) {
         for _ in 0..self.indent {
             write!(self.writer, "    ").unwrap();
         }
     }
 
+    #[inline]
     fn write(&mut self, args: Arguments<'_>) {
         write!(self.writer, "{}", args).unwrap();
     }
 
+    #[inline]
     fn writeln(&mut self, args: Arguments<'_>) {
         writeln!(self.writer, "{}", args).unwrap();
     }
 
+    #[inline]
     fn top(&self) -> Option<&StringifyAttribute> {
         self.attribute_stack.last()
     }
 
+    #[inline]
     fn pop(&mut self) -> StringifyAttribute {
         self.attribute_stack.pop().unwrap()
     }
 
+    #[inline]
     fn push(&mut self, attr: StringifyAttribute) {
         self.attribute_stack.push(attr)
     }
@@ -146,6 +151,7 @@ impl<W: Write> DeclVisitor<'_> for StringifyVisitor<W> {
         self.writeln(format_args!("{}", TokenKind::EndType))
     }
 }
+
 impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
     fn visit_literal(&mut self, literal: &LiteralExpression) {
         match literal.literal() {
@@ -166,6 +172,7 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
         }
     }
 
+    #[inline]
     fn visit_variable_expression(&mut self, variable: &'_ VariableExpression) {
         self.write(format_args!("{}", variable.org_name()));
     }
@@ -283,6 +290,7 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
     }
 }
 
+#[inline]
 fn variable_scope_start_tok(class: VariableFlags) -> TokenKind {
     match class {
         VariableFlags::NONE => TokenKind::Var,
@@ -297,9 +305,9 @@ mod test {
     use crate::parser::*;
     use crate::utils::*;
 
-    fn parse_string<S: AsRef<str>>(s: S) -> String {
+    fn parse_and_stringify<S: AsRef<str>>(s: S) -> String {
         let lexer = StLexerBuilder::new().build_str(s.as_ref());
-        let r = ParserBuilder::new().build().parse_stmt(lexer).unwrap();
+        let r = ParserBuilder::default().build().parse_stmt(lexer).unwrap();
 
         let mut buf = vec![];
         let mut stringify = StringifyVisitor::new(&mut buf);
@@ -310,16 +318,16 @@ mod test {
 
     #[test]
     fn stringify() {
-        let buf_str = parse_string("2-3.0/3; -1+\"a\\\"s\\\"d\";");
+        let buf_str = parse_and_stringify("2-3.0/3; -1+\"a\\\"s\\\"d\";");
         assert_eq!(buf_str, "2 - (3.0 / 3);\n(-1) + \"a\\\"s\\\"d\";\n");
 
-        let buf_str = parse_string("2-3.0/3; NOT 1+\"a\\\"s\\\"d\";");
+        let buf_str = parse_and_stringify("2-3.0/3; NOT 1+\"a\\\"s\\\"d\";");
         assert_eq!(buf_str, "2 - (3.0 / 3);\n(NOT 1) + \"a\\\"s\\\"d\";\n");
     }
 
     #[test]
     fn test_if_else() {
-        let buf_str = parse_string("if a - 1 then a + 1; else a - 1; end_if");
+        let buf_str = parse_and_stringify("if a - 1 then a + 1; else a - 1; end_if");
 
         assert_eq!(
             buf_str,
@@ -329,7 +337,7 @@ mod test {
 
     #[test]
     fn test_assign_expr() {
-        let buf_str = parse_string("if a - 1 then a:= a + 1; else a - 1; end_if");
+        let buf_str = parse_and_stringify("if a - 1 then a:= a + 1; else a - 1; end_if");
 
         assert_eq!(
             buf_str,
@@ -339,15 +347,15 @@ mod test {
 
     #[test]
     fn test_sub_expr_parenthesis() {
-        let buf_str = parse_string("a * (a + 1);");
+        let buf_str = parse_and_stringify("a * (a + 1);");
 
         assert_eq!(buf_str, "a * (a + 1);\n");
     }
 
     #[test]
     fn test_call_expression() {
-        let buf_str = parse_string("f(\"a, b\", c);");
+        let buf_str = parse_and_stringify("f(\"a, b\", c => d);");
 
-        assert_eq!(buf_str, "f(\"a, b\", c);\n");
+        assert_eq!(buf_str, "f(\"a, b\", c => d);\n");
     }
 }
