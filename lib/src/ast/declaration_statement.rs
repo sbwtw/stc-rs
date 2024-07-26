@@ -21,48 +21,58 @@ pub struct Declaration {
 }
 
 macro_rules! decl_call {
-    (mut $obj:ident, $op:ident $(,$args:tt)*) => {
+    (mut $obj:ident, $op:ident, $($args:tt),*) => {
         match $obj.kind {
-            DeclKind::Fun(ref mut f) => f.$op($($args)*),
-            DeclKind::FB(ref mut f) => f.$op($($args)*),
-            DeclKind::Prg(ref mut f) => f.$op($($args)*),
-            DeclKind::Struct(ref mut s) => s.$op($($args)*),
-            DeclKind::Enum(ref mut e) => e.$op($($args)*),
-            DeclKind::GlobalVar(ref mut g) => g.$op($($args)*),
-            DeclKind::Alias(ref mut a) => a.$op($($args)*),
+            DeclKind::Fun(ref mut f) => f.$op($($args),*),
+            DeclKind::FB(ref mut f) => f.$op($($args),*),
+            DeclKind::Prg(ref mut f) => f.$op($($args),*),
+            DeclKind::Struct(ref mut s) => s.$op($($args),*),
+            DeclKind::Enum(ref mut e) => e.$op($($args),*),
+            DeclKind::GlobalVar(ref mut g) => g.$op($($args),*),
+            DeclKind::Alias(ref mut a) => a.$op($($args),*),
         }
     };
-    ($obj:ident, $op:ident $(,$args:tt)*) => {
+    ($obj:ident, $op:ident, $($args:tt),*) => {
         match $obj.kind {
-            DeclKind::Fun(ref f) => f.$op($($args)*),
-            DeclKind::FB(ref f) => f.$op($($args)*),
-            DeclKind::Prg(ref f) => f.$op($($args)*),
-            DeclKind::Struct(ref s) => s.$op($($args)*),
-            DeclKind::Enum(ref e) => e.$op($($args)*),
-            DeclKind::GlobalVar(ref g) => g.$op($($args)*),
-            DeclKind::Alias(ref a) => a.$op($($args)*),
+            DeclKind::Fun(ref f) => f.$op($($args),*),
+            DeclKind::FB(ref f) => f.$op($($args),*),
+            DeclKind::Prg(ref f) => f.$op($($args),*),
+            DeclKind::Struct(ref s) => s.$op($($args),*),
+            DeclKind::Enum(ref e) => e.$op($($args),*),
+            DeclKind::GlobalVar(ref g) => g.$op($($args),*),
+            DeclKind::Alias(ref a) => a.$op($($args),*),
+        }
+    };
+    ($obj:ident, $op:ident) => {
+        match $obj.kind {
+            DeclKind::Fun(ref f) => f.$op(),
+            DeclKind::FB(ref f) => f.$op(),
+            DeclKind::Prg(ref f) => f.$op(),
+            DeclKind::Struct(ref s) => s.$op(),
+            DeclKind::Enum(ref e) => e.$op(),
+            DeclKind::GlobalVar(ref g) => g.$op(),
+            DeclKind::Alias(ref a) => a.$op(),
         }
     };
 }
 
 impl HasAttribute for Declaration {
     fn remove_attribute(&mut self, k: &StString) -> Option<Option<String>> {
-        // impl_decl_kind!(mut self, remove_attribute, k)
-        todo!()
+        decl_call!(mut self, remove_attribute, k)
     }
 
     fn set_attribute<V: Into<Option<String>>>(&mut self, k: StString, v: V) {
-        todo!()
+        decl_call!(mut self, set_attribute, k, v)
     }
 
     fn get_attribute_value(&self, attr: &StString) -> Option<&Option<String>> {
-        todo!()
+        decl_call!(self, get_attribute_value, attr)
     }
 }
 
 impl Declaration {
     pub fn identifier(&self) -> &StString {
-        decl_call!(self, name)
+        decl_call!(self, name, )
     }
 
     pub fn variables(&self) -> &[Rc<Variable>] {

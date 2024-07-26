@@ -40,7 +40,7 @@ fn exec_binary<S1: AsRef<str>, S2: AsRef<str>>(decl: S1, body: S2) -> (String, S
     generate_module(decl, body, &mut f);
 
     // execute
-    let lua_cmd = "lua";
+    let lua_cmd = "lua54";
     let output = Command::new(lua_cmd)
         .arg(f.path())
         .output()
@@ -60,21 +60,21 @@ fn test_print() {
         "PROGRAM main: VAR a: int; END_VAR END_PROGRAM",
         "a := 1; print(a);",
     );
-    assert_eq!(r, "1\n", "Error: {}", e);
+    assert_eq!(r.trim(), "1", "Error: {}", e);
 
     // assignment twice
     let (r, e) = exec_binary(
         "PROGRAM main: VAR a: int; END_VAR END_PROGRAM",
         "a := 3; a := 2; print(a);",
     );
-    assert_eq!(r, "2\n", "Error: {}", e);
+    assert_eq!(r.trim(), "2", "Error: {}", e);
 
     // print string
     let (r, e) = exec_binary(
         "PROGRAM main: VAR a: STRING; END_VAR END_PROGRAM",
         "a := \"abc\"; print(a);",
     );
-    assert_eq!(r, "abc\n", "Error: {}", e);
+    assert_eq!(r.trim(), "abc", "Error: {}", e);
 }
 
 #[test]
@@ -84,28 +84,28 @@ fn test_add_print() {
         "PROGRAM main: VAR a: STRING; END_VAR END_PROGRAM",
         "a := 2; a := a + a; print(a);",
     );
-    assert_eq!(r, "4\n", "Error: {}", e);
+    assert_eq!(r.trim(), "4", "Error: {}", e);
 
     // R + K
     let (r, e) = exec_binary(
         "PROGRAM main: VAR a: STRING; END_VAR END_PROGRAM",
         "a := 2; a := a + 1; print(a);",
     );
-    assert_eq!(r, "3\n", "Error: {}", e);
+    assert_eq!(r.trim(), "3", "Error: {}", e);
 
     // K + R
     let (r, e) = exec_binary(
         "PROGRAM main: VAR a: STRING; END_VAR END_PROGRAM",
         "a := 2; a := 1 + a; print(a);",
     );
-    assert_eq!(r, "3\n", "Error: {}", e);
+    assert_eq!(r.trim(), "3", "Error: {}", e);
 
     // K + K
     let (r, e) = exec_binary(
         "PROGRAM main: VAR a: INT; END_VAR END_PROGRAM",
         "a := 2; a := 3 + 2; print(a);",
     );
-    assert_eq!(r, "5\n", "Error: {}", e);
+    assert_eq!(r.trim(), "5", "Error: {}", e);
 }
 
 #[test]

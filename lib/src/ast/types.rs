@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::ast::*;
+use crate::{ast::*, impl_has_attribute, utils::AttrMap8};
 
 macro_rules! builtin_type_impl {
     (struct $name:ident, $class:expr) => {
@@ -71,11 +71,14 @@ pub struct EnumDeclare {
     name: StString,
     ty: Option<Type>,
     fields: SmallVec8<Rc<Variable>>,
+    attributes: AttrMap8,
 }
+
+impl_has_attribute!(EnumDeclare, attributes);
 
 impl EnumDeclare {
     pub fn new(name: StString, ty: Option<Type>, fields: SmallVec8<Rc<Variable>>) -> Self {
-        Self { name, ty, fields }
+        Self { name, ty, fields, attributes: AttrMap8::new(), }
     }
 
     pub fn name(&self) -> &StString {
@@ -101,11 +104,14 @@ impl EnumDeclare {
 pub struct AliasDeclare {
     name: StString,
     alias: Type,
+    attributes: AttrMap8,
 }
+
+impl_has_attribute!(AliasDeclare, attributes);
 
 impl AliasDeclare {
     pub fn new(name: StString, alias: Type) -> Self {
-        Self { name, alias }
+        Self { name, alias, attributes: AttrMap8::new() }
     }
 
     pub fn name(&self) -> &StString {
@@ -123,11 +129,14 @@ impl AliasDeclare {
 pub struct StructDeclare {
     name: StString,
     variables: SmallVec8<Rc<Variable>>,
+    attributes: AttrMap8,
 }
+
+impl_has_attribute!(StructDeclare, attributes);
 
 impl StructDeclare {
     pub fn new(name: StString, variables: SmallVec8<Rc<Variable>>) -> Self {
-        Self { name, variables }
+        Self { name, variables, attributes: AttrMap8::new(), }
     }
 
     pub fn name(&self) -> &StString {
