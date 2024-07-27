@@ -251,26 +251,32 @@ impl FunctionImpl {
         }
     }
 
+    #[inline]
     pub fn object_id(&self) -> Uuid {
         self.object_id
     }
 
+    #[inline]
     pub fn decl_id(&self) -> usize {
         self.decl_id
     }
 
+    #[inline]
     pub fn parse_tree(&self) -> &Statement {
         &self.parse_tree
     }
 
+    #[inline]
     pub fn parse_tree_mut(&mut self) -> &mut Statement {
         &mut self.parse_tree
     }
 
+    #[inline]
     pub fn compiled_code(&self) -> &Option<Box<dyn CompiledCode>> {
         &self.compiled_code
     }
 
+    #[inline]
     pub fn set_compiled_code(&mut self, compiled_code: Box<dyn CompiledCode>) {
         self.compiled_code = Some(compiled_code)
     }
@@ -304,10 +310,12 @@ impl ModuleContext {
         }
     }
 
+    #[inline]
     pub fn read(&self) -> RwLockReadGuard<'_, ModuleContextImpl> {
         self.inner.read().unwrap()
     }
 
+    #[inline]
     pub fn write(&self) -> RwLockWriteGuard<'_, ModuleContextImpl> {
         self.inner.write().unwrap()
     }
@@ -324,10 +332,12 @@ pub struct ModuleContextImpl {
 }
 
 impl ModuleContextImpl {
+    #[inline]
     pub fn id(&self) -> usize {
         self.id
     }
 
+    #[inline]
     pub fn scope(&self) -> &ModuleKind {
         &self.kind
     }
@@ -378,30 +388,37 @@ impl ModuleContextImpl {
         self.function_id_map.insert(decl_id, fun)
     }
 
+    #[inline]
     pub fn declarations(&self) -> impl Iterator<Item = &Prototype> {
         self.declaration_id_map.values()
     }
 
+    #[inline]
     pub fn declaration_ids(&self) -> impl Iterator<Item = &usize> {
         self.declaration_id_map.keys()
     }
 
+    #[inline]
     pub fn functions(&self) -> impl Iterator<Item = &Function> {
         self.function_id_map.values()
     }
 
+    #[inline]
     pub fn get_function(&self, decl_id: usize) -> Option<&Function> {
         self.function_id_map.get(&decl_id)
     }
 
+    #[inline]
     pub fn get_declaration_by_id(&self, decl_id: usize) -> Option<&Prototype> {
         self.declaration_id_map.get(&decl_id)
     }
 
+    #[inline]
     pub fn find_declaration_by_name(&self, ident: &StString) -> Option<&Prototype> {
         self.declaration_name_map.get(ident)
     }
 
+    #[inline]
     pub fn find_toplevel_global_variable(&self, ident: &StString) -> Option<Rc<Variable>> {
         self.find_toplevel_global_variable_map(|x| x.name() == ident)
     }

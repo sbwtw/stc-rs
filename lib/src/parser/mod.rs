@@ -75,6 +75,10 @@ impl Parser {
     pub fn parse_stmt(&self, mut lexer: StLexer) -> Result<Statement, ParseError> {
         self.stmt_parser.parse(&mut lexer)
     }
+
+    pub fn parse_literal<S: AsRef<str>>(&self, s: S) -> LiteralValue {
+        todo!()
+    }
 }
 
 #[derive(Default)]

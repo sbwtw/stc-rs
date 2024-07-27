@@ -45,10 +45,10 @@ impl UserType {
         }
     }
 
-    pub fn from_proto(name: StString, proto: usize) -> Self {
+    pub fn from_proto(name: StString, proto_id: usize) -> Self {
         Self {
             name,
-            decl_id: Some(proto),
+            decl_id: Some(proto_id),
             class: None,
         }
     }

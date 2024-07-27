@@ -4,7 +4,6 @@ use std::rc::Rc;
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 /// Program Organization Units Manager
-#[allow(dead_code)]
 #[derive(Clone)]
 pub struct UnitsManager {
     inner: Rc<RwLock<UnitsManagerImpl>>,
@@ -34,13 +33,11 @@ impl Default for UnitsManager {
     }
 }
 
-#[allow(dead_code)]
 pub struct UnitsManagerImpl {
     active_application: Option<usize>,
     contexts: IndexMap<usize, ModuleContext>,
 }
 
-#[allow(dead_code)]
 impl UnitsManagerImpl {
     fn new() -> Self {
         Self {
