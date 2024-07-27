@@ -27,7 +27,7 @@ indexmap = "*"
 byteorder = "*"
 uuid = { version = "*", features = ["v4", "fast-rng", "macro-diagnostics", "serde"] }
 inkwell = { version = "*", optional = true, features = ["llvm17-0-no-llvm-linking"] }
-mlua = { version = "*", features = ["lua54", "macros", "async", "vendored"], optional = true }
+mlua = { version = "*", features = ["lua54", "macros", "async"], optional = true }
 
 [dev-dependencies]
 tempfile = "*"

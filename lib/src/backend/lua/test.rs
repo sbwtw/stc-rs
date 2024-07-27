@@ -40,7 +40,7 @@ fn exec_binary<S1: AsRef<str>, S2: AsRef<str>>(decl: S1, body: S2) -> (String, S
     generate_module(decl, body, &mut f);
 
     // execute
-    let lua_cmd = "lua54";
+    let lua_cmd = "lua";
     let output = Command::new(lua_cmd)
         .arg(f.path())
         .output()
