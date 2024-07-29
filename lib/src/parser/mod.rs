@@ -69,11 +69,11 @@ pub struct Parser {
 
 impl Parser {
     pub fn parse(&self, mut lexer: StLexer) -> Result<Declaration, ParseError> {
-        self.decl_parser.parse(&mut lexer)
+        self.decl_parser.parse_decl(&mut lexer)
     }
 
     pub fn parse_stmt(&self, mut lexer: StLexer) -> Result<Statement, ParseError> {
-        self.stmt_parser.parse(&mut lexer)
+        self.stmt_parser.parse_stmt(&mut lexer)
     }
 
     pub fn parse_literal<S: AsRef<str>>(&self, s: S) -> LiteralValue {
@@ -103,11 +103,11 @@ impl ParserBuilder {
 }
 
 trait DeclParserTrait {
-    fn parse(&self, lexer: &mut StLexer) -> Result<Declaration, ParseError>;
+    fn parse_decl(&self, lexer: &mut StLexer) -> Result<Declaration, ParseError>;
 }
 
 trait StmtParserTrait {
-    fn parse(&self, lexer: &mut StLexer) -> Result<Statement, ParseError>;
+    fn parse_stmt(&self, lexer: &mut StLexer) -> Result<Statement, ParseError>;
 }
 
 #[cfg(feature = "lalrpop_parser")]

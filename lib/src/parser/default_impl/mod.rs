@@ -19,7 +19,7 @@ type ParseResult<T> = Result<Option<T>, ParseError>;
 pub struct DefaultDeclParser {}
 
 impl DeclParserTrait for DefaultDeclParser {
-    fn parse(&self, lexer: &mut StLexer) -> Result<Declaration, ParseError> {
+    fn parse_decl(&self, lexer: &mut StLexer) -> Result<Declaration, ParseError> {
         self.parse(lexer)
     }
 }
@@ -41,7 +41,7 @@ impl DefaultDeclParser {
 pub struct DefaultStmtParser {}
 
 impl StmtParserTrait for DefaultStmtParser {
-    fn parse(&self, lexer: &mut StLexer) -> Result<Statement, ParseError> {
+    fn parse_stmt(&self, lexer: &mut StLexer) -> Result<Statement, ParseError> {
         self.parse(lexer)
     }
 }

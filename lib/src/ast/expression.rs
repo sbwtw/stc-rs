@@ -1,7 +1,7 @@
 use crate::ast::{
     AssignExpression, AstVisitor, AstVisitorMut, CallExpression, CompoAccessExpression,
     ExprStatement, IntoStatement, LiteralExpression, OperatorExpression, Statement,
-    VariableExpression,
+    VariableExpression, RangeExpression
 };
 use crate::{impl_ast_display, impl_into_statement};
 
@@ -13,6 +13,7 @@ pub enum ExprKind {
     Variable(Box<VariableExpression>),
     Compo(Box<CompoAccessExpression>),
     Call(Box<CallExpression>),
+    Range(Box<RangeExpression>),
 }
 
 #[derive(Debug)]
@@ -70,6 +71,13 @@ impl Expression {
     pub fn compo(compo: Box<CompoAccessExpression>) -> Self {
         Self {
             kind: ExprKind::Compo(compo),
+        }
+    }
+
+    #[inline]
+    pub fn range(range: Box<RangeExpression>) -> Self {
+        Self {
+            kind: ExprKind::Range(range),
         }
     }
 

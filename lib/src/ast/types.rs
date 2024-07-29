@@ -29,7 +29,7 @@ builtin_type_impl!(struct RealType, TypeClass::Real);
 builtin_type_impl!(struct LRealType, TypeClass::LReal);
 builtin_type_impl!(struct StringType, TypeClass::String);
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UserType {
     name: StString,
     decl_id: Option<usize>,
@@ -60,9 +60,15 @@ impl UserType {
 
 impl From<UserType> for Type {
     fn from(value: UserType) -> Self {
-        let class = TypeClass::UserType(value.name);
+        let class = TypeClass::UserType(RefCell::new(value));
 
         Type::from_class(class)
+    }
+}
+
+impl Display for UserType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name)
     }
 }
 
@@ -78,7 +84,12 @@ impl_has_attribute!(EnumDeclare, attributes);
 
 impl EnumDeclare {
     pub fn new(name: StString, ty: Option<Type>, fields: SmallVec8<Rc<Variable>>) -> Self {
-        Self { name, ty, fields, attributes: AttrMap8::new(), }
+        Self {
+            name,
+            ty,
+            fields,
+            attributes: AttrMap8::new(),
+        }
     }
 
     pub fn name(&self) -> &StString {
@@ -111,7 +122,11 @@ impl_has_attribute!(AliasDeclare, attributes);
 
 impl AliasDeclare {
     pub fn new(name: StString, alias: Type) -> Self {
-        Self { name, alias, attributes: AttrMap8::new() }
+        Self {
+            name,
+            alias,
+            attributes: AttrMap8::new(),
+        }
     }
 
     pub fn name(&self) -> &StString {
@@ -136,7 +151,11 @@ impl_has_attribute!(StructDeclare, attributes);
 
 impl StructDeclare {
     pub fn new(name: StString, variables: SmallVec8<Rc<Variable>>) -> Self {
-        Self { name, variables, attributes: AttrMap8::new(), }
+        Self {
+            name,
+            variables,
+            attributes: AttrMap8::new(),
+        }
     }
 
     pub fn name(&self) -> &StString {
@@ -157,3 +176,47 @@ impl StructDeclare {
 //         TypeClass::UserType(self.name.clone(), Some(UserTypeClass::Struct))
 //     }
 // }
+
+#[derive(Debug)]
+pub struct ArrayType {
+    base_type: RefCell<Type>,
+    dimensions: SmallVec3<RangeExpression>,
+}
+
+impl ArrayType {
+    pub fn new(base: Type, dimensions: SmallVec3<RangeExpression>) -> Self {
+        Self {
+            base_type: RefCell::new(base),
+            dimensions,
+        }
+    }
+}
+
+impl Display for ArrayType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        todo!()
+    }
+}
+
+impl PartialEq for ArrayType {
+    fn eq(&self, other: &Self) -> bool {
+        // self.base_type == other.base_type && self.dimensions == other.dimensions
+        todo!()
+    }
+}
+
+impl Eq for ArrayType {}
+
+impl Clone for ArrayType {
+    fn clone(&self) -> Self {
+        todo!()
+    }
+}
+
+impl From<ArrayType> for Type {
+    fn from(value: ArrayType) -> Self {
+        let class = TypeClass::Array(RefCell::new(value));
+
+        Type::from_class(class)
+    }
+}

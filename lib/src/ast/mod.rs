@@ -1,5 +1,6 @@
 use bitflags::bitflags;
 use smallvec::SmallVec;
+use std::cell::RefCell;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::rc::Rc;
 
@@ -56,7 +57,11 @@ pub use call_expression::CallExpression;
 mod global_variable_declaration;
 pub use global_variable_declaration::GlobalVariableDeclare;
 
+mod range_expression;
+pub use range_expression::RangeExpression;
+
 pub type SmallVec8<T> = SmallVec<[T; 8]>;
+pub type SmallVec3<T> = SmallVec<[T; 3]>;
 
 pub trait HasSourcePosition {}
 
@@ -125,13 +130,13 @@ impl_into_expression!(LiteralValue, |x| Expression::literal(Box::new(
 
 #[derive(Clone, Debug)]
 pub struct Type {
-    inner: Rc<TypeImpl>,
+    inner: Rc<TypeInner>,
 }
 
 impl Type {
     pub fn from_class(class: TypeClass) -> Self {
         Self {
-            inner: Rc::new(TypeImpl { class }),
+            inner: Rc::new(TypeInner { class }),
         }
     }
 
@@ -150,12 +155,28 @@ impl Display for Type {
     }
 }
 
+impl PartialEq for Type {
+    fn eq(&self, other: &Self) -> bool {
+        self.inner.as_ref() == other.inner.as_ref()
+    }
+}
+
+impl Eq for Type {}
+
 #[derive(Debug)]
-struct TypeImpl {
+struct TypeInner {
     class: TypeClass,
 }
 
-impl Display for TypeImpl {
+impl PartialEq for TypeInner {
+    fn eq(&self, other: &Self) -> bool {
+        self.class == other.class
+    }
+}
+
+impl Eq for TypeInner {}
+
+impl Display for TypeInner {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_fmt(format_args!("{:?}", self.class))
     }
@@ -250,7 +271,6 @@ bitflags! {
 }
 
 #[derive(Debug)]
-#[allow(dead_code)]
 pub enum DeclareClass {
     Function,
     Program,
@@ -260,7 +280,6 @@ pub enum DeclareClass {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-#[allow(dead_code)]
 pub enum UserTypeClass {
     Alias,
     Enum,
@@ -269,7 +288,6 @@ pub enum UserTypeClass {
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
-#[allow(dead_code)]
 pub enum TypeClass {
     /// 'BIT', one bit type
     Bit,
@@ -298,7 +316,9 @@ pub enum TypeClass {
     /// 'STRING' string type
     String,
     /// UserType
-    UserType(StString),
+    UserType(RefCell<UserType>),
+    /// ArrayType
+    Array(RefCell<ArrayType>),
 }
 
 impl Display for TypeClass {
@@ -317,7 +337,8 @@ impl Display for TypeClass {
             TypeClass::Real => write!(f, "REAL"),
             TypeClass::LReal => write!(f, "LREAL"),
             TypeClass::String => write!(f, "STRING"),
-            TypeClass::UserType(s) => write!(f, "{}", s.origin_string()),
+            TypeClass::UserType(u) => write!(f, "{}", u.borrow()),
+            TypeClass::Array(arr) => write!(f, "{}", arr.borrow()),
         }
     }
 }

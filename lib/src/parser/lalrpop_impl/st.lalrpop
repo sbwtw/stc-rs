@@ -11,6 +11,7 @@ extern {
 
     enum TokenKind {
         "." => TokenKind::DotAccess,
+        ".." => TokenKind::DotRange,
         "+" => TokenKind::Plus,
         "-" => TokenKind::Minus,
         "*" => TokenKind::Multiply,
@@ -18,6 +19,8 @@ extern {
         "/" => TokenKind::Division,
         "(" => TokenKind::LeftParentheses,
         ")" => TokenKind::RightParentheses,
+        "[" => TokenKind::LeftBracket,
+        "]" => TokenKind::RightBracket,
         "," => TokenKind::Comma,
         ";" => TokenKind::Semicolon,
         ":=" => TokenKind::Assign,
@@ -34,7 +37,9 @@ extern {
         "XOR" => TokenKind::Xor,
         "NOT" => TokenKind::Not,
         "MOD" => TokenKind::Mod,
+        "ARRAY" => TokenKind::Array,
         "IF" => TokenKind::If,
+        "OF" => TokenKind::Of,
         "THEN" => TokenKind::Then,
         "ELSE" => TokenKind::Else,
         "ELSEIF" => TokenKind::ElseIf,
@@ -85,6 +90,17 @@ SmallComma<T>: SmallVec8<T> = {
         None => SmallVec8::from_vec(v),
         Some(e) => {
             let mut v = SmallVec8::from_vec(v);
+            v.push(e);
+            v
+        }
+    }
+};
+
+SmallComma3<T>: SmallVec3<T> = {
+    <v:(<T> ",")+> <e:T?> => match e {
+        None => SmallVec3::from_vec(v),
+        Some(e) => {
+            let mut v = SmallVec3::from_vec(v);
             v.push(e);
             v
         }
@@ -263,13 +279,22 @@ EnumFieldDecl: Rc<Variable> = {
 }
 
 /// Type
-Type: Type = {
+pub Type: Type = {
     "BIT" => BitType::new_type(),
     "INT" => IntType::new_type(),
     "BOOL" => BoolType::new_type(),
     "BYTE" => ByteType::new_type(),
     "REAL" => RealType::new_type(),
     "IDENTIFIER" => UserType::from_name(<>).into(),
+    <arr: ArrayType> => arr.into(),
+}
+
+ArrayType: ArrayType = {
+    "ARRAY" "[" <dim: SmallComma3<RangeExpr>> "]" "OF" <base_type: Type> => ArrayType::new(base_type, dim),
+}
+
+RangeExpr: RangeExpression = {
+    <lower: Expr> ".." <upper: Expr> => RangeExpression::new(<>),
 }
 
 /// Variable declare groups flat
