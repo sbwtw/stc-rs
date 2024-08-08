@@ -236,9 +236,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             // ';'
             let _ = self.except_one_of(&[TokenKind::Semicolon])?;
 
-            return Ok(Some(Declaration::alias(Box::new(AliasDeclare::new(
-                name, alias,
-            )))));
+            return Ok(Some(Declaration::new_alias(name, alias)));
         } else {
             self.next = pos;
         }
@@ -275,9 +273,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             // ';'
             let _ = self.except_one_of(&[TokenKind::Semicolon])?;
 
-            return Ok(Some(Declaration::enum_(Box::new(EnumDeclare::new(
-                name, enum_ty, fields,
-            )))));
+            return Ok(Some(Declaration::new_enum(name, enum_ty, fields)));
         }
 
         // struct decl
@@ -285,9 +281,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             let fields = self.except_variable_declare_list()?;
             let _ = self.except_one_of(&[TokenKind::EndStruct])?;
 
-            return Ok(Some(Declaration::struct_(Box::new(StructDeclare::new(
-                name, fields,
-            )))));
+            return Ok(Some(Declaration::new_struct(name, fields)));
         }
 
         Err(ParseError::UnexpectedToken(0, vec![format!("{:?}", tok)]))
@@ -302,9 +296,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
                 TokenKind::Literal(literal) => {
                     return Ok(Some(Rc::new(Variable::with_initial(
                         field_name,
-                        Some(Box::new(Expression::literal(Box::new(
-                            LiteralExpression::new(literal.clone()),
-                        )))),
+                        Box::new(Expression::new_literal(literal.clone())),
                     ))));
                 }
                 _ => {}
@@ -312,7 +304,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         }
 
         self.next = pos;
-        return Ok(Some(Rc::new(Variable::with_initial(field_name, None))));
+        return Ok(Some(Rc::new(Variable::new(field_name))));
     }
 
     fn parse_global_variable_declare_factor(&mut self) -> ParseResult<SmallVec8<Rc<Variable>>> {
@@ -344,7 +336,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     }
 
     fn parse_variable_declare_factor(&mut self) -> ParseResult<SmallVec8<Rc<Variable>>> {
-        let mut v = smallvec![];
+        let mut v = SmallVec8::new();
         while let Some(mut x) = self.parse_variable_group()? {
             v.append(&mut x);
         }
@@ -587,7 +579,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             return Ok(None);
         }
 
-        Ok(Some(Statement::expr(Box::new(ExprStatement::new(expr)))))
+        Ok(Some(Statement::new_expr(expr)))
     }
 
     fn parse_op_expression(&mut self) -> ParseResult<Box<Expression>> {
@@ -602,9 +594,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let pos = self.next;
         if let Some(bitor) = self.parse_bitor_expression()? {
             return match self.parse_expression_fix()? {
-                Some(fix) => Ok(Some(Expression::assign(Box::new(AssignExpression::new(
-                    bitor, fix,
-                ))))),
+                Some(fix) => Ok(Some(Expression::new_assign(bitor, fix))),
                 None => Ok(Some(bitor)),
             };
         }
@@ -644,9 +634,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         if let Some(bitor) = self.parse_xor_expression()? {
             if let Some(fix) = self.parse_bitor_expression_fix()? {
-                Ok(Some(Expression::operator(Box::new(
-                    OperatorExpression::new(Operator::BitOr, smallvec![bitor, fix]),
-                ))))
+                Ok(Some(Expression::new_operator2(Operator::BitOr, bitor, fix)))
             } else {
                 Ok(Some(bitor))
             }
@@ -676,9 +664,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         match self.parse_bitand_expression()? {
             Some(bitand) => match self.parse_xor_expression_fix()? {
-                Some(fix) => Ok(Some(Expression::operator(Box::new(
-                    OperatorExpression::new(Operator::Xor, smallvec![bitand, fix]),
-                )))),
+                Some(fix) => Ok(Some(Expression::new_operator2(Operator::Xor, bitand, fix))),
                 None => Ok(Some(bitand)),
             },
             None => {
@@ -708,9 +694,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         match self.parse_equ_expr()? {
             Some(equ) => match self.parse_bitand_expression_fix()? {
-                Some(fix) => Ok(Some(Expression::operator(Box::new(
-                    OperatorExpression::new(Operator::BitAnd, smallvec![equ, fix]),
-                )))),
+                Some(fix) => Ok(Some(Expression::new_operator2(Operator::BitAnd, equ, fix))),
                 None => Ok(Some(equ)),
             },
             None => {
@@ -739,9 +723,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         match self.parse_cmp_expr()? {
             Some(equ) => match self.parse_equ_expr_fix()? {
-                Some((tk, fix)) => Ok(Some(Expression::operator(Box::new(
-                    OperatorExpression::new(tk.into(), smallvec![equ, fix]),
-                )))),
+                Some((tk, fix)) => Ok(Some(Expression::new_operator2(tk.into(), equ, fix))),
                 None => Ok(Some(equ)),
             },
             None => {
@@ -774,10 +756,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let pos = self.next;
         match self.parse_equ_expr_fix()? {
             Some((tok, fix)) => {
-                let tail = Expression::operator(Box::new(OperatorExpression::new(
-                    tok.into(),
-                    smallvec![cmp_expr, fix],
-                )));
+                let tail = Expression::new_operator2(tok.into(), cmp_expr, fix);
                 Ok(Some((current_tok, tail)))
             }
             _ => {
@@ -808,9 +787,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         match self.parse_op_expr()? {
             Some(cmp) => match self.parse_cmp_expr_fix()? {
-                Some((tok, fix)) => Ok(Some(Expression::operator(Box::new(
-                    OperatorExpression::new(tok.into(), smallvec![cmp, fix]),
-                )))),
+                Some((tok, fix)) => Ok(Some(Expression::new_operator2(tok.into(), cmp, fix))),
                 None => Ok(Some(cmp)),
             },
             None => {
@@ -843,10 +820,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let pos = self.next;
         match self.parse_cmp_expr_fix()? {
             Some((tok, fix)) => {
-                let tail = Expression::operator(Box::new(OperatorExpression::new(
-                    tok.into(),
-                    smallvec![op_expr, fix],
-                )));
+                let tail = Expression::new_operator2(tok.into(), op_expr, fix);
                 Ok(Some((current_tok, tail)))
             }
             _ => {
@@ -880,9 +854,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         if let Some(factor) = self.parse_factor()? {
             if let Some((tok, fix)) = self.parse_op_expr_fix()? {
-                Ok(Some(Expression::operator(Box::new(
-                    OperatorExpression::new(tok.into(), smallvec![factor, fix]),
-                ))))
+                Ok(Some(Expression::new_operator2(tok.into(), factor, fix)))
             } else {
                 Ok(Some(factor))
             }
@@ -914,10 +886,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         let pos = self.next;
         if let Some((tok, fix)) = self.parse_op_expr_fix()? {
-            let tail = Expression::operator(Box::new(OperatorExpression::new(
-                tok.into(),
-                smallvec![factor, fix],
-            )));
+            let tail = Expression::new_operator2(tok.into(), factor, fix);
             Ok(Some((current_tok, tail)))
         } else {
             self.next = pos;
@@ -947,9 +916,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         if let Some(power) = self.parse_power_expr()? {
             if let Some((tok, fix)) = self.parse_factor_fix()? {
-                Ok(Some(Expression::operator(Box::new(
-                    OperatorExpression::new(tok.into(), smallvec![power, fix]),
-                ))))
+                Ok(Some(Expression::new_operator2(tok.into(), power, fix)))
             } else {
                 Ok(Some(power))
             }
@@ -981,10 +948,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         let pos = self.next;
         if let Some((tok, fix)) = self.parse_factor_fix()? {
-            let tail = Expression::operator(Box::new(OperatorExpression::new(
-                tok.into(),
-                smallvec![power, fix],
-            )));
+            let tail = Expression::new_operator2(tok.into(), power, fix);
             Ok(Some((current_tok, tail)))
         } else {
             self.next = pos;
@@ -1016,9 +980,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         match self.parse_unary_factor()? {
             Some(unary) => match self.parse_power_expr_fix()? {
-                Some(fix) => Ok(Some(Expression::operator(Box::new(
-                    OperatorExpression::new(Operator::Power, smallvec![unary, fix]),
-                )))),
+                Some(fix) => Ok(Some(Expression::new_operator2(Operator::Power, unary, fix))),
                 None => Ok(Some(unary)),
             },
             None => {
@@ -1047,10 +1009,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         let pos = self.next;
         if let Some(fix) = self.parse_power_expr_fix()? {
-            let tail = Expression::operator(Box::new(OperatorExpression::new(
-                Operator::Power,
-                smallvec![unary, fix],
-            )));
+            let tail = Expression::new_operator2(Operator::Power, unary, fix);
             Ok(Some(tail))
         } else {
             self.next = pos;
@@ -1066,9 +1025,9 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let compo_factor = self.parse_compo_factor()?;
 
         match (unary_op, compo_factor) {
-            (Some(op), Some(factor)) => Ok(Some(Expression::operator(Box::new(
-                OperatorExpression::new(op.into(), smallvec![factor]),
-            )))),
+            (Some(op), Some(factor)) => {
+                Ok(Some(Expression::new_operator(op.into(), smallvec![factor])))
+            }
             (None, Some(factor)) => Ok(Some(factor)),
             _ => {
                 self.next = pos;
@@ -1099,9 +1058,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         match self.parse_term_expr()? {
             Some(term) => match self.parse_compo_factor_fix()? {
-                Some(fix) => Ok(Some(Expression::compo(Box::new(
-                    CompoAccessExpression::new(term, fix),
-                )))),
+                Some(fix) => Ok(Some(Expression::new_compo(term, fix))),
                 None => Ok(Some(term)),
             },
             None => {
@@ -1241,11 +1198,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let pos = self.next;
 
         match self.next_kind()? {
-            TokenKind::Literal(val) => {
-                return Ok(Some(Expression::literal(Box::new(LiteralExpression::new(
-                    val.clone(),
-                )))))
-            }
+            TokenKind::Literal(val) => return Ok(Some(Expression::new_literal(val.clone()))),
             _ => {}
         }
 
@@ -1258,9 +1211,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         match self.next_kind()? {
             TokenKind::Identifier(ident) => {
-                return Ok(Some(Expression::variable(Box::new(
-                    VariableExpression::new(ident.clone()),
-                ))));
+                return Ok(Some(Expression::new_variable(ident.clone())));
             }
             _ => {
                 self.next = pos;

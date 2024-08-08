@@ -24,7 +24,6 @@ mod test;
 #[derive(Clone, Debug)]
 pub enum ParseError {
     LexerError(LexicalError),
-    #[allow(dead_code)]
     UnexpectedEnd,
     InvalidToken(usize),
     InvalidTokenAt(String),

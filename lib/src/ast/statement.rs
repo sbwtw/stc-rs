@@ -1,5 +1,6 @@
 use crate::ast::{AstVisitor, ExprStatement, IfStatement, IntoStatement};
 use crate::impl_ast_display;
+use crate::prelude::*;
 
 #[derive(Debug)]
 pub enum StmtKind {
@@ -29,18 +30,26 @@ impl Statement {
         Self::statement_list(Box::new(vec![x, stmt]))
     }
 
+    #[inline]
     pub fn statement_list(stmts: Box<Vec<Statement>>) -> Self {
         Self {
             kind: StmtKind::Stmts(stmts),
         }
     }
 
+    #[inline]
     pub fn expr(expr: Box<ExprStatement>) -> Self {
         Self {
             kind: StmtKind::Expr(expr),
         }
     }
 
+    #[inline]
+    pub fn new_expr(expr: Expression) -> Self {
+        Self::expr(Box::new(ExprStatement::new(expr)))
+    }
+
+    #[inline]
     pub fn if_stmt(if_stmt: Box<IfStatement>) -> Self {
         Self {
             kind: StmtKind::If(if_stmt),

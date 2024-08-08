@@ -274,8 +274,8 @@ TypeDeclaration: Declaration = {
 }
 
 EnumFieldDecl: Rc<Variable> = {
-    <name: "IDENTIFIER"> => Rc::new(Variable::with_initial(name, None)),
-    <name: "IDENTIFIER"> ":=" <value: "LITERAL"> => Rc::new(Variable::with_initial(name, Some(Box::new(value.into_expression())))),
+    <name: "IDENTIFIER"> => Rc::new(Variable::new(name)),
+    <name: "IDENTIFIER"> ":=" <value: "LITERAL"> => Rc::new(Variable::with_initial(name, Box::new(value.into_expression()))),
 }
 
 /// Type

@@ -21,6 +21,6 @@ eframe = { version = "*", features = ["default"], optional = true }
 egui_extras = { version = "*", features = ["default", "image"], optional = true }
 
 [features]
-default = ["gui-gtk4"]
+default = ["gui-egui"]
 gui-egui = ["eframe", "egui_extras"]
 gui-gtk4 = ["gtk4", "glib"]

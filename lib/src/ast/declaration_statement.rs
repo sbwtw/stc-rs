@@ -71,10 +71,12 @@ impl HasAttribute for Declaration {
 }
 
 impl Declaration {
+    #[inline]
     pub fn identifier(&self) -> &StString {
-        decl_call!(self, name, )
+        decl_call!(self, name,)
     }
 
+    #[inline]
     pub fn variables(&self) -> &[Rc<Variable>] {
         match self.kind {
             DeclKind::Fun(ref f) => f.parameters(),
@@ -85,30 +87,50 @@ impl Declaration {
         }
     }
 
+    #[inline]
     pub fn fun(fun: Box<FunctionDeclare>) -> Self {
         Self {
             kind: DeclKind::Fun(fun),
         }
     }
 
+    #[inline]
     pub fn alias(alias: Box<AliasDeclare>) -> Self {
         Self {
             kind: DeclKind::Alias(alias),
         }
     }
 
+    #[inline]
+    pub fn new_alias(name: StString, alias: Type) -> Self {
+        Self::alias(Box::new(AliasDeclare::new(name, alias)))
+    }
+
+    #[inline]
     pub fn struct_(struct_: Box<StructDeclare>) -> Self {
         Self {
             kind: DeclKind::Struct(struct_),
         }
     }
 
+    #[inline]
+    pub fn new_struct(name: StString, variables: SmallVec8<Rc<Variable>>) -> Self {
+        Self::struct_(Box::new(StructDeclare::new(name, variables)))
+    }
+
+    #[inline]
     pub fn enum_(enum_: Box<EnumDeclare>) -> Self {
         Self {
             kind: DeclKind::Enum(enum_),
         }
     }
 
+    #[inline]
+    pub fn new_enum(name: StString, ty: Option<Type>, fields: SmallVec8<Rc<Variable>>) -> Self {
+        Self::enum_(Box::new(EnumDeclare::new(name, ty, fields)))
+    }
+
+    #[inline]
     pub fn global_var(global_var: Box<GlobalVariableDeclare>) -> Self {
         Self {
             kind: DeclKind::GlobalVar(global_var),

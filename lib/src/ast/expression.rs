@@ -1,9 +1,12 @@
 use crate::ast::{
     AssignExpression, AstVisitor, AstVisitorMut, CallExpression, CompoAccessExpression,
-    ExprStatement, IntoStatement, LiteralExpression, OperatorExpression, Statement,
-    VariableExpression, RangeExpression
+    ExprStatement, IntoStatement, LiteralExpression, OperatorExpression, RangeExpression,
+    Statement, VariableExpression,
 };
+use crate::parser::{LiteralValue, Operator, StString};
 use crate::{impl_ast_display, impl_into_statement};
+
+use smallvec::{smallvec, SmallVec};
 
 #[derive(Debug)]
 pub enum ExprKind {
@@ -40,6 +43,11 @@ impl Expression {
     }
 
     #[inline]
+    pub fn new_assign(lhs: Expression, rhs: Expression) -> Self {
+        Self::assign(Box::new(AssignExpression::new(lhs, rhs)))
+    }
+
+    #[inline]
     pub fn call(call: Box<CallExpression>) -> Self {
         Self {
             kind: ExprKind::Call(call),
@@ -54,10 +62,25 @@ impl Expression {
     }
 
     #[inline]
+    pub fn new_literal(val: LiteralValue) -> Self {
+        Self::literal(Box::new(LiteralExpression::new(val)))
+    }
+
+    #[inline]
     pub fn operator(operator: Box<OperatorExpression>) -> Self {
         Self {
             kind: ExprKind::Operator(operator),
         }
+    }
+
+    #[inline]
+    pub fn new_operator(op: Operator, operands: SmallVec<[Expression; 2]>) -> Self {
+        Self::operator(Box::new(OperatorExpression::new(op, operands)))
+    }
+
+    #[inline]
+    pub fn new_operator2(op: Operator, op1: Expression, op2: Expression) -> Self {
+        Self::operator(Box::new(OperatorExpression::new(op, smallvec![op1, op2])))
     }
 
     #[inline]
@@ -68,10 +91,20 @@ impl Expression {
     }
 
     #[inline]
+    pub fn new_variable(var: StString) -> Self {
+        Self::variable(Box::new(VariableExpression::new(var)))
+    }
+
+    #[inline]
     pub fn compo(compo: Box<CompoAccessExpression>) -> Self {
         Self {
             kind: ExprKind::Compo(compo),
         }
+    }
+
+    #[inline]
+    pub fn new_compo(left: Expression, right: Expression) -> Self {
+        Self::compo(Box::new(CompoAccessExpression::new(left, right)))
     }
 
     #[inline]

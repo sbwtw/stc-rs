@@ -30,10 +30,10 @@ impl Variable {
         }
     }
 
-    pub fn with_initial(name: StString, initial: Option<Box<Expression>>) -> Self {
+    pub fn with_initial(name: StString, initial: Box<Expression>) -> Self {
         Self {
             name,
-            initial,
+            initial: Some(initial),
             ..Default::default()
         }
     }
