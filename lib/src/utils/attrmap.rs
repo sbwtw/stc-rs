@@ -70,9 +70,9 @@ mod test {
     #[test]
     fn test() {
         let mut map = AttrMap8::new();
-        assert_eq!(map.contains_key(&"attr1".into()), false);
+        assert!(!map.contains_key(&"attr1".into()));
 
         map.insert("attr1".into(), None);
-        assert_eq!(map.contains_key(&"attr1".into()), true);
+        assert!(map.contains_key(&"attr1".into()));
     }
 }

@@ -138,9 +138,9 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
                 let global_vars = self
                     .parse_global_variable_declare_factor()?
                     .unwrap_or(smallvec![]);
-                return Ok(Declaration::global_var(Box::new(
+                Ok(Declaration::global_var(Box::new(
                     GlobalVariableDeclare::new(None, global_vars),
-                )));
+                )))
             }
 
             // type declare
@@ -243,7 +243,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
         // enum decl
         let tok = self.next_kind()?;
-        if matches!(&*tok, TokenKind::LeftParentheses) {
+        if matches!(tok, TokenKind::LeftParentheses) {
             let mut fields = smallvec![];
 
             // first field
@@ -292,19 +292,16 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let pos = self.next;
 
         if matches!(*self.next_kind()?, TokenKind::Assign) {
-            match &*self.next_kind()? {
-                TokenKind::Literal(literal) => {
-                    return Ok(Some(Rc::new(Variable::with_initial(
-                        field_name,
-                        Box::new(Expression::new_literal(literal.clone())),
-                    ))));
-                }
-                _ => {}
+            if let TokenKind::Literal(literal) = self.next_kind()? {
+                return Ok(Some(Rc::new(Variable::with_initial(
+                    field_name,
+                    Box::new(Expression::new_literal(literal.clone())),
+                ))));
             }
         }
 
         self.next = pos;
-        return Ok(Some(Rc::new(Variable::new(field_name))));
+        Ok(Some(Rc::new(Variable::new(field_name))))
     }
 
     fn parse_global_variable_declare_factor(&mut self) -> ParseResult<SmallVec8<Rc<Variable>>> {
@@ -1197,9 +1194,8 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     fn parse_literal_expr(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
 
-        match self.next_kind()? {
-            TokenKind::Literal(val) => return Ok(Some(Expression::new_literal(val.clone()))),
-            _ => {}
+        if let TokenKind::Literal(val) = self.next_kind()? {
+            return Ok(Some(Expression::new_literal(val.clone())));
         }
 
         self.next = pos;
@@ -1210,12 +1206,10 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let pos = self.next;
 
         match self.next_kind()? {
-            TokenKind::Identifier(ident) => {
-                return Ok(Some(Expression::new_variable(ident.clone())));
-            }
+            TokenKind::Identifier(ident) => Ok(Some(Expression::new_variable(ident.clone()))),
             _ => {
                 self.next = pos;
-                return Ok(None);
+                Ok(None)
             }
         }
     }

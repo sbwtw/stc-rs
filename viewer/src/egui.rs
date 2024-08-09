@@ -1,4 +1,5 @@
 use eframe::egui;
+use log::*;
 use stc::prelude::*;
 use std::default::Default;
 
@@ -20,7 +21,10 @@ impl eframe::App for StcViewer {
                         ui.text_edit_singleline(&mut self.name);
 
                         // Refresh button
-                        let _refresh_button = ui.button("Refresh");
+                        let refresh_button = ui.button("Refresh");
+                        if refresh_button.clicked() {
+                            trace!("Refresh clicked")
+                        }
                     });
 
                     // Data-Tree
@@ -31,7 +35,11 @@ impl eframe::App for StcViewer {
             // Tools Bar
             ui.horizontal(|ui| {
                 _ = ui.button("Reload");
-                _ = ui.button("Compile");
+                let compile_button = ui.button("Compile");
+
+                if compile_button.clicked() {
+                    trace!("Compile clicked");
+                }
             });
 
             // Content Area
