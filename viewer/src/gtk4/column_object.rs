@@ -1,3 +1,4 @@
+use crate::PrototypeContent;
 use glib::Object;
 use gtk4::subclass::prelude::*;
 use stc::context::{Function, Prototype};
@@ -60,30 +61,7 @@ impl Display for ColumnObjectData {
                 writeln!(f, "{}", ctx)?;
                 writeln!(f, "ID: {}", ctx.id())
             }
-            Self::Prototype(proto) => {
-                let proto = proto.read().unwrap();
-
-                // Prototype properties
-                let uuid = proto.object_id();
-                if !uuid.is_nil() {
-                    writeln!(f, "ObjectId: {}", uuid)?;
-                }
-                writeln!(f, "Id: {}", proto.id())?;
-                writeln!(f)?;
-
-                // name : return_value
-                write!(f, "{}", proto.name())?;
-                if let Some(ty) = proto.return_value().and_then(|x| x.ty()) {
-                    write!(f, " : {}", ty)?;
-                }
-                writeln!(f)?;
-
-                for v in proto.variables() {
-                    writeln!(f, "{}: {}: {:?}", v.flags(), v.name(), v.ty())?;
-                }
-
-                Ok(())
-            }
+            Self::Prototype(proto) => writeln!(f, "{}", proto.content()),
             Self::Function(func) => {
                 let func = func.read();
 

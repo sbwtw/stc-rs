@@ -3,7 +3,6 @@ mod stc_viewer;
 use stc_viewer::{StcViewerGtk4, UIMessages, STC_VIEWER_COLUMN_NAME};
 
 use crate::app::StcViewerApp;
-use crate::storage;
 
 use glib::MainContext;
 use gtk4::gdk::ffi::GDK_BUTTON_SECONDARY;
@@ -13,23 +12,14 @@ use gtk4::{
     Application, ApplicationWindow, CellRendererText, EventSequenceState, GestureClick,
     Orientation, Paned, PopoverMenu, ScrolledWindow, TreeViewColumn, WrapMode,
 };
-use quick_xml::de::from_str;
-use stc::prelude::*;
 use std::rc::Rc;
 use std::sync::Mutex;
 
 pub fn main() {
     pretty_env_logger::init();
 
-    let mgr = UnitsManager::new();
-    let proj: Result<storage::Application, _> =
-        from_str(include_str!("../../test_projects/example1/test_proj.xml"));
-    let ctx: ModuleContext = proj.unwrap().into();
-    mgr.write().add_context(ctx.clone());
-    mgr.write().set_active_application(Some(ctx.read().id()));
-
     let gtk_app = Application::builder().build();
-    gtk_app.connect_activate(move |app| build_ui(app, StcViewerApp::with_mgr(mgr.clone())));
+    gtk_app.connect_activate(move |app| build_ui(app, StcViewerApp::load_test_project()));
     gtk_app.run();
 }
 

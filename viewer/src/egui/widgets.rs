@@ -1,4 +1,4 @@
-use crate::PrototypeDisplayName;
+use crate::{PrototypeContent, PrototypeDisplayName};
 use eframe::egui::{Response, Ui, Widget};
 use stc::prelude::*;
 
@@ -13,15 +13,15 @@ impl AppWidget {
 }
 
 impl Widget for AppWidget {
-    fn ui(self, ui: &mut Ui) -> Response {
+    fn ui(mut self, ui: &mut Ui) -> Response {
         ui.label(format!("App {}", self.app.read().id()));
 
         // Prototypes
-        let r = ui.label("\tPrototypes");
+        let resp = ui.label("\tPrototypes");
         for proto in self.app.read().declarations() {
-            ui.label(format!("\t\t{}", proto.display_name()));
+            let _label_resp = ui.label(format!("\t\t{}", proto.display_name()));
         }
 
-        r
+        resp
     }
 }

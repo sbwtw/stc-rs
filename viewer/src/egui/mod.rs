@@ -1,12 +1,9 @@
-mod widgets;
-use widgets::*;
-
 use crate::app::StcViewerApp;
-use crate::storage;
+use crate::{PrototypeContent, PrototypeDisplayName};
+
 use eframe::egui;
+use eframe::egui::{vec2, FontId, Label, RichText, TextEdit};
 use log::*;
-use quick_xml::de::from_str;
-use stc::prelude::*;
 use std::default::Default;
 
 #[derive(Default)]
@@ -15,6 +12,8 @@ struct StcViewerEGui {
 
     // UI stuffs
     search_text: String,
+    content: RichText,
+    show_origin_ast: bool,
 }
 
 impl StcViewerEGui {
@@ -36,7 +35,11 @@ impl eframe::App for StcViewerEGui {
                 ui.vertical(|ui| {
                     ui.horizontal(|ui| {
                         // Search input
-                        ui.text_edit_singleline(&mut self.search_text);
+                        let input = TextEdit::singleline(&mut self.search_text)
+                            .min_size(vec2(100., 0.))
+                            .desired_width(200.);
+                        ui.add(input);
+                        // ui.add_sized([100f32, ui.available_height()], input);
 
                         // Refresh button
                         let search_button = ui.button("Search");
@@ -47,8 +50,33 @@ impl eframe::App for StcViewerEGui {
 
                     // Data-Tree
                     if let Some(active_app) = self.app.mgr.read().active_application() {
-                        let app_widget = AppWidget::new(active_app);
-                        ui.add(app_widget);
+                        let active_app = active_app.read();
+                        ui.label(format!("App {}", active_app.id()));
+
+                        // Prototypes
+                        ui.label("\tPrototypes");
+                        for proto in active_app.declarations() {
+                            let label_resp = ui.label(format!("\t\t{}", proto.display_name()));
+                            if label_resp.clicked() {
+                                self.content =
+                                    RichText::new(proto.content()).font(FontId::monospace(12.));
+                            }
+                        }
+
+                        // Functions
+                        ui.label("\tFunctions");
+                        for func in active_app.functions() {
+                            let func = func.read();
+                            let proto = active_app.get_declaration_by_id(func.decl_id()).unwrap();
+                            let func_resp = ui.label(format!("\t\t{}", proto.display_name()));
+                            if func_resp.clicked() {
+                                let content = match (self.show_origin_ast, func.compiled_code()) {
+                                    (false, Some(code)) => format!("{}", code),
+                                    _ => format!("{}", func.parse_tree()),
+                                };
+                                self.content = RichText::new(content).font(FontId::monospace(12.));
+                            }
+                        }
                     }
                 });
             });
@@ -61,14 +89,15 @@ impl eframe::App for StcViewerEGui {
                 if compile_button.clicked() {
                     self.app.compile()
                 }
+
+                ui.checkbox(&mut self.show_origin_ast, "Show AST");
             });
 
             // Content Area
             egui::ScrollArea::vertical()
                 .auto_shrink(true)
                 .show(ui, |ui| {
-                    // TODO: multi line content
-                    ui.add(egui::Label::new(&self.search_text).selectable(true));
+                    ui.add(Label::new(self.content.clone()).selectable(true));
                 });
         });
     }
@@ -82,14 +111,7 @@ pub fn main() -> Result<(), eframe::Error> {
         ..Default::default()
     };
 
-    let mgr = UnitsManager::new();
-    let proj: Result<storage::Application, _> =
-        from_str(include_str!("../../test_projects/example1/test_proj.xml"));
-    let ctx: ModuleContext = proj.unwrap().into();
-    mgr.write().add_context(ctx.clone());
-    mgr.write().set_active_application(Some(ctx.read().id()));
-
-    let viewer = StcViewerEGui::new(StcViewerApp::with_mgr(mgr));
+    let viewer = StcViewerEGui::new(StcViewerApp::load_test_project());
     eframe::run_native(
         "stc-viewer - egui",
         options,
