@@ -36,6 +36,6 @@ jobs:
         LLVM_SYS_170_PREFIX: ${{ runner.temp }}/llvm-17
     - name: Run tests with default parser
       run: |
-        cargo test --verbose --features default_parser --no-default-features --package stc-rs
+        cargo test --verbose --no-default-features --package stc-rs
       env:
         LLVM_SYS_170_PREFIX: ${{ runner.temp }}/llvm-17
