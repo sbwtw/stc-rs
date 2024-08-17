@@ -1,4 +1,8 @@
-use crate::stc_viewer::{StcViewerApp, UIMessages, STC_VIEWER_COLUMN_NAME};
+mod column_object;
+mod stc_viewer;
+use stc_viewer::{StcViewerGtk4, UIMessages, STC_VIEWER_COLUMN_NAME};
+
+use crate::app::StcViewerApp;
 use crate::storage;
 
 use glib::MainContext;
@@ -19,18 +23,18 @@ pub fn main() {
 
     let mgr = UnitsManager::new();
     let proj: Result<storage::Application, _> =
-        from_str(include_str!("../test_projects/example1/test_proj.xml"));
+        from_str(include_str!("../../test_projects/example1/test_proj.xml"));
     let ctx: ModuleContext = proj.unwrap().into();
     mgr.write().add_context(ctx.clone());
     mgr.write().set_active_application(Some(ctx.read().id()));
 
     let gtk_app = Application::builder().build();
-    gtk_app.connect_activate(move |app| build_ui(app, mgr.clone()));
+    gtk_app.connect_activate(move |app| build_ui(app, StcViewerApp::with_mgr(mgr.clone())));
     gtk_app.run();
 }
 
-fn build_ui(app: &Application, mgr: UnitsManager) {
-    let (stc_app, rx) = StcViewerApp::new(mgr);
+fn build_ui(app: &Application, stc_app: StcViewerApp) {
+    let (stc_app, rx) = StcViewerGtk4::new(stc_app);
     let window = ApplicationWindow::new(app);
 
     window.set_title(Some("STC compilation units viewer"));
@@ -100,7 +104,7 @@ fn build_ui(app: &Application, mgr: UnitsManager) {
     let app_copy = stc_app.clone();
     app_lock
         .compile_button
-        .connect_clicked(move |_| app_copy.lock().unwrap().compile());
+        .connect_clicked(move |_| app_copy.lock().unwrap().app.compile());
 
     let app_copy = stc_app.clone();
     app_lock

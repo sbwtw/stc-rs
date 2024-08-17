@@ -1,14 +1,13 @@
+use stc::prelude::*;
+
+mod app;
 mod storage;
 
 #[cfg(feature = "gui-egui")]
 mod egui;
 
 #[cfg(feature = "gui-gtk4")]
-mod column_object;
-#[cfg(feature = "gui-gtk4")]
 mod gtk4;
-#[cfg(feature = "gui-gtk4")]
-mod stc_viewer;
 
 #[cfg(all(feature = "gui-egui", feature = "gui-gtk4"))]
 compile_error!(
@@ -23,4 +22,21 @@ fn main() {
 #[cfg(feature = "gui-egui")]
 fn main() -> Result<(), eframe::Error> {
     egui::main()
+}
+
+pub(crate) trait PrototypeDisplayName {
+    fn display_name(&self) -> String;
+}
+
+impl PrototypeDisplayName for Prototype {
+    fn display_name(&self) -> String {
+        let proto = self.read().unwrap();
+        let name = proto.name();
+
+        if name.is_empty() {
+            format!("{} - {} (No Name)", proto.decl().kind(), proto.id())
+        } else {
+            name.origin_string().to_owned()
+        }
+    }
 }

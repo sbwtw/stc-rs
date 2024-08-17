@@ -1,7 +1,7 @@
-use std::fs;
-use std::io::Write;
+use super::column_object::ColumnObject;
 
-use crate::column_object::ColumnObject;
+use crate::app::StcViewerApp;
+use crate::PrototypeDisplayName;
 
 use async_channel::{Receiver, Sender};
 use glib::subclass::prelude::ObjectSubclassIsExt;
@@ -10,11 +10,6 @@ use gtk4::gio::Menu;
 use gtk4::glib::Type;
 use gtk4::prelude::*;
 use gtk4::{Button, SearchEntry, TextBuffer, TextView, TreeStore, TreeView, TreeViewColumn};
-use log::info;
-use stc::analysis::TypeAnalyzer;
-use stc::backend::{CodeGenBackend, CodeGenDriver, LuaBackend};
-use stc::prelude::*;
-use stc::utils::write_ast_to_file;
 
 pub const STC_VIEWER_COLUMN_NAME: u32 = 0;
 pub const STC_VIEWER_COLUMN_OBJECT: u32 = 1;
@@ -24,8 +19,8 @@ pub enum UIMessages {
     Refresh,
 }
 
-pub struct StcViewerApp {
-    pub mgr: UnitsManager,
+pub struct StcViewerGtk4 {
+    pub app: StcViewerApp,
     pub ui_tx: Sender<UIMessages>,
 
     pub tree_view: TreeView,
@@ -40,8 +35,8 @@ pub struct StcViewerApp {
     pub run_button: Button,
 }
 
-impl StcViewerApp {
-    pub fn new(mgr: UnitsManager) -> (Self, Receiver<UIMessages>) {
+impl StcViewerGtk4 {
+    pub fn new(app: StcViewerApp) -> (Self, Receiver<UIMessages>) {
         let (tx, rx) = async_channel::unbounded();
 
         let content_buffer = TextBuffer::builder().build();
@@ -51,7 +46,7 @@ impl StcViewerApp {
         let tree_view = TreeView::with_model(&tree_store);
 
         let r = Self {
-            mgr,
+            app,
             ui_tx: tx,
 
             tree_view,
@@ -104,7 +99,7 @@ impl StcViewerApp {
         let (last_tree_path, last_tree_column) = TreeViewExt::cursor(&self.tree_view);
         self.tree_store.clear();
 
-        for ctx in self.mgr.read().contexts() {
+        for ctx in self.app.mgr.read().contexts() {
             let column_object = ColumnObject::from_ctx(ctx);
             let ctx_iter = self.tree_store.insert_with_values(
                 None,
@@ -127,7 +122,7 @@ impl StcViewerApp {
                     Some(&decl_iter),
                     None,
                     &[
-                        (STC_VIEWER_COLUMN_NAME, &format!("{}", decl.read().unwrap())),
+                        (STC_VIEWER_COLUMN_NAME, &decl.display_name()),
                         (STC_VIEWER_COLUMN_OBJECT, &proto),
                     ],
                 );
@@ -143,18 +138,14 @@ impl StcViewerApp {
                 let decl_name = ctx
                     .read()
                     .get_declaration_by_id(fun_id)
-                    .map(|x| x.read().unwrap().to_string());
+                    .unwrap()
+                    .display_name();
 
                 self.tree_store.insert_with_values(
                     Some(&function_iter),
                     None,
                     &[
-                        (
-                            STC_VIEWER_COLUMN_NAME,
-                            &decl_name
-                                .unwrap_or(format!("No Name({})", fun_id))
-                                .to_string(),
-                        ),
+                        (STC_VIEWER_COLUMN_NAME, &decl_name),
                         (STC_VIEWER_COLUMN_OBJECT, &fun_object),
                     ],
                 );
@@ -180,53 +171,6 @@ impl StcViewerApp {
             // refresh contents
             self.on_cursor_changed()
         }
-    }
-
-    pub fn compile(&self) {
-        let app = self.mgr.read().active_application().unwrap();
-        let app_read = app.read();
-        let app_id = app_read.id();
-
-        let mut type_analyzer = TypeAnalyzer::new();
-        for proto in app_read.declarations() {
-            let proto_read = proto.read().unwrap();
-            let proto_id = proto_read.id();
-            let fun = app_read.get_function(proto_read.id());
-
-            if let Some(f) = fun {
-                let mut f = f.write();
-
-                let scope = Scope::new(Some(self.mgr.clone()), Some(app_id), Some(proto_id));
-                type_analyzer.analyze_statement(f.parse_tree_mut(), scope);
-
-                write_ast_to_file(f.parse_tree(), proto_read.name());
-
-                info!("{}\n{}", proto_read, f.parse_tree());
-            }
-        }
-
-        let mut code_gen: CodeGenDriver<LuaBackend> =
-            CodeGenDriver::new(self.mgr.clone(), app_id).unwrap();
-        println!("CodeGen: {:?}", code_gen.build_application());
-
-        let mut buf = vec![0u8; 0];
-        code_gen.backend().get_module_bytes(&mut buf).unwrap();
-        for (i, v) in buf.iter().enumerate() {
-            print!("{:0>2x} ", v);
-
-            if i % 16 == 15 {
-                println!();
-            }
-        }
-        println!();
-
-        let mut f = fs::OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .open("/home/stc.o")
-            .unwrap();
-        f.write_all(&buf).unwrap();
     }
 
     pub fn run(&mut self) {}

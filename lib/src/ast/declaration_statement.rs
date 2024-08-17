@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::parser::TokenKind;
 use crate::utils::HasAttribute;
 use std::rc::Rc;
 
@@ -17,7 +18,7 @@ pub enum DeclKind {
 
 #[derive(Debug)]
 pub struct Declaration {
-    pub kind: DeclKind,
+    pub(crate) kind: DeclKind,
 }
 
 macro_rules! decl_call {
@@ -57,10 +58,6 @@ macro_rules! decl_call {
 }
 
 impl HasAttribute for Declaration {
-    fn remove_attribute(&mut self, k: &StString) -> Option<Option<String>> {
-        decl_call!(mut self, remove_attribute, k)
-    }
-
     fn set_attribute<V: Into<Option<String>>>(&mut self, k: StString, v: V) {
         decl_call!(mut self, set_attribute, k, v)
     }
@@ -68,12 +65,26 @@ impl HasAttribute for Declaration {
     fn get_attribute_value(&self, attr: &StString) -> Option<&Option<String>> {
         decl_call!(self, get_attribute_value, attr)
     }
+
+    fn remove_attribute(&mut self, k: &StString) -> Option<Option<String>> {
+        decl_call!(mut self, remove_attribute, k)
+    }
 }
 
 impl Declaration {
     #[inline]
     pub fn identifier(&self) -> &StString {
-        decl_call!(self, name,)
+        decl_call!(self, name)
+    }
+
+    #[inline]
+    pub fn kind(&self) -> TokenKind {
+        match self.kind {
+            DeclKind::Fun(..) => TokenKind::Function,
+            DeclKind::Struct(..) => TokenKind::Struct,
+            DeclKind::GlobalVar(..) => TokenKind::VarGlobal,
+            _ => unimplemented!(),
+        }
     }
 
     #[inline]
