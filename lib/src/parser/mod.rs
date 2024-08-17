@@ -92,7 +92,7 @@ impl ParserBuilder {
         }
     }
 
-    #[cfg(feature = "default_parser")]
+    #[cfg(not(feature = "lalrpop_parser"))]
     pub fn build(self) -> Parser {
         Parser {
             decl_parser: Lazy::new(|| Box::new(DefaultDeclParser::new())),
@@ -114,10 +114,7 @@ mod lalrpop_impl;
 #[cfg(feature = "lalrpop_parser")]
 use lalrpop_impl::{LalrpopDeclParser, LalrpopParser};
 
-#[cfg(feature = "default_parser")]
+#[cfg(not(feature = "lalrpop_parser"))]
 mod default_impl;
-#[cfg(feature = "default_parser")]
+#[cfg(not(feature = "lalrpop_parser"))]
 use default_impl::{DefaultDeclParser, DefaultStmtParser};
-
-#[cfg(all(feature = "default_parser", feature = "lalrpop_parser"))]
-compile_error!("Feature default_parser and lalrpop_parser are mutually exclusive and cannot be enabled together");

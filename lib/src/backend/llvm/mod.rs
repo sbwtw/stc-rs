@@ -24,11 +24,11 @@ impl CodeGenBackend for LLVMBackend {
     }
 
     fn create_label<S: AsRef<str>>(&mut self, label: S) -> Self::Label {
-        todo!()
+        unreachable!()
     }
 
     fn insert_label(&mut self, label: Self::Label) {
-        todo!()
+        unreachable!()
     }
 
     fn gen_variable_load(&mut self, variable: &mut Variable) {

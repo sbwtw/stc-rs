@@ -26,7 +26,7 @@ log = "*"
 indexmap = "*"
 byteorder = "*"
 uuid = { version = "*", features = ["v4", "fast-rng", "macro-diagnostics", "serde"] }
-inkwell = { version = "*", optional = true, features = ["llvm17-0-no-llvm-linking"] }
+inkwell = { version = "*", optional = true, features = ["llvm18-0-no-llvm-linking"] }
 mlua = { version = "*", features = ["lua54", "macros", "async"], optional = true }
 
 [dev-dependencies]
@@ -35,11 +35,10 @@ tempfile = "*"
 [build-dependencies]
 cbindgen = "*"
 lalrpop = { version = "*", optional = true }
-llvm-sys = { version = "170", optional = true, features = ["prefer-dynamic"] }
+llvm-sys = { version = "180", optional = true, features = ["prefer-dynamic"] }
 
 [features]
 default = ["lua_backend", "lalrpop_parser"]
 lalrpop_parser = ["lalrpop", "lalrpop-util"]
 llvm_backend = ["inkwell", "llvm-sys"]
 lua_backend = ["mlua"]
-default_parser = []
