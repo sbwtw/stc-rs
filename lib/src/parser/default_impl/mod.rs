@@ -16,42 +16,39 @@ use std::rc::Rc;
 type ParseResult<T> = Result<Option<T>, ParseError>;
 
 /// declaration parser wrapper
-pub struct DefaultDeclParser {}
+#[derive(Default)]
+pub struct DefaultParser {}
 
-impl DeclParserTrait for DefaultDeclParser {
+impl ParserTrait for DefaultParser {
+    #[inline]
     fn parse_decl(&self, lexer: &mut StLexer) -> Result<Declaration, ParseError> {
-        self.parse(lexer)
+        self.parse_declaration(lexer)
+    }
+
+    #[inline]
+    fn parse_stmt(&self, lexer: &mut StLexer) -> Result<Statement, ParseError> {
+        self.parse_body(lexer)
+    }
+
+    #[inline]
+    fn parse_literal(&self, lexer: &mut StLexer) -> Result<LiteralExpression, ParseError> {
+        todo!()
     }
 }
 
-impl DefaultDeclParser {
+impl DefaultParser {
     pub fn new() -> Self {
-        Self {}
+        Default::default()
     }
 
-    pub fn parse<I>(&self, lexer: I) -> Result<Declaration, ParseError>
+    pub fn parse_declaration<I>(&self, lexer: I) -> Result<Declaration, ParseError>
     where
         I: IntoIterator<Item = LexerResult>,
     {
         DefaultParserImpl::new(lexer.into_iter()).parse_declaration()
     }
-}
 
-/// function parser wrapper
-pub struct DefaultStmtParser {}
-
-impl StmtParserTrait for DefaultStmtParser {
-    fn parse_stmt(&self, lexer: &mut StLexer) -> Result<Statement, ParseError> {
-        self.parse(lexer)
-    }
-}
-
-impl DefaultStmtParser {
-    pub fn new() -> Self {
-        Self {}
-    }
-
-    pub fn parse<I: IntoIterator<Item = LexerResult>>(
+    pub fn parse_body<I: IntoIterator<Item = LexerResult>>(
         &self,
         lexer: I,
     ) -> Result<Statement, ParseError> {

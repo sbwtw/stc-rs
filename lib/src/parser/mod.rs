@@ -1,6 +1,4 @@
-use crate::prelude::{Declaration, Statement};
-
-use once_cell::sync::Lazy;
+use crate::prelude::*;
 
 mod buffer;
 
@@ -61,22 +59,33 @@ impl From<lalrpop_util::ParseError<usize, TokenKind, LexicalError>> for ParseErr
     }
 }
 
-pub struct Parser {
-    decl_parser: Lazy<Box<dyn DeclParserTrait>>,
-    stmt_parser: Lazy<Box<dyn StmtParserTrait>>,
+pub struct Parser<T: ParserTrait> {
+    inner: T,
 }
 
-impl Parser {
+impl<T: ParserTrait> Parser<T> {
+    #[inline]
     pub fn parse(&self, mut lexer: StLexer) -> Result<Declaration, ParseError> {
-        self.decl_parser.parse_decl(&mut lexer)
+        self.inner.parse_decl(&mut lexer)
     }
 
+    #[inline]
     pub fn parse_stmt(&self, mut lexer: StLexer) -> Result<Statement, ParseError> {
-        self.stmt_parser.parse_stmt(&mut lexer)
+        self.inner.parse_stmt(&mut lexer)
     }
 
-    pub fn parse_literal<S: AsRef<str>>(&self, s: S) -> LiteralValue {
-        todo!()
+    #[inline]
+    pub fn parse_literal_from_str<S: AsRef<str>>(
+        &self,
+        s: S,
+    ) -> Result<LiteralExpression, ParseError> {
+        let lexer = StLexerBuilder::new().build_str(s.as_ref());
+        self.parse_literal(lexer)
+    }
+
+    #[inline]
+    pub fn parse_literal(&self, mut lexer: StLexer) -> Result<LiteralExpression, ParseError> {
+        self.inner.parse_literal(&mut lexer)
     }
 }
 
@@ -85,36 +94,32 @@ pub struct ParserBuilder {}
 
 impl ParserBuilder {
     #[cfg(feature = "lalrpop_parser")]
-    pub fn build(self) -> Parser {
+    pub fn build(self) -> Parser<LalrpopParser> {
         Parser {
-            decl_parser: Lazy::new(|| Box::new(LalrpopDeclParser::new())),
-            stmt_parser: Lazy::new(|| Box::new(LalrpopParser::new())),
+            inner: LalrpopParser::new(),
         }
     }
 
     #[cfg(not(feature = "lalrpop_parser"))]
-    pub fn build(self) -> Parser {
+    pub fn build(self) -> Parser<DefaultParser> {
         Parser {
-            decl_parser: Lazy::new(|| Box::new(DefaultDeclParser::new())),
-            stmt_parser: Lazy::new(|| Box::new(DefaultStmtParser::new())),
+            inner: DefaultParser::new(),
         }
     }
 }
 
-trait DeclParserTrait {
+pub trait ParserTrait {
     fn parse_decl(&self, lexer: &mut StLexer) -> Result<Declaration, ParseError>;
-}
-
-trait StmtParserTrait {
     fn parse_stmt(&self, lexer: &mut StLexer) -> Result<Statement, ParseError>;
+    fn parse_literal(&self, lexer: &mut StLexer) -> Result<LiteralExpression, ParseError>;
 }
 
 #[cfg(feature = "lalrpop_parser")]
 mod lalrpop_impl;
 #[cfg(feature = "lalrpop_parser")]
-use lalrpop_impl::{LalrpopDeclParser, LalrpopParser};
+use lalrpop_impl::LalrpopParser;
 
 #[cfg(not(feature = "lalrpop_parser"))]
 mod default_impl;
 #[cfg(not(feature = "lalrpop_parser"))]
-use default_impl::{DefaultDeclParser, DefaultStmtParser};
+use default_impl::DefaultParser;
