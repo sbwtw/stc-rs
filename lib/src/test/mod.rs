@@ -36,6 +36,14 @@ fn test_body_parse() {
 }
 
 #[test]
+fn test_literal_parse() {
+    let parser = parser::ParserBuilder::default().build();
+
+    let literal = parser.parse_literal_from_str("1");
+    assert!(literal.is_ok());
+}
+
+#[test]
 fn test_scope_lookup() {
     let mgr = UnitsManager::new();
     let mgr_ui_app = mgr.clone();

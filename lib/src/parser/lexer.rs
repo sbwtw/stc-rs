@@ -226,6 +226,10 @@ impl StLexerBuilder {
 }
 
 impl<'input> StLexer<'input> {
+    fn eof(&mut self) -> bool {
+        self.buffer.eof()
+    }
+
     fn parse_number(&mut self, mut tok: Token, ch: char) -> Option<LexerResult> {
         self.buffer.consume1();
 

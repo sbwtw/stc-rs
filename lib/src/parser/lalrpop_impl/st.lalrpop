@@ -139,7 +139,7 @@ ElseIfStatement: ElseIfStatement = {
 }
 
 /// Expression
-Expr: Expression = {
+pub Expr: Expression = {
     BitOrExpr,
     AssignExpr => <>.into_expression(),
     CallExpr => <>.into_expression(),
@@ -247,11 +247,15 @@ CompoFactor: Expression = {
 
 /// terminals in expression
 Term: Expression = {
-    "LITERAL" => <>.into_expression(),
+    LiteralExpr => Expression::literal(Box::new(<>)),
     "(" <Expr> ")",
     VarExpr,
 };
 
+/// Literal expressions
+pub LiteralExpr: LiteralExpression = {
+    "LITERAL" => LiteralExpression::new(<>),
+}
 
 /// Declarations
 pub Declaration = SingleDeclaration;

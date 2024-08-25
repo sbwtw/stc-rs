@@ -19,40 +19,40 @@ type ParseResult<T> = Result<Option<T>, ParseError>;
 #[derive(Default)]
 pub struct DefaultParser {}
 
-impl ParserTrait for DefaultParser {
-    #[inline]
-    fn parse_decl(&self, lexer: &mut StLexer) -> Result<Declaration, ParseError> {
-        self.parse_declaration(lexer)
-    }
-
-    #[inline]
-    fn parse_stmt(&self, lexer: &mut StLexer) -> Result<Statement, ParseError> {
-        self.parse_body(lexer)
-    }
-
-    #[inline]
-    fn parse_literal(&self, lexer: &mut StLexer) -> Result<LiteralExpression, ParseError> {
-        todo!()
-    }
-}
-
 impl DefaultParser {
     pub fn new() -> Self {
         Default::default()
     }
+}
 
-    pub fn parse_declaration<I>(&self, lexer: I) -> Result<Declaration, ParseError>
-    where
-        I: IntoIterator<Item = LexerResult>,
-    {
+impl ParserTrait for DefaultParser {
+    #[inline]
+    fn parse_decl(&self, lexer: &mut StLexer) -> Result<Declaration, ParseError> {
         DefaultParserImpl::new(lexer.into_iter()).parse_declaration()
     }
 
-    pub fn parse_body<I: IntoIterator<Item = LexerResult>>(
-        &self,
-        lexer: I,
-    ) -> Result<Statement, ParseError> {
+    #[inline]
+    fn parse_stmt(&self, lexer: &mut StLexer) -> Result<Statement, ParseError> {
         DefaultParserImpl::new(lexer.into_iter()).parse_function()
+    }
+
+    #[inline]
+    fn parse_literal(&self, lexer: &mut StLexer) -> Result<LiteralExpression, ParseError> {
+        let parse_result = DefaultParserImpl::new(lexer.into_iter()).parse_literal_expr()?;
+        if let Some(expr) = parse_result {
+            return Ok(expr);
+        }
+
+        // TODO: Parse no result
+        Err(ParseError::InvalidToken(0))
+    }
+
+    #[inline]
+    fn parse_expression(&self, lexer: &mut StLexer) -> Result<Expression, ParseError> {
+        match DefaultParserImpl::new(lexer.into_iter()).parse_expression()? {
+            Some(expr) => Ok(expr),
+            None => Err(ParseError::InvalidToken(0)),
+        }
     }
 }
 
@@ -1088,7 +1088,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             return Ok(Some(val));
         }
 
-        if let Some(literal) = self.parse_literal_expr()? {
+        if let Some(literal) = self.parse_literal_expression()? {
             return Ok(Some(literal));
         }
 
@@ -1157,7 +1157,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
     fn parse_argument_expression(&mut self) -> ParseResult<Expression> {
         Ok(self
-            .parse_literal_expr()?
+            .parse_literal_expression()?
             .or(self.parse_argument_assign_expr()?))
     }
 
@@ -1188,11 +1188,20 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         ))))
     }
 
-    fn parse_literal_expr(&mut self) -> ParseResult<Expression> {
+    #[inline]
+    fn parse_literal_expression(&mut self) -> ParseResult<Expression> {
+        let result = self.parse_literal_expr()?;
+        match result {
+            Some(literal_expr) => Ok(Some(Expression::literal(Box::new(literal_expr)))),
+            None => Ok(None),
+        }
+    }
+
+    fn parse_literal_expr(&mut self) -> ParseResult<LiteralExpression> {
         let pos = self.next;
 
         if let TokenKind::Literal(val) = self.next_kind()? {
-            return Ok(Some(Expression::new_literal(val.clone())));
+            return Ok(Some(LiteralExpression::new(val.clone())));
         }
 
         self.next = pos;
