@@ -15,10 +15,6 @@ pub trait Buffer {
     fn peek(&mut self, n: usize) -> Option<char>;
     fn current_line(&self) -> usize;
     fn current_offset(&self) -> usize;
-    /// At end of buffer
-    fn eof(&mut self) -> bool {
-        self.peek1().is_some()
-    }
 }
 
 pub struct StringBuffer<'input> {

@@ -226,8 +226,14 @@ impl StLexerBuilder {
 }
 
 impl<'input> StLexer<'input> {
-    fn eof(&mut self) -> bool {
-        self.buffer.eof()
+    pub fn eof(&mut self) -> bool {
+        loop {
+            match self.buffer.peek1() {
+                Some(' ') | Some('\r') | Some('\n') => self.buffer.consume1(),
+                None => return true,
+                _ => return false,
+            }
+        }
     }
 
     fn parse_number(&mut self, mut tok: Token, ch: char) -> Option<LexerResult> {

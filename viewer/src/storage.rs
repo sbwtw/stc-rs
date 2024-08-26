@@ -36,8 +36,8 @@ impl From<Application> for ModuleContext {
         let mut ctx_write = ctx.write();
 
         for pou in app.pou_list.pou {
-            let lexer = StLexerBuilder::new().build_str(&pou.interface.content);
-            let decl = ParserBuilder::default().build().parse(lexer).unwrap();
+            let mut lexer = StLexerBuilder::new().build_str(&pou.interface.content);
+            let decl = ParserBuilder::default().build().parse(&mut lexer).unwrap();
             let func = ctx_write.add_declaration(
                 decl,
                 pou.uuid_text

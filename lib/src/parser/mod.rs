@@ -59,15 +59,14 @@ impl From<lalrpop_util::ParseError<usize, TokenKind, LexicalError>> for ParseErr
     }
 }
 
-pub struct Parser<'a, T: ParserTrait> {
+pub struct Parser<T: ParserTrait> {
     inner: T,
-    lexer: Option<StLexer<'a>>,
 }
 
-impl<T: ParserTrait> Parser<'_, T> {
+impl<T: ParserTrait> Parser<T> {
     #[inline]
-    pub fn parse(&self, mut lexer: StLexer) -> Result<Declaration, ParseError> {
-        self.inner.parse_decl(&mut lexer)
+    pub fn parse(&self, lexer: &mut StLexer) -> Result<Declaration, ParseError> {
+        self.inner.parse_decl(lexer)
     }
 
     #[inline]
@@ -95,18 +94,16 @@ pub struct ParserBuilder {}
 
 impl ParserBuilder {
     #[cfg(feature = "lalrpop_parser")]
-    pub fn build(self) -> Parser<'static, LalrpopParser> {
+    pub fn build(self) -> Parser<LalrpopParser> {
         Parser {
             inner: LalrpopParser::new(),
-            lexer: None,
         }
     }
 
     #[cfg(not(feature = "lalrpop_parser"))]
-    pub fn build(self) -> Parser<'static, DefaultParser> {
+    pub fn build(self) -> Parser<DefaultParser> {
         Parser {
             inner: DefaultParser::new(),
-            lexer: None,
         }
     }
 }

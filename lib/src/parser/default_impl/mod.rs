@@ -90,6 +90,19 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         r
     }
 
+    /// test has next token
+    fn has_next(&mut self) -> bool {
+        // fill buff
+        while self.next >= self.tokens.len() {
+            match self.lexer.next() {
+                Some(Ok(item)) => self.tokens.push(item),
+                _ => return false,
+            }
+        }
+
+        true
+    }
+
     #[inline]
     fn next_token(&mut self) -> Result<&Token, ParseError> {
         match self.next()? {
@@ -122,6 +135,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
     /// parse a declaration
     fn parse_declaration(&mut self) -> Result<Declaration, ParseError> {
+        let pos = self.next;
         let except_token = self.except_one_of(&[
             TokenKind::Type,
             TokenKind::Function,
@@ -132,6 +146,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         match except_token.kind.clone() {
             // pure global variables declare
             TokenKind::VarGlobal => {
+                self.next = pos;
                 let global_vars = self
                     .parse_global_variable_declare_factor()?
                     .unwrap_or(smallvec![]);
@@ -211,9 +226,11 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let token = self.next_token()?;
 
         match &token.kind {
+            TokenKind::Bit => Ok(Some(BitType::new_type())),
+            TokenKind::Bool => Ok(Some(BoolType::new_type())),
             TokenKind::Byte => Ok(Some(ByteType::new_type())),
             TokenKind::Int => Ok(Some(IntType::new_type())),
-            TokenKind::Bool => Ok(Some(BoolType::new_type())),
+            TokenKind::Real => Ok(Some(RealType::new_type())),
             TokenKind::Identifier(ident) => Ok(Some(UserType::from_name(ident.clone()).into())),
             _ => {
                 self.next = pos;
@@ -303,10 +320,19 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
     fn parse_global_variable_declare_factor(&mut self) -> ParseResult<SmallVec8<Rc<Variable>>> {
         let mut v = smallvec![];
-        while let Some(mut x) = self.parse_global_variable_group()? {
-            v.append(&mut x);
+        loop {
+            if !self.has_next() {
+                break;
+            }
+
+            if let Some(mut x) = self.parse_global_variable_group()? {
+                v.append(&mut x);
+            } else {
+                panic!()
+            }
         }
 
+        // TODO: should be fail if 'v' is empty
         Ok(Some(v))
     }
 
