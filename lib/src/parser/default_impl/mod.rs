@@ -243,22 +243,61 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         }
     }
 
+    /// Parse range expr like: a..b
+    fn parse_range_expression(&mut self) -> ParseResult<RangeExpression> {
+        let lower = match self.parse_expression()? {
+            Some(expr) => expr,
+            _ => return Ok(None),
+        };
+
+        let _ = self.except_one(TokenKind::DotRange)?;
+
+        let upper = match self.parse_expression()? {
+            Some(expr) => expr,
+            _ => return Ok(None),
+        };
+
+        Ok(Some(RangeExpression::new(lower, upper)))
+    }
+
+    /// parse: a..b, c..d
+    fn parse_array_dimensions(&mut self) -> ParseResult<SmallVec3<RangeExpression>> {
+        let mut group = smallvec![];
+
+        loop {
+            match self.parse_range_expression()? {
+                Some(range) => group.push(range),
+                _ => {
+                    break;
+                }
+            }
+
+            let pos = self.next;
+            if self.except_one(TokenKind::Comma).is_err() {
+                self.next = pos;
+                break;
+            }
+        }
+
+        if group.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(group))
+        }
+    }
+
     /// Parse ArrayType
     fn parse_array_type(&mut self) -> ParseResult<Type> {
         let _ = self.except_one(TokenKind::Array)?;
         let _ = self.except_one(TokenKind::LeftBracket)?;
 
-        // TODO: Dimensions group
-        let lower = self.parse_literal_expression()?;
-        let _ = self.except_one(TokenKind::DotRange);
-        let upper = self.parse_literal_expression()?;
+        let dims = self.parse_array_dimensions()?;
 
         let _ = self.except_one(TokenKind::RightBracket)?;
         let _ = self.except_one(TokenKind::Of)?;
 
         if let Some(base_type) = self.parse_type()? {
-            let dim = RangeExpression::new(lower.unwrap(), upper.unwrap());
-            Ok(Some(ArrayType::new(base_type, smallvec![dim]).into()))
+            Ok(Some(ArrayType::new(base_type, dims.unwrap()).into()))
         } else {
             // TODO: err
             Ok(None)
