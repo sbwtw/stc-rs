@@ -11,9 +11,10 @@ path = "src/lib.rs"
 
 [[bin]]
 name = "test"
-path = "src/test_file.rs"
+path = "src/test/test_file.rs"
 
 [dependencies]
+env_logger = "*"
 lalrpop-util = { version = "*", optional = true }
 bitflags = "*"
 once_cell = "*"

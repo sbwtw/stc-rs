@@ -1,7 +1,9 @@
 use stc::parser::{ParserBuilder, StLexerBuilder};
 
 fn main() {
-    let f = "lib/src/test/test_decl_parse/test_base_types.st";
+    env_logger::init();
+
+    let f = "lib/src/test/test_decl_parse/test_array_decl.st";
     let mut lexer = StLexerBuilder::new().build_file(f).unwrap();
 
     let parser = ParserBuilder::default().build();

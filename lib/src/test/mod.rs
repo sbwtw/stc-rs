@@ -41,6 +41,9 @@ fn test_literal_parse() {
 
     let literal = parser.parse_literal_from_str("1");
     assert!(literal.is_ok());
+
+    let literal = parser.parse_literal_from_str("1.2");
+    assert!(literal.is_ok());
 }
 
 #[test]

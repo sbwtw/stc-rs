@@ -225,8 +225,14 @@ impl TokenKind {
             TokenKind::Else => matches!(rhs, TokenKind::Else),
             TokenKind::ElseIf => matches!(rhs, TokenKind::ElseIf),
             TokenKind::EndIf => matches!(rhs, TokenKind::EndIf),
+            TokenKind::Array => matches!(rhs, TokenKind::Array),
+            TokenKind::LeftBracket => matches!(rhs, TokenKind::LeftBracket),
+            TokenKind::RightBracket => matches!(rhs, TokenKind::RightBracket),
+            TokenKind::Of => matches!(rhs, TokenKind::Of),
+            TokenKind::DotRange => matches!(rhs, TokenKind::DotRange),
+            TokenKind::DotAccess => matches!(rhs, TokenKind::DotAccess),
             TokenKind::Identifier(..) => matches!(rhs, TokenKind::Identifier(..)),
-            _ => false,
+            _ => panic!("Token {self} not handle"),
         }
     }
 

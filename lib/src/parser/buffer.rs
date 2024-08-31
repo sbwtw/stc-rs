@@ -9,7 +9,7 @@ pub trait Buffer {
     fn consume1(&mut self);
     /// Peek at the next character
     fn peek1(&mut self) -> Option<char> {
-        self.peek(0)
+        self.peek(1)
     }
     /// Peek character at 'n' position from current
     fn peek(&mut self, n: usize) -> Option<char>;
@@ -73,14 +73,15 @@ impl Buffer for StringBuffer<'_> {
     fn peek(&mut self, n: usize) -> Option<char> {
         debug_assert!(n > 0);
 
-        while self.peek_buffer.len() <= n {
+        let index = n - 1;
+        while self.peek_buffer.len() <= index {
             match self.chars.next() {
                 Some(c) => self.peek_buffer.push(c),
                 None => return None,
             }
         }
 
-        Some(self.peek_buffer[n - 1])
+        Some(self.peek_buffer[index])
     }
 
     fn current_line(&self) -> usize {
@@ -153,15 +154,18 @@ impl<R: Read + Seek> Buffer for StreamBuffer<R> {
     }
 
     fn peek(&mut self, n: usize) -> Option<char> {
+        assert!(n > 0);
+
+        let index = n - 1;
         let mut buf = self.reader.buffer();
-        if buf.len() <= n {
+        if buf.len() <= index {
             match self.reader.fill_buf() {
-                Ok(b) if b.len() > n => buf = b,
+                Ok(b) if b.len() > index => buf = b,
                 _ => return None,
             }
         }
 
-        Some(buf[n] as char)
+        Some(buf[index] as char)
     }
 
     fn current_line(&self) -> usize {

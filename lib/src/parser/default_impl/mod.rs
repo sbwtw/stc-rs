@@ -226,6 +226,10 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let token = self.next_token()?;
 
         match &token.kind {
+            TokenKind::Array => {
+                self.next = pos;
+                self.parse_array_type()
+            }
             TokenKind::Bit => Ok(Some(BitType::new_type())),
             TokenKind::Bool => Ok(Some(BoolType::new_type())),
             TokenKind::Byte => Ok(Some(ByteType::new_type())),
@@ -236,6 +240,28 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
                 self.next = pos;
                 Ok(None)
             }
+        }
+    }
+
+    /// Parse ArrayType
+    fn parse_array_type(&mut self) -> ParseResult<Type> {
+        let _ = self.except_one(TokenKind::Array)?;
+        let _ = self.except_one(TokenKind::LeftBracket)?;
+
+        // TODO: Dimensions group
+        let lower = self.parse_literal_expression()?;
+        let _ = self.except_one(TokenKind::DotRange);
+        let upper = self.parse_literal_expression()?;
+
+        let _ = self.except_one(TokenKind::RightBracket)?;
+        let _ = self.except_one(TokenKind::Of)?;
+
+        if let Some(base_type) = self.parse_type()? {
+            let dim = RangeExpression::new(lower.unwrap(), upper.unwrap());
+            Ok(Some(ArrayType::new(base_type, smallvec![dim]).into()))
+        } else {
+            // TODO: err
+            Ok(None)
         }
     }
 

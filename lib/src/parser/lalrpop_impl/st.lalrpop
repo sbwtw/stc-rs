@@ -294,6 +294,7 @@ pub Type: Type = {
 }
 
 ArrayType: ArrayType = {
+    "ARRAY" "[" <dim: RangeExpr> "]" "OF" <base_type: Type> => ArrayType::new(base_type, smallvec![dim]),
     "ARRAY" "[" <dim: SmallComma3<RangeExpr>> "]" "OF" <base_type: Type> => ArrayType::new(base_type, dim),
 }
 

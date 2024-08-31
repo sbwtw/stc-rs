@@ -1,0 +1,8 @@
+FUNCTION F: INT
+
+VAR
+    a: ARRAY [ 1 .. 2 ]  OF INT;
+    b:ARRAY[1..2]OF INT;
+END_VAR
+
+END_FUNCTION

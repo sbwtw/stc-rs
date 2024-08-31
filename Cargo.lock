@@ -3788,6 +3788,7 @@ dependencies = [
  "cbindgen",
  "chrono",
  "crc",
+ "env_logger",
  "indexmap",
  "inkwell",
  "lalrpop",

@@ -201,7 +201,8 @@ impl StLexerBuilder {
             TokenKind::Bool,
             TokenKind::Byte,
             TokenKind::Real,
-            TokenKind::LReal
+            TokenKind::LReal,
+            TokenKind::Array
         ];
 
         self.keywords = keywords;
@@ -713,11 +714,11 @@ mod test {
 
     #[test]
     fn test_array() {
-        let s = "array[0..1] of bit";
+        let s = "array [ 1..2] of bit";
         let mut lexer = StLexerBuilder::new().build_str(s);
 
         let x = lexer.next().unwrap().unwrap();
-        assert!(matches!(x.kind, TokenKind::Identifier(..)));
+        assert!(matches!(x.kind, TokenKind::Array));
         let x = lexer.next().unwrap().unwrap();
         assert!(matches!(x.kind, TokenKind::LeftBracket));
         let x = lexer.next().unwrap().unwrap();
