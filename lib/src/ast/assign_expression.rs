@@ -58,6 +58,7 @@ impl AssignExpression {
         &self.assign_type
     }
 
+    #[inline]
     pub fn left(&self) -> &Expression {
         &self.left
     }

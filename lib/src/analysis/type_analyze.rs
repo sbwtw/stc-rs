@@ -1,17 +1,11 @@
 use crate::ast::*;
 use crate::context::Scope;
-use std::rc::Rc;
-use std::sync::{Arc, RwLock};
 
 /// Type analysis attribute
 #[derive(Clone, Default)]
 struct TypeAnalyzerAttribute {
     scope: Option<Scope>,
     search_local_only: bool,
-    #[allow(unused)]
-    derived_variable: Option<Rc<Variable>>,
-    #[allow(unused)]
-    derived_declaration: Option<Arc<RwLock<Declaration>>>,
     /// the analysis result of current type
     derived_type: Option<Type>,
 }

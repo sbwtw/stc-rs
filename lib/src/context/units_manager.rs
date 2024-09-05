@@ -1,4 +1,5 @@
 use crate::context::ModuleContext;
+use crate::prelude::Scope;
 use indexmap::IndexMap;
 use std::rc::Rc;
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
@@ -10,16 +11,25 @@ pub struct UnitsManager {
 }
 
 impl UnitsManager {
+    #[inline]
     pub fn new() -> Self {
         Default::default()
     }
 
+    #[inline]
     pub fn read(&self) -> RwLockReadGuard<'_, UnitsManagerImpl> {
         self.inner.read().unwrap()
     }
 
+    #[inline]
     pub fn write(&self) -> RwLockWriteGuard<'_, UnitsManagerImpl> {
         self.inner.write().unwrap()
+    }
+
+    /// Get global scope of context in this mgr
+    #[inline]
+    pub fn module_scope(&self, ctx_id: usize) -> Scope {
+        Scope::new(Some(self.clone()), Some(ctx_id), None)
     }
 }
 

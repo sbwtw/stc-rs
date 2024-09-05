@@ -1,9 +1,9 @@
 use stc::analysis::TypeAnalyzer;
 use stc::backend::{CodeGenBackend, CodeGenDriver, LuaBackend};
 use stc::prelude::*;
+use stc::serde::Application;
 use stc::utils::write_ast_to_file;
 
-use crate::storage::Application;
 use log::info;
 use quick_xml::de::from_str;
 use std::fs;

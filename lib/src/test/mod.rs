@@ -2,6 +2,8 @@ use crate::parser::{self, ParserBuilder, StLexerBuilder, StString};
 use crate::prelude::*;
 use std::fs;
 
+mod test_type_analyze;
+
 #[test]
 fn test_decl_parse() {
     let parser = ParserBuilder::default().build();
@@ -24,11 +26,11 @@ fn test_body_parse() {
 
     for entry in fs::read_dir("src/test/test_body_parse").unwrap() {
         let f = entry.unwrap().path();
-        let lexer = StLexerBuilder::new()
+        let mut lexer = StLexerBuilder::new()
             .build_file(f.to_str().unwrap())
             .unwrap();
 
-        match parser.parse_stmt(lexer) {
+        match parser.parse_stmt(&mut lexer) {
             Ok(_) => {}
             Err(e) => panic!("{}: {:#?}", f.display(), e),
         }

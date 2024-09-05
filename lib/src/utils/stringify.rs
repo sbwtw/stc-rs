@@ -306,8 +306,11 @@ mod test {
     use crate::utils::*;
 
     fn parse_and_stringify<S: AsRef<str>>(s: S) -> String {
-        let lexer = StLexerBuilder::new().build_str(s.as_ref());
-        let r = ParserBuilder::default().build().parse_stmt(lexer).unwrap();
+        let mut lexer = StLexerBuilder::new().build_str(s.as_ref());
+        let r = ParserBuilder::default()
+            .build()
+            .parse_stmt(&mut lexer)
+            .unwrap();
 
         let mut buf = vec![];
         let mut stringify = StringifyVisitor::new(&mut buf);

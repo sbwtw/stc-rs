@@ -3279,6 +3279,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f24d770aeca0eacb81ac29dfbc55ebcc09312fdd1f8bbecdc7e4a84e000e3b4"
 dependencies = [
  "memchr",
+ "serde",
 ]
 
 [[package]]
@@ -3797,7 +3798,9 @@ dependencies = [
  "log",
  "mlua",
  "once_cell",
+ "quick-xml 0.34.0",
  "regex",
+ "serde",
  "smallmap",
  "smallvec",
  "tempfile",
@@ -4370,7 +4373,6 @@ dependencies = [
  "once_cell",
  "pretty_env_logger",
  "quick-xml 0.36.1",
- "serde",
  "stc-rs",
 ]
 

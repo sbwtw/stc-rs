@@ -125,7 +125,7 @@ impl PartialEq<str> for StString {
             return false;
         }
 
-        return self.string().eq_ignore_ascii_case(other);
+        self.string().eq_ignore_ascii_case(other)
     }
 }
 

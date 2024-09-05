@@ -3,7 +3,8 @@ use crate::ast::{
     ExprStatement, IntoStatement, LiteralExpression, OperatorExpression, RangeExpression,
     Statement, VariableExpression,
 };
-use crate::parser::{LiteralValue, Operator, StString};
+use crate::parser::{LiteralValue, Operator};
+use crate::prelude::*;
 use crate::{impl_ast_display, impl_into_statement};
 
 use smallvec::{smallvec, SmallVec};
@@ -33,6 +34,16 @@ impl Expression {
     #[inline]
     pub fn accept_mut<V: AstVisitorMut>(&mut self, vis: &mut V) {
         vis.visit_expression_mut(self)
+    }
+
+    /// Get type of this expression
+    pub fn ty(&self) -> Option<&Type> {
+        match &self.kind {
+            ExprKind::Variable(var_expr) => var_expr.ty(),
+            ExprKind::Assign(assign_expr) => assign_expr.ty(),
+            ExprKind::Operator(op_expr) => op_expr.ty(),
+            _ => None,
+        }
     }
 
     #[inline]

@@ -29,9 +29,11 @@ byteorder = "*"
 uuid = { version = "*", features = ["v4", "fast-rng", "macro-diagnostics", "serde"] }
 inkwell = { version = "*", optional = true, features = ["llvm17-0-no-llvm-linking"] }
 mlua = { version = "*", features = ["lua54", "macros", "async"], optional = true }
+serde = { version = "*", features = ["derive"] }
 
 [dev-dependencies]
 tempfile = "*"
+quick-xml = { version = "*", features = ["serialize"] }
 
 [build-dependencies]
 cbindgen = "*"

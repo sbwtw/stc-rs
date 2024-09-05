@@ -1,0 +1,23 @@
+<application name="test_proj1">
+    <pou-list>
+        <pou>
+            <interface><![CDATA[
+VAR_GLOBAL
+    a: int;
+    b: udint;
+    c: real;
+END_VAR
+]]>         </interface>
+        </pou>
+
+        <pou uuid-text="aa61864a-3d85-4771-8575-278039cf3ea6">
+            <interface><![CDATA[
+program main: int
+VAR
+END_VAR
+end_program
+]]>
+            </interface>
+        </pou>
+    </pou-list>
+</application>

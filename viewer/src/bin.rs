@@ -3,8 +3,6 @@ use stc::prelude::*;
 use std::fmt::Write;
 
 mod app;
-mod storage;
-
 #[cfg(feature = "gui-egui")]
 mod egui;
 

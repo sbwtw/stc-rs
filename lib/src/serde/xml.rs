@@ -1,7 +1,9 @@
+use crate::context::{ModuleContext, ModuleKind};
+use crate::parser::{ParserBuilder, StLexerBuilder};
+
 use serde::{Deserialize, Serialize};
-use stc::parser::{ParserBuilder, StLexerBuilder};
-use stc::prelude::*;
 use std::str::FromStr;
+use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum AppType {
@@ -46,8 +48,11 @@ impl From<Application> for ModuleContext {
             );
 
             if let Some(body) = pou.body {
-                let lexer = StLexerBuilder::new().build_str(&body.content);
-                let body = ParserBuilder::default().build().parse_stmt(lexer).unwrap();
+                let mut lexer = StLexerBuilder::new().build_str(&body.content);
+                let body = ParserBuilder::default()
+                    .build()
+                    .parse_stmt(&mut lexer)
+                    .unwrap();
                 ctx_write.add_function(func, body);
             }
         }

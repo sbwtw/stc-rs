@@ -6,6 +6,7 @@ pub mod ast;
 pub mod backend;
 pub mod context;
 pub mod parser;
+pub mod serde;
 pub mod utils;
 
 pub mod prelude {

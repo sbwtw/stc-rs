@@ -70,8 +70,8 @@ impl<T: ParserTrait> Parser<T> {
     }
 
     #[inline]
-    pub fn parse_stmt(&self, mut lexer: StLexer) -> Result<Statement, ParseError> {
-        self.inner.parse_stmt(&mut lexer)
+    pub fn parse_stmt(&self, lexer: &mut StLexer) -> Result<Statement, ParseError> {
+        self.inner.parse_stmt(lexer)
     }
 
     #[inline]
