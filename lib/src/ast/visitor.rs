@@ -1,12 +1,5 @@
-#![allow(dead_code)]
-
 use crate::ast::call_expression::CallExpression;
-use crate::ast::{
-    AliasDeclare, AssignExpression, CompoAccessExpression, DeclKind, Declaration, EnumDeclare,
-    ExprKind, ExprStatement, Expression, FunctionDeclare, GlobalVariableDeclare, IfStatement,
-    LiteralExpression, OperatorExpression, Statement, StmtKind, StructDeclare, Variable,
-    VariableExpression,
-};
+use crate::ast::*;
 
 use super::RangeExpression;
 

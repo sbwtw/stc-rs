@@ -1,7 +1,7 @@
 use stc::analysis::TypeAnalyzer;
 use stc::backend::{CodeGenBackend, CodeGenDriver, LuaBackend};
 use stc::prelude::*;
-use stc::serde::Application;
+use stc::serde::Project;
 use stc::utils::write_ast_to_file;
 
 use log::info;
@@ -21,7 +21,7 @@ impl StcViewerApp {
     }
 
     #[inline]
-    pub fn from_app(app: Application) -> Self {
+    pub fn from_app(app: Project) -> Self {
         let mgr = UnitsManager::new();
         let ctx: ModuleContext = app.into();
         mgr.write().add_context(ctx.clone());

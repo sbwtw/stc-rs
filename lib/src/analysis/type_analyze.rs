@@ -1,5 +1,6 @@
 use crate::ast::*;
 use crate::context::Scope;
+use smallvec::smallvec;
 
 /// Type analysis attribute
 #[derive(Clone, Default)]
@@ -98,12 +99,23 @@ impl AstVisitorMut for TypeAnalyzer {
 
     fn visit_operator_expression_mut(&mut self, expr: &mut OperatorExpression) {
         // collect all operands type
-        let mut operands_attr = vec![];
+        let mut operands_attr: SmallVec3<_> = smallvec![];
         for operand in expr.operands_mut() {
             self.push(TypeAnalyzerAttribute::default());
             self.visit_expression_mut(operand);
             operands_attr.push(self.pop());
         }
+
+        // Set operator result type
+        let op_type = match operands_attr.len() {
+            1 => operands_attr[0].derived_type.clone(),
+            2 => analyze_op_expr_type(
+                &operands_attr[0].derived_type,
+                &operands_attr[1].derived_type,
+            ),
+            _ => None,
+        };
+        expr.set_ty(op_type);
 
         // let ref mut result_type = self.top_mut().derived_type;
         // for attr in operands_attr {
@@ -149,5 +161,56 @@ impl AstVisitorMut for TypeAnalyzer {
 
         compo.set_ty(attr.derived_type.clone());
         self.top_mut().derived_type = attr.derived_type
+    }
+}
+
+fn analyze_op_expr_type(op1: &Option<Type>, op2: &Option<Type>) -> Option<Type> {
+    let tc1 = op1.as_ref()?.type_class();
+    let tc2 = op2.as_ref()?.type_class();
+
+    // Usertype is not handled
+    if matches!(tc1, TypeClass::UserType(..)) {
+        return None;
+    }
+    if matches!(tc2, TypeClass::UserType(..)) {
+        return None;
+    }
+
+    // Array is not handled
+    if matches!(tc1, TypeClass::Array(..)) {
+        return None;
+    }
+    if matches!(tc2, TypeClass::Array(..)) {
+        return None;
+    }
+
+    // Same type
+    if tc1 == tc2 {
+        return op1.clone();
+    }
+
+    match tc1 {
+        // BitType can implicit convert to any type except String
+        TypeClass::Bit => match tc2 {
+            TypeClass::String => None,
+            _ => op2.clone(),
+        },
+
+        TypeClass::Bool => match tc2 {
+            TypeClass::Bit => op1.clone(),
+            _ => None,
+        },
+
+        TypeClass::Byte => match tc2 {
+            TypeClass::Bit => op1.clone(),
+            TypeClass::SInt | TypeClass::UInt | TypeClass::Int => op2.clone(),
+            _ => unimplemented!("{:?}", op2),
+        },
+
+        TypeClass::Int => match tc2 {
+            TypeClass::Byte | TypeClass::SInt | TypeClass::Bit => op1.clone(),
+            _ => None,
+        },
+        _ => unimplemented!("{:?}", op1),
     }
 }

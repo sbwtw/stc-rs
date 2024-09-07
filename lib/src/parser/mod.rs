@@ -16,6 +16,15 @@ pub use operator::Operator;
 mod token;
 pub use token::TokenKind;
 
+#[macro_export]
+macro_rules! parse_statement {
+    ($code: literal) => {{
+        let mut lexer = StLexerBuilder::new().build_str($code);
+        let parser = ParserBuilder::default().build();
+        parser.parse_stmt(&mut lexer)
+    }};
+}
+
 #[cfg(test)]
 mod test;
 

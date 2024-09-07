@@ -2,6 +2,7 @@ use bitflags::bitflags;
 use smallvec::SmallVec;
 use std::cell::RefCell;
 use std::fmt::{self, Debug, Display, Formatter};
+use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
 use crate::parser::{LiteralValue, Operator, StString};
@@ -319,6 +320,34 @@ pub enum TypeClass {
     UserType(RefCell<UserType>),
     /// ArrayType
     Array(RefCell<ArrayType>),
+}
+
+impl Hash for TypeClass {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let tag = match self {
+            TypeClass::Bit => 1,
+            TypeClass::Bool => 2,
+            TypeClass::Byte => 3,
+            TypeClass::UInt => 4,
+            TypeClass::Int => 5,
+            _ => unimplemented!("{:?}", self),
+        };
+
+        tag.hash(state);
+
+        // TODO: incomplete implements
+        match self {
+            TypeClass::UserType(user_type) => {
+                user_type.borrow().name().hash(state);
+            }
+            TypeClass::Array(array_type) => {
+                let array_type = array_type.borrow();
+                let base_type = array_type.base_type().borrow();
+                base_type.type_class().hash(state);
+            }
+            _ => {}
+        }
+    }
 }
 
 impl Display for TypeClass {

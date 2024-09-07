@@ -6,38 +6,38 @@ use std::str::FromStr;
 use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug)]
-pub enum AppType {
+pub enum ProjectType {
     App,
     Library,
 }
 
-impl Default for AppType {
+impl Default for ProjectType {
     fn default() -> Self {
         Self::App
     }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Application {
+pub struct Project {
     #[serde(default, rename = "pou-list")]
     pub pou_list: POUList,
     #[serde(rename = "@name")]
     pub name: String,
     #[serde(rename = "@type", default)]
-    pub app_type: AppType,
+    pub project_type: ProjectType,
     #[serde(rename = "@namespace")]
     pub namespace: Option<String>,
 }
 
-impl From<Application> for ModuleContext {
-    fn from(app: Application) -> Self {
-        let ctx = match app.app_type {
-            AppType::App => ModuleContext::new(ModuleKind::Application),
-            AppType::Library => ModuleContext::new(ModuleKind::Library),
+impl From<Project> for ModuleContext {
+    fn from(proj: Project) -> Self {
+        let ctx = match proj.project_type {
+            ProjectType::App => ModuleContext::new(ModuleKind::Application),
+            ProjectType::Library => ModuleContext::new(ModuleKind::Library),
         };
         let mut ctx_write = ctx.write();
 
-        for pou in app.pou_list.pou {
+        for pou in proj.pou_list.pou {
             let mut lexer = StLexerBuilder::new().build_str(&pou.interface.content);
             let decl = ParserBuilder::default().build().parse(&mut lexer).unwrap();
             let func = ctx_write.add_declaration(

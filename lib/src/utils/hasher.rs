@@ -46,7 +46,8 @@ impl MyHash for Variable {
 
 impl MyHash for Type {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        todo!()
+        // TODO: incomplete implements
+        self.type_class().hash(state);
     }
 }
 
@@ -115,12 +116,16 @@ impl<H: Hasher> DeclVisitor<'_> for AstHasher<H> {
 impl<H: Hasher> AstVisitor<'_> for AstHasher<H> {
     fn visit_literal(&mut self, literal: &LiteralExpression) {
         VisitType::Literal.hash(&mut self.hasher);
-        literal.literal().hash(&mut self.hasher)
+        literal.literal().hash(&mut self.hasher);
+        literal.literal().ty().hash(&mut self.hasher);
     }
 
     fn visit_variable_expression(&mut self, variable: &'_ VariableExpression) {
         VisitType::Variable.hash(&mut self.hasher);
-        variable.name().hash(&mut self.hasher)
+        variable.name().hash(&mut self.hasher);
+        if let Some(ty) = variable.ty() {
+            ty.hash(&mut self.hasher);
+        }
     }
 
     fn visit_expr_statement(&mut self, stmt: &ExprStatement) {

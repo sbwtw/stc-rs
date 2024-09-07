@@ -190,6 +190,11 @@ impl ArrayType {
             dimensions,
         }
     }
+
+    #[inline]
+    pub fn base_type(&self) -> &RefCell<Type> {
+        &self.base_type
+    }
 }
 
 impl Display for ArrayType {

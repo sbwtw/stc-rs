@@ -22,7 +22,7 @@ pub enum ExprKind {
 
 #[derive(Debug)]
 pub struct Expression {
-    pub kind: ExprKind,
+    pub(crate) kind: ExprKind,
 }
 
 impl_ast_display!(Expression, visit_expression);
@@ -37,6 +37,7 @@ impl Expression {
     }
 
     /// Get type of this expression
+    #[inline]
     pub fn ty(&self) -> Option<&Type> {
         match &self.kind {
             ExprKind::Variable(var_expr) => var_expr.ty(),
