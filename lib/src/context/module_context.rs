@@ -342,6 +342,11 @@ impl ModuleContextImpl {
         &self.kind
     }
 
+    #[inline]
+    pub fn is_app_ctx(&self) -> bool {
+        matches!(self.kind, ModuleKind::Application)
+    }
+
     pub fn add_declaration(&mut self, decl: Declaration, id: Uuid) -> usize {
         let name = decl.identifier().clone();
         let mut toplevel_global_variable_declaration = false;
