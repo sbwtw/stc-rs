@@ -1,8 +1,7 @@
 use crate::app::StcViewerApp;
 use crate::{PrototypeContent, PrototypeDisplayName};
-
 use eframe::egui;
-use eframe::egui::{vec2, FontId, Label, RichText, TextEdit};
+use eframe::egui::{vec2, CollapsingHeader, FontId, Label, RichText, TextEdit};
 use log::*;
 use std::default::Default;
 
@@ -51,32 +50,49 @@ impl eframe::App for StcViewerEGui {
                     // Data-Tree
                     if let Some(active_app) = self.app.mgr.read().active_application() {
                         let active_app = active_app.read();
-                        ui.label(format!("App {}", active_app.id()));
+                        CollapsingHeader::new(format!("App {}", active_app.id()))
+                            .default_open(true)
+                            .show(ui, |ui| {
+                                // Prototypes
+                                CollapsingHeader::new("Prototypes").default_open(true).show(
+                                    ui,
+                                    |ui| {
+                                        for proto in active_app.declarations() {
+                                            if ui.button(proto.display_name().to_string()).clicked()
+                                            {
+                                                self.content = RichText::new(proto.content())
+                                                    .font(FontId::monospace(12.));
+                                            }
+                                        }
+                                    },
+                                );
 
-                        // Prototypes
-                        ui.label("\tPrototypes");
-                        for proto in active_app.declarations() {
-                            let label_resp = ui.label(format!("\t\t{}", proto.display_name()));
-                            if label_resp.clicked() {
-                                self.content =
-                                    RichText::new(proto.content()).font(FontId::monospace(12.));
-                            }
-                        }
+                                // Functions
+                                CollapsingHeader::new("Functions").default_open(true).show(
+                                    ui,
+                                    |ui| {
+                                        for func in active_app.functions() {
+                                            let func = func.read();
+                                            let proto = active_app
+                                                .get_declaration_by_id(func.decl_id())
+                                                .unwrap();
 
-                        // Functions
-                        ui.label("\tFunctions");
-                        for func in active_app.functions() {
-                            let func = func.read();
-                            let proto = active_app.get_declaration_by_id(func.decl_id()).unwrap();
-                            let func_resp = ui.label(format!("\t\t{}", proto.display_name()));
-                            if func_resp.clicked() {
-                                let content = match (self.show_origin_ast, func.compiled_code()) {
-                                    (false, Some(code)) => format!("{}", code),
-                                    _ => format!("{}", func.parse_tree()),
-                                };
-                                self.content = RichText::new(content).font(FontId::monospace(12.));
-                            }
-                        }
+                                            if ui.button(proto.display_name().to_string()).clicked()
+                                            {
+                                                let content = match (
+                                                    self.show_origin_ast,
+                                                    func.compiled_code(),
+                                                ) {
+                                                    (false, Some(code)) => format!("{}", code),
+                                                    _ => format!("{}", func.parse_tree()),
+                                                };
+                                                self.content = RichText::new(content)
+                                                    .font(FontId::monospace(12.));
+                                            }
+                                        }
+                                    },
+                                );
+                            });
                     }
                 });
             });
