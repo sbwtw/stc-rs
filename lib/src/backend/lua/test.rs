@@ -123,7 +123,7 @@ fn test_add() {
     let lua = Lua::new();
     assert!(lua.load(buf).set_mode(ChunkMode::Binary).exec().is_ok());
 
-    let r = lua.globals().get::<_, i32>("a");
+    let r = lua.globals().get::<i32>("a");
     assert_eq!(r.unwrap(), 3);
 }
 
@@ -144,9 +144,9 @@ end_if";
     let lua = Lua::new();
     assert!(lua.load(buf).set_mode(ChunkMode::Binary).exec().is_ok());
 
-    let r = lua.globals().get::<_, i32>("a");
+    let r = lua.globals().get::<i32>("a");
     assert_eq!(r.unwrap(), 0);
-    let r = lua.globals().get::<_, i32>("b");
+    let r = lua.globals().get::<i32>("b");
     assert_eq!(r.unwrap(), 2);
 
     let decl = "PROGRAM main: VAR a: INT; END_VAR END_PROGRAM";
@@ -164,6 +164,6 @@ end_if";
     let lua = Lua::new();
     assert!(lua.load(buf).set_mode(ChunkMode::Binary).exec().is_ok());
 
-    let r = lua.globals().get::<_, i32>("a");
+    let r = lua.globals().get::<i32>("a");
     assert_eq!(r.unwrap(), 0);
 }
