@@ -1,9 +1,9 @@
 use crate::lsp_types::{TokenModifiers, TokenTypes};
-
+use dashmap::DashMap;
+use ropey::Rope;
 use serde_json::Value;
 use stc::parser::{StLexerBuilder, TokenKind};
 use strum::IntoEnumIterator;
-use tower_lsp::jsonrpc;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer};
@@ -32,19 +32,28 @@ fn semantic_token_type_id(tok: &TokenKind) -> (u32, u32) {
 
 pub struct StcLsp {
     _client: Client,
+    src_mgr: DashMap<Url, Rope>,
 }
 
 impl StcLsp {
     pub fn new(c: Client) -> Self {
-        Self { _client: c }
+        Self {
+            _client: c,
+            src_mgr: DashMap::new(),
+        }
+    }
+}
+
+impl StcLsp {
+    pub fn on_file_change(&self, url: &Url, text: String) {
+        let rope = text.into();
+        self.src_mgr.insert(url.clone(), rope);
     }
 }
 
 #[tower_lsp::async_trait]
 impl LanguageServer for StcLsp {
     async fn initialize(&self, _params: InitializeParams) -> Result<InitializeResult> {
-        trace!("initialize");
-
         let capabilities = ServerCapabilities {
             // Semantic tokens highlighting
             semantic_tokens_provider: Some(
@@ -56,30 +65,57 @@ impl LanguageServer for StcLsp {
                         token_types: TokenTypes::iter().map(Into::into).collect(),
                         token_modifiers: TokenModifiers::iter().map(Into::into).collect(),
                     },
-                    range: Some(true),
+                    range: Some(false),
                     full: Some(SemanticTokensFullOptions::Delta { delta: Some(true) }),
                 }),
             ),
+            text_document_sync: Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::FULL)),
             document_highlight_provider: Some(OneOf::Left(true)),
             ..ServerCapabilities::default()
         };
 
         Ok(InitializeResult {
-            server_info: None,
+            server_info: Some(ServerInfo {
+                name: "stc-lsp".to_string(),
+                version: Some("1.0".to_string()),
+            }),
             capabilities,
         })
-    }
-
-    async fn initialized(&self, params: InitializedParams) {
-        trace!("{:?}", params);
     }
 
     async fn shutdown(&self) -> Result<()> {
         Ok(())
     }
 
+    // async fn initialized(&self, params: InitializedParams) {
+    //     trace!("{:?}", params);
+    // }
+
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
+        self.on_file_change(&params.text_document.uri, params.text_document.text)
+    }
+
+    async fn did_change(&self, params: DidChangeTextDocumentParams) {
         trace!("{:?}", params);
+
+        for change in params.content_changes.into_iter() {
+            // Only full text support
+            assert!(change.range.is_none());
+            assert!(change.range_length.is_none());
+
+            self.on_file_change(&params.text_document.uri, change.text);
+        }
+    }
+
+    async fn did_save(&self, params: DidSaveTextDocumentParams) {
+        trace!("{:?}", params);
+    }
+
+    async fn did_close(&self, params: DidCloseTextDocumentParams) {
+        trace!("{:?}", params);
+
+        debug_assert!(self.src_mgr.contains_key(&params.text_document.uri));
+        self.src_mgr.remove(&params.text_document.uri);
     }
 
     async fn document_highlight(
@@ -114,9 +150,8 @@ impl LanguageServer for StcLsp {
     ) -> Result<Option<SemanticTokensResult>> {
         trace!("{:?}", params);
 
-        let lexer = StLexerBuilder::new()
-            .build_file(params.text_document.uri.path())
-            .map_err(|_| jsonrpc::Error::invalid_request())?;
+        let s = self.src_mgr.get(&params.text_document.uri).unwrap();
+        let lexer = StLexerBuilder::new().build_iter(s.chars());
 
         let mut last_line = 0;
         let mut last_offset = 0;
@@ -160,6 +195,11 @@ impl LanguageServer for StcLsp {
         params: SemanticTokensRangeParams,
     ) -> Result<Option<SemanticTokensRangeResult>> {
         trace!("{:?}", params);
+
+        // let range = params.range;
+        // let lexer = StLexerBuilder::new()
+        //     .build_file(params.text_document.uri.path())
+        //     .map_err(|_| jsonrpc::Error::invalid_request())?;
 
         Ok(None)
     }

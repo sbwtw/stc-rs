@@ -7,7 +7,7 @@ edition = "2021"
 stc-rs = { path = "../lib" }
 pretty_env_logger = "*"
 log = "*"
-tower-lsp = { version = "*"}
+tower-lsp = { version = "*" }
 tokio = { version = "*", features = ["macros", "rt-multi-thread", "io-std", "io-util", "net"] }
 tokio-util = { version = "*", features = ["codec"] }
 serde_json = "*"
@@ -16,3 +16,7 @@ tracing-subscriber = { version = "*", features = ["env-filter"] }
 once_cell = "*"
 strum = "*"
 strum_macros = "*"
+clap = { version = "*", features = ["derive"] }
+clap_derive = "*"
+ropey = "*"
+dashmap = "*"
