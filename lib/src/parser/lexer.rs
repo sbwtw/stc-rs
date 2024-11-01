@@ -742,4 +742,37 @@ mod test {
         let x = lexer.next().unwrap().unwrap();
         assert!(matches!(x.kind, TokenKind::Bit));
     }
+
+    #[test]
+    fn test_multiline() {
+        let s = "a\r\nb";
+        let mut lexer = StLexerBuilder::new().build_str(s);
+
+        let x = lexer.next().unwrap().unwrap();
+        assert!(matches!(x.kind, TokenKind::Identifier(..)));
+        let y = lexer.next().unwrap().unwrap();
+        assert!(matches!(y.kind, TokenKind::Identifier(..)));
+        assert_eq!(y.pos.mark, 1);
+        assert_eq!(y.pos.offset, 0);
+
+        let s = "a\n\rb";
+        let mut lexer = StLexerBuilder::new().build_str(s);
+
+        let x = lexer.next().unwrap().unwrap();
+        assert!(matches!(x.kind, TokenKind::Identifier(..)));
+        let y = lexer.next().unwrap().unwrap();
+        assert!(matches!(y.kind, TokenKind::Identifier(..)));
+        assert_eq!(y.pos.mark, 1);
+        assert_eq!(y.pos.offset, 0);
+
+        let s = "a\n\nb";
+        let mut lexer = StLexerBuilder::new().build_str(s);
+
+        let x = lexer.next().unwrap().unwrap();
+        assert!(matches!(x.kind, TokenKind::Identifier(..)));
+        let y = lexer.next().unwrap().unwrap();
+        assert!(matches!(y.kind, TokenKind::Identifier(..)));
+        assert_eq!(y.pos.mark, 2);
+        assert_eq!(y.pos.offset, 0);
+    }
 }

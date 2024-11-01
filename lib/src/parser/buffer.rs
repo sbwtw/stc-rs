@@ -47,10 +47,11 @@ impl Buffer for IterBuffer<'_> {
             Some('\r') | Some('\n') => {
                 self.current_offset = 0;
                 self.current_line += 1;
+                let br = c == Some('\n');
 
                 // Extra break line character eat
-                match self.peek1() {
-                    Some('\r') | Some('\n') => {
+                match (br, self.peek1()) {
+                    (true, Some('\r')) | (false, Some('\n')) => {
                         if !self.peek_buffer.is_empty() {
                             Some(self.peek_buffer.remove(0))
                         } else {
