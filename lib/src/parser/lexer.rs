@@ -1,6 +1,6 @@
 use crate::ast::*;
 use crate::parser::token::{Token, TokenPosition};
-use crate::parser::{Buffer, StreamBuffer, StringBuffer, TokenKind};
+use crate::parser::{Buffer, IterBuffer, StreamBuffer, TokenKind};
 use crate::prelude::StString;
 use smallmap::Map;
 use std::fmt::{self, Display, Formatter};
@@ -211,7 +211,15 @@ impl StLexerBuilder {
 
     pub fn build_str(self, input: &str) -> StLexer {
         StLexer {
-            buffer: Box::new(StringBuffer::new(input)),
+            buffer: Box::new(IterBuffer::new(input.chars())),
+            keywords: self.keywords,
+            options: self.options,
+        }
+    }
+
+    pub fn build_iter<'str, T: Iterator<Item = char> + 'str>(self, iter: T) -> StLexer<'str> {
+        StLexer {
+            buffer: Box::new(IterBuffer::new(iter)),
             keywords: self.keywords,
             options: self.options,
         }
@@ -715,7 +723,7 @@ mod test {
     #[test]
     fn test_array() {
         let s = "array [ 1..2] of bit";
-        let mut lexer = StLexerBuilder::new().build_str(s);
+        let mut lexer = StLexerBuilder::new().build_iter(s.chars());
 
         let x = lexer.next().unwrap().unwrap();
         assert!(matches!(x.kind, TokenKind::Array));

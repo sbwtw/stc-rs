@@ -2,7 +2,6 @@ use smallvec::{smallvec, SmallVec};
 use std::fs::{File, OpenOptions};
 use std::io;
 use std::io::{BufRead, BufReader, Read, Seek};
-use std::str::Chars;
 
 pub trait Buffer {
     /// Consume 1 char, panic if no character left in the buffer
@@ -17,19 +16,30 @@ pub trait Buffer {
     fn current_offset(&self) -> usize;
 }
 
-pub struct StringBuffer<'input> {
-    chars: Chars<'input>,
+pub struct IterBuffer<'str> {
+    iter: Box<dyn Iterator<Item = char> + 'str>,
     peek_buffer: SmallVec<[char; 4]>,
     current_line: usize,
     current_offset: usize,
 }
 
-impl Buffer for StringBuffer<'_> {
+impl<'str> IterBuffer<'str> {
+    pub fn new<T: Iterator<Item = char> + 'str>(iter: T) -> Self {
+        Self {
+            iter: Box::new(iter),
+            peek_buffer: smallvec![],
+            current_line: 0,
+            current_offset: 0,
+        }
+    }
+}
+
+impl Buffer for IterBuffer<'_> {
     fn consume1(&mut self) {
         let c = if !self.peek_buffer.is_empty() {
             Some(self.peek_buffer.remove(0))
         } else {
-            self.chars.next()
+            self.iter.next()
         };
 
         match c {
@@ -44,7 +54,7 @@ impl Buffer for StringBuffer<'_> {
                         if !self.peek_buffer.is_empty() {
                             Some(self.peek_buffer.remove(0))
                         } else {
-                            self.chars.next()
+                            self.iter.next()
                         };
                     }
                     _ => {}
@@ -61,7 +71,7 @@ impl Buffer for StringBuffer<'_> {
             return Some(self.peek_buffer[0]);
         }
 
-        match self.chars.next() {
+        match self.iter.next() {
             Some(c) => {
                 self.peek_buffer.push(c);
                 Some(c)
@@ -75,7 +85,7 @@ impl Buffer for StringBuffer<'_> {
 
         let index = n - 1;
         while self.peek_buffer.len() <= index {
-            match self.chars.next() {
+            match self.iter.next() {
                 Some(c) => self.peek_buffer.push(c),
                 None => return None,
             }
@@ -90,17 +100,6 @@ impl Buffer for StringBuffer<'_> {
 
     fn current_offset(&self) -> usize {
         self.current_offset
-    }
-}
-
-impl<'input> StringBuffer<'input> {
-    pub fn new(input: &'input str) -> Self {
-        Self {
-            chars: input.chars(),
-            peek_buffer: smallvec![],
-            current_line: 0,
-            current_offset: 0,
-        }
     }
 }
 
