@@ -18,6 +18,11 @@ fn semantic_token_type_id(tok: &TokenKind) -> (u32, u32) {
         op if op.is_operator() => (TokenTypes::Operator as u32, TokenModifiers::None as u32),
         // builtin-types
         TokenKind::Int => (TokenTypes::Type as u32, TokenModifiers::None as u32),
+        // builtin-operators
+        TokenKind::SizeOf | TokenKind::Adr => (
+            TokenTypes::BuiltinFunction as u32,
+            TokenModifiers::None as u32,
+        ),
         // keywords
         TokenKind::If
         | TokenKind::Then

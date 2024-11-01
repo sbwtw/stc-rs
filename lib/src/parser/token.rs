@@ -157,6 +157,10 @@ pub enum TokenKind {
     Type,
     /// 'END_TYPE'
     EndType,
+    /// 'SizeOf' Operator
+    SizeOf,
+    /// 'Adr' Operator
+    Adr,
     /// 'BIT', one bit type
     Bit,
     /// 'BOOL', boolean type
@@ -329,6 +333,8 @@ impl From<&TokenKind> for String {
             TokenKind::Persistent => "PERSISTENT",
             TokenKind::Type => "TYPE",
             TokenKind::EndType => "END_TYPE",
+            TokenKind::SizeOf => "SIZEOF",
+            TokenKind::Adr => "ADR",
             TokenKind::Int => "INT",
             TokenKind::Real => "REAL",
             TokenKind::LReal => "LREAL",

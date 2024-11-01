@@ -202,7 +202,9 @@ impl StLexerBuilder {
             TokenKind::Byte,
             TokenKind::Real,
             TokenKind::LReal,
-            TokenKind::Array
+            TokenKind::Array,
+            TokenKind::Adr,
+            TokenKind::SizeOf
         ];
 
         self.keywords = keywords;
@@ -446,6 +448,11 @@ impl<'input> StLexer<'input> {
         }
 
         TokenKind::Identifier(st_str)
+    }
+
+    // literal with type annotation prefix, like: int#123 or lreal#1.234e1
+    fn type_annotation_literal(&mut self) -> TokenKind {
+        todo!()
     }
 
     fn is_valid_identifier_character(&self, ch: char) -> bool {

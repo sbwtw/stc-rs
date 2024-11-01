@@ -34,6 +34,8 @@ impl From<TokenTypes> for SemanticTokenType {
 pub enum TokenModifiers {
     None,
     Static,
+    Global,
+    Declare,
 }
 
 impl From<TokenModifiers> for SemanticTokenModifier {
@@ -41,6 +43,8 @@ impl From<TokenModifiers> for SemanticTokenModifier {
         match value {
             TokenModifiers::None => SemanticTokenModifier::new("none"),
             TokenModifiers::Static => SemanticTokenModifier::STATIC,
+            TokenModifiers::Global => SemanticTokenModifier::new("global"),
+            TokenModifiers::Declare => SemanticTokenModifier::DECLARATION,
         }
     }
 }
