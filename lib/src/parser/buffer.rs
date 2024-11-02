@@ -1,4 +1,4 @@
-use smallvec::{smallvec, SmallVec};
+use std::collections::VecDeque;
 use std::fs::{File, OpenOptions};
 use std::io;
 use std::io::{BufRead, BufReader, Read, Seek};
@@ -7,6 +7,7 @@ pub trait Buffer {
     /// Consume 1 char, panic if no character left in the buffer
     fn consume1(&mut self);
     /// Peek at the next character
+    #[inline]
     fn peek1(&mut self) -> Option<char> {
         self.peek(1)
     }
@@ -18,7 +19,7 @@ pub trait Buffer {
 
 pub struct IterBuffer<'str> {
     iter: Box<dyn Iterator<Item = char> + 'str>,
-    peek_buffer: SmallVec<[char; 4]>,
+    peek_buffer: VecDeque<char>,
     current_line: usize,
     current_offset: usize,
 }
@@ -27,7 +28,7 @@ impl<'str> IterBuffer<'str> {
     pub fn new<T: Iterator<Item = char> + 'str>(iter: T) -> Self {
         Self {
             iter: Box::new(iter),
-            peek_buffer: smallvec![],
+            peek_buffer: VecDeque::with_capacity(1024),
             current_line: 0,
             current_offset: 0,
         }
@@ -37,7 +38,7 @@ impl<'str> IterBuffer<'str> {
 impl Buffer for IterBuffer<'_> {
     fn consume1(&mut self) {
         let c = if !self.peek_buffer.is_empty() {
-            Some(self.peek_buffer.remove(0))
+            self.peek_buffer.pop_front()
         } else {
             self.iter.next()
         };
@@ -53,7 +54,7 @@ impl Buffer for IterBuffer<'_> {
                 match (br, self.peek1()) {
                     (true, Some('\r')) | (false, Some('\n')) => {
                         if !self.peek_buffer.is_empty() {
-                            Some(self.peek_buffer.remove(0))
+                            self.peek_buffer.pop_front()
                         } else {
                             self.iter.next()
                         };
@@ -67,32 +68,30 @@ impl Buffer for IterBuffer<'_> {
         };
     }
 
-    fn peek1(&mut self) -> Option<char> {
-        if !self.peek_buffer.is_empty() {
-            return Some(self.peek_buffer[0]);
-        }
-
-        match self.iter.next() {
-            Some(c) => {
-                self.peek_buffer.push(c);
-                Some(c)
-            }
-            None => None,
-        }
-    }
-
     fn peek(&mut self, n: usize) -> Option<char> {
-        debug_assert!(n > 0);
+        assert!(n > 0);
 
+        // for optimize
         let index = n - 1;
-        while self.peek_buffer.len() <= index {
+        if self.peek_buffer.len() > index {
+            return Some(self.peek_buffer[index]);
+        }
+
+        // fill buffer
+        let remain_buffer = self.peek_buffer.capacity() - self.peek_buffer.len();
+        for _ in 0..remain_buffer {
             match self.iter.next() {
-                Some(c) => self.peek_buffer.push(c),
-                None => return None,
+                Some(c) => self.peek_buffer.push_back(c),
+                None => break,
             }
         }
 
-        Some(self.peek_buffer[index])
+        // get result
+        if self.peek_buffer.len() > index {
+            Some(self.peek_buffer[index])
+        } else {
+            None
+        }
     }
 
     fn current_line(&self) -> usize {
