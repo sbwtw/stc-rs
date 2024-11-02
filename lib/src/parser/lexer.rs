@@ -344,25 +344,26 @@ impl<'input> StLexer<'input> {
         }
     }
 
-    fn parse_identifier(&mut self, mut tok: Token, ch: char) -> Option<LexerResult> {
-        let mut str = String::from(ch);
-        let mut underline = ch == '_';
+    /// Identifier, Keywords or literal with type annotation prefix
+    fn parse_words(&mut self, mut tok: Token, ch: char) -> Option<LexerResult> {
+        let mut str = String::with_capacity(32);
+        str.push(ch);
+
+        // if ch == '_' && !self.options.allow_multiple_underline{
+        //     if let Some(c) = self.buffer.peek1() {
+        //         if self.is_valid_identifier_character(c) {
+        //             return
+        //         }
+        //     }
+        // }
 
         loop {
             let next = self.buffer.peek1();
-            match next {
-                Some('_') => {
-                    if underline && !self.options.allow_multiple_underline {
-                        return Some(Err(LexicalError::UnexpectedCharacter(
-                            self.buffer.current_line(),
-                            self.buffer.current_offset(),
-                            '_',
-                        )));
-                    }
-
-                    underline = true;
+            if let Some('_') = next {
+                // if current is first underline, but next character is also underline, can't eat
+                if !self.options.allow_multiple_underline && self.buffer.peek(2) == Some('_') {
+                    break;
                 }
-                _ => underline = false,
             }
 
             match next {
@@ -370,13 +371,19 @@ impl<'input> StLexer<'input> {
                     self.buffer.consume1();
                     str.push(c);
                 }
-                x => {
-                    tok.length = str.len();
-                    tok.kind = self.keywords_or_identifier(str);
-                    return Some(Ok(tok));
-                }
+                x => break,
             }
         }
+
+        tok.length = str.len();
+        tok.kind = self.keywords_or_identifier(str);
+        if self.buffer.peek1() != Some('#') || !tok.kind.is_type() {
+            return Some(Ok(tok));
+        }
+
+        // current token is type annotation prefix, like: sint#123
+        self.buffer.consume1();
+        todo!()
     }
 
     fn parse_whitespace(&mut self, mut tok: Token) -> LexerResult {
@@ -455,6 +462,7 @@ impl<'input> StLexer<'input> {
         todo!()
     }
 
+    #[inline]
     fn is_valid_identifier_character(&self, ch: char) -> bool {
         if self.options.allow_unicode_identifier {
             ch.is_alphabetic() || ch.is_ascii_alphanumeric() || matches!(ch, '_')
@@ -463,6 +471,7 @@ impl<'input> StLexer<'input> {
         }
     }
 
+    #[inline]
     fn is_valid_identifier_first_character(&self, ch: char) -> bool {
         if self.options.allow_unicode_identifier {
             ch.is_alphabetic() || matches!(ch, '_')
@@ -566,7 +575,7 @@ impl<'input> StLexer<'input> {
             Some(c) if c.is_ascii_digit() => self.parse_number(tok, c),
             Some(c) if self.is_valid_identifier_first_character(c) => {
                 self.buffer.consume1();
-                self.parse_identifier(tok, c)
+                self.parse_words(tok, c)
             }
             Some(c) => {
                 self.buffer.consume1();
@@ -693,10 +702,19 @@ mod test {
 
     #[test]
     fn test_multiple_underline() {
+        let s = "a_b";
+        let mut lexer = StLexerBuilder::new().build_str(s);
+
+        let c = lexer.next().unwrap().unwrap();
+        assert!(matches!(c.kind, TokenKind::Identifier(_)));
+        assert!(matches!(c.length, 3));
+
         let s = "a__b";
         let mut lexer = StLexerBuilder::new().build_str(s);
 
-        assert!(matches!(lexer.next(), Some(Err(_))));
+        let c = lexer.next().unwrap().unwrap();
+        assert!(matches!(c.kind, TokenKind::Identifier(_)));
+        assert!(matches!(c.length, 1));
 
         let s = "a__b";
         let lexer_opt = StLexerOptions::default().allow_multiple_underline(true);

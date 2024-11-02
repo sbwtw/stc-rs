@@ -167,6 +167,8 @@ pub enum TokenKind {
     Bool,
     /// 'SINT', 8 bits signed
     SInt,
+    /// 'USINT', 8 bits unsigned
+    USInt,
     /// 'BYTE', 8 bits unsigned
     Byte,
     /// 'INT', 16 bits signed
@@ -199,7 +201,19 @@ pub enum TokenKind {
 
 impl TokenKind {
     pub fn is_type(&self) -> bool {
-        matches!(self, TokenKind::Int | TokenKind::Bool)
+        matches!(
+            self,
+            TokenKind::Bit
+                | TokenKind::Bool
+                | TokenKind::Byte
+                | TokenKind::SInt
+                | TokenKind::USInt
+                | TokenKind::Int
+                | TokenKind::UInt
+                | TokenKind::Real
+                | TokenKind::LReal
+                | TokenKind::String
+        )
     }
 
     pub fn kind_match(&self, rhs: &TokenKind) -> bool {
@@ -341,6 +355,7 @@ impl From<&TokenKind> for String {
             TokenKind::Bit => "BIT",
             TokenKind::Bool => "BOOL",
             TokenKind::SInt => "SINT",
+            TokenKind::USInt => "USINT",
             TokenKind::Byte => "BYTE",
             TokenKind::UInt => "UINT",
             TokenKind::DInt => "DINT",
