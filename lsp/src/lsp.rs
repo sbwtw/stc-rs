@@ -16,34 +16,28 @@ fn semantic_token_type_id(tok: &TokenKind) -> (u32, u32) {
         TokenKind::String => (TokenTypes::String as u32, TokenModifiers::None as u32),
         // operators
         op if op.is_operator() => (TokenTypes::Operator as u32, TokenModifiers::None as u32),
-        // builtin-types
-        TokenKind::Int => (TokenTypes::Type as u32, TokenModifiers::None as u32),
         // builtin-operators
         TokenKind::SizeOf | TokenKind::Adr => (
             TokenTypes::BuiltinFunction as u32,
             TokenModifiers::None as u32,
         ),
+        // builtin-types
+        _ if tok.is_type() => (TokenTypes::Type as u32, TokenModifiers::None as u32),
         // keywords
-        TokenKind::If
-        | TokenKind::Then
-        | TokenKind::EndIf
-        | TokenKind::Var
-        | TokenKind::EndVar
-        | TokenKind::Program
-        | TokenKind::EndProgram => (TokenTypes::Keyword as u32, TokenModifiers::None as u32),
+        _ if tok.is_keywords() => (TokenTypes::Keyword as u32, TokenModifiers::None as u32),
         _ => (TokenTypes::None as u32, TokenModifiers::None as u32),
     }
 }
 
 pub struct StcLsp {
-    _client: Client,
+    client: Client,
     src_mgr: DashMap<Url, Rope>,
 }
 
 impl StcLsp {
     pub fn new(c: Client) -> Self {
         Self {
-            _client: c,
+            client: c,
             src_mgr: DashMap::new(),
         }
     }
@@ -89,6 +83,10 @@ impl LanguageServer for StcLsp {
     }
 
     async fn shutdown(&self) -> Result<()> {
+        self.client
+            .show_message(MessageType::INFO, "shutdown")
+            .await;
+
         Ok(())
     }
 
@@ -101,7 +99,7 @@ impl LanguageServer for StcLsp {
     }
 
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
-        trace!("{:?}", params);
+        trace!("did_change: {}", params.text_document.uri);
 
         for change in params.content_changes.into_iter() {
             // Only full text support
@@ -113,7 +111,11 @@ impl LanguageServer for StcLsp {
     }
 
     async fn did_save(&self, params: DidSaveTextDocumentParams) {
-        trace!("{:?}", params);
+        trace!("did_save: {}", params.text_document.uri);
+
+        if let Some(content) = params.text {
+            self.on_file_change(&params.text_document.uri, content)
+        }
     }
 
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
@@ -125,26 +127,9 @@ impl LanguageServer for StcLsp {
 
     async fn document_highlight(
         &self,
-        params: DocumentHighlightParams,
+        _params: DocumentHighlightParams,
     ) -> Result<Option<Vec<DocumentHighlight>>> {
-        trace!("{:?}", params.text_document_position_params);
-
-        // let mut highlights = Vec::with_capacity(64);
-        // highlights.push(DocumentHighlight {
-        //     range: Range {
-        //         start: Position {
-        //             line: 0,
-        //             character: 0,
-        //         },
-        //         end: Position {
-        //             line: 0,
-        //             character: 3,
-        //         },
-        //     },
-        //     kind: None,
-        // });
-
-        // Ok(Some(highlights))
+        // trace!("{:?}", params.text_document_position_params);
 
         Ok(None)
     }
@@ -153,7 +138,7 @@ impl LanguageServer for StcLsp {
         &self,
         params: SemanticTokensParams,
     ) -> Result<Option<SemanticTokensResult>> {
-        trace!("{:?}", params);
+        trace!("tokens_full: {}", params.text_document.uri);
 
         let s = self.src_mgr.get(&params.text_document.uri).unwrap();
         let lexer = StLexerBuilder::new().build_iter(s.chars());

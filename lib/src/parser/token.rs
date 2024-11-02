@@ -117,6 +117,18 @@ pub enum TokenKind {
     EndIf,
     /// 'TO'
     To,
+    /// 'FOR'
+    For,
+    /// 'BY'
+    By,
+    /// 'END_FOR'
+    EndFor,
+    /// 'CONTINUE'
+    Continue,
+    /// 'BREAK'
+    Break,
+    /// 'DO'
+    Do,
     /// 'FUNCTION'
     Function,
     /// 'END_FUNCTION'
@@ -213,6 +225,30 @@ impl TokenKind {
                 | TokenKind::Real
                 | TokenKind::LReal
                 | TokenKind::String
+        )
+    }
+
+    #[inline]
+    pub fn is_keywords(&self) -> bool {
+        matches!(
+            *self,
+            TokenKind::If
+                | TokenKind::Else
+                | TokenKind::ElseIf
+                | TokenKind::EndIf
+                | TokenKind::For
+                | TokenKind::EndFor
+                | TokenKind::By
+                | TokenKind::Break
+                | TokenKind::Do
+                | TokenKind::Continue
+                | TokenKind::Program
+                | TokenKind::EndProgram
+                | TokenKind::Var
+                | TokenKind::VarGlobal
+                | TokenKind::Then
+                | TokenKind::Array
+                | TokenKind::EndVar
         )
     }
 
@@ -365,6 +401,12 @@ impl From<&TokenKind> for String {
             TokenKind::Time => "TIME",
             TokenKind::LTime => "LTIME",
             TokenKind::String => "STRING",
+            TokenKind::For => "FOR",
+            TokenKind::By => "BY",
+            TokenKind::EndFor => "END_FOR",
+            TokenKind::Continue => "CONTINUE",
+            TokenKind::Break => "BREAK",
+            TokenKind::Do => "DO",
             TokenKind::Literal(x) => {
                 tmp_string = format!("{}", x);
                 tmp_string.as_str()
