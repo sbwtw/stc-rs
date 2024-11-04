@@ -2,11 +2,21 @@ use crate::ast::*;
 use crate::parser::token::{Token, TokenPosition};
 use crate::parser::{Buffer, IterBuffer, StreamBuffer, TokenKind};
 use crate::prelude::StString;
+use bitflags::bitflags;
 use smallmap::Map;
 use std::fmt::{self, Display, Formatter};
 use std::io;
 
 pub(crate) type LexerResult = Result<Token, LexicalError>;
+
+bitflags! {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+    pub struct NumberStringFlags: u32 {
+        const NONE              = 0b0000_0000_0000_0000;
+        const NEGATIVE          = 0b0000_0000_0000_0001;
+        const FLOAT             = 0b0000_0000_0000_0010;
+    }
+}
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum BitValue {
@@ -208,6 +218,9 @@ impl StLexerBuilder {
             TokenKind::Byte,
             TokenKind::Real,
             TokenKind::LReal,
+            TokenKind::SInt,
+            TokenKind::UInt,
+            TokenKind::USInt,
             TokenKind::Array,
             TokenKind::Adr,
             TokenKind::SizeOf
@@ -253,7 +266,68 @@ impl<'input> StLexer<'input> {
         }
     }
 
-    fn parse_number(&mut self, mut tok: Token, ch: char) -> Option<LexerResult> {
+    // ^123.456
+    fn parse_number_string(
+        &mut self,
+        ch: char,
+    ) -> Result<(String, NumberStringFlags), LexicalError> {
+        self.buffer.consume1();
+
+        let mut flags = NumberStringFlags::NONE;
+        let mut s = String::with_capacity(80);
+        s.push(ch);
+        let start_with_zero = ch == '0';
+
+        // 0 without '.', must be BIT#0
+        if start_with_zero && self.buffer.peek1() != Some('.') {
+            return Ok((s, flags));
+        }
+
+        loop {
+            match self.buffer.peek1() {
+                Some(c) if c.is_ascii_digit() => {
+                    self.buffer.consume1();
+                    s.push(c);
+                }
+                Some('.') => {
+                    flags |= NumberStringFlags::FLOAT;
+                    s = self.parse_float_string(s)?;
+                    break;
+                }
+                _ => {
+                    break;
+                }
+            }
+        }
+
+        return Ok((s, flags));
+    }
+
+    /// 123^.456, return ateed string
+    fn parse_float_string(&mut self, mut s: String) -> Result<String, LexicalError> {
+        let mut dot = false;
+
+        loop {
+            match self.buffer.peek1() {
+                // avoid range like 1..3
+                Some('.') if !dot && self.buffer.peek(2) != Some('.') => {
+                    self.buffer.consume1();
+                    dot = true;
+                    s.push('.');
+                }
+                Some(c) if c.is_ascii_digit() => {
+                    self.buffer.consume1();
+                    s.push(c);
+                }
+                _ => {
+                    return Ok(s);
+                }
+            }
+        }
+    }
+
+    // parsing a number without annotation prefix
+    fn parse_number_no_annotation(&mut self, mut tok: Token, ch: char) -> Option<LexerResult> {
         self.buffer.consume1();
 
         let mut s = String::from(ch);
@@ -271,7 +345,7 @@ impl<'input> StLexer<'input> {
                     s.push(c);
                 }
                 Some('.') => {
-                    return self.parse_floating(tok, s);
+                    return self.parse_floating_before_dot(tok, s);
                 }
                 _ => {
                     tok.length = s.len();
@@ -282,8 +356,7 @@ impl<'input> StLexer<'input> {
         }
     }
 
-    /// 123^.456
-    fn parse_floating(&mut self, mut tok: Token, mut s: String) -> Option<LexerResult> {
+    fn parse_floating_before_dot(&mut self, mut tok: Token, mut s: String) -> Option<LexerResult> {
         let mut dot = false;
 
         loop {
@@ -389,7 +462,23 @@ impl<'input> StLexer<'input> {
 
         // current token is type annotation prefix, like: sint#123
         self.buffer.consume1();
-        todo!()
+        self.parse_annotated_literal(tok)
+    }
+
+    // parsing a literal with annotation prefix
+    fn parse_annotated_literal(&mut self, tok: Token) -> Option<LexerResult> {
+        let annotation_length = tok.length + 1; // +1 for '#'
+        let ch = self.buffer.peek1()?;
+
+        // TODO: ensure annotation is matching result
+        let mut number = match self.parse_number_no_annotation(tok, ch) {
+            None => return None,
+            Some(Err(e)) => return Some(Err(e)),
+            Some(Ok(v)) => v,
+        };
+        number.length += annotation_length;
+
+        Some(Ok(number))
     }
 
     fn parse_whitespace(&mut self, mut tok: Token) -> LexerResult {
@@ -408,6 +497,7 @@ impl<'input> StLexer<'input> {
         }
     }
 
+    // 2 or more characters operator
     fn parse_second_char(&mut self, mut tok: Token, ch: char) -> Option<LexerResult> {
         tok.length = 2;
 
@@ -578,7 +668,7 @@ impl<'input> StLexer<'input> {
                 self.buffer.consume1();
                 self.parse_second_char(tok, c)
             }
-            Some(c) if c.is_ascii_digit() => self.parse_number(tok, c),
+            Some(c) if c.is_ascii_digit() => self.parse_number_no_annotation(tok, c),
             Some(c) if self.is_valid_identifier_first_character(c) => {
                 self.buffer.consume1();
                 self.parse_words(tok, c)
@@ -741,17 +831,6 @@ mod test {
     }
 
     #[test]
-    fn test_numbers() {
-        let s = "0.123";
-        let mut lexer = StLexerBuilder::new().build_str(s);
-
-        let x = lexer.next().unwrap().unwrap();
-        assert_eq!(x.pos.offset, 0);
-        assert_eq!(x.length, 5);
-        assert!(matches!(x.kind, TokenKind::Literal(LiteralValue::LReal(_))));
-    }
-
-    #[test]
     fn test_array() {
         let s = "array [ 1..2] of bit";
         let mut lexer = StLexerBuilder::new().build_iter(s.chars());
@@ -805,5 +884,29 @@ mod test {
         assert!(matches!(y.kind, TokenKind::Identifier(..)));
         assert_eq!(y.pos.mark, 2);
         assert_eq!(y.pos.offset, 0);
+    }
+
+    #[test]
+    fn test_literal() {
+        macro_rules! test_literal_parse {
+            ($str:literal, $except:pat, $len:expr) => {
+                let mut lexer = StLexerBuilder::new().build_str($str);
+
+                let x = lexer.next().unwrap().unwrap();
+                assert!(
+                    matches!(x.kind, $except),
+                    "kind mismatch, result is {}",
+                    x.kind
+                );
+                assert_eq!(x.length, $len);
+            };
+        }
+
+        test_literal_parse!("sint#123", TokenKind::Literal(..), 8);
+        // test_literal_parse!("sint#123", TokenKind::Literal(LiteralValue::SInt(..)), 8);
+        test_literal_parse!("uint#123", TokenKind::Literal(LiteralValue::UInt(123)), 8);
+        // test_literal_parse!("sint#-123", TokenKind::Literal(..), 9);
+        test_literal_parse!("0.5", TokenKind::Literal(LiteralValue::LReal(..)), 3);
+        // test_literal_parse!("-0.5", TokenKind::Literal(LiteralValue::LReal(..)), 4);
     }
 }
