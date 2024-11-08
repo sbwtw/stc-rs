@@ -1,6 +1,7 @@
 use crate::parser::{LiteralValue, Operator, StString};
 use bitflags::bitflags;
 use smallvec::SmallVec;
+use std::any::Any;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, RwLock};
@@ -127,36 +128,61 @@ impl_into_expression!(LiteralValue, |x| Expression::literal(Box::new(
     LiteralExpression::new(x)
 )));
 
-#[derive(Clone, Debug)]
+pub trait TypeTrait: Send + Sync {
+    fn class(&self) -> TypeClass;
+    fn as_any(&self) -> &dyn Any;
+}
+
+#[derive(Clone)]
 pub struct Type {
-    inner: Arc<TypeInner>,
+    inner: Arc<TypeEnum>,
+}
+
+pub enum TypeEnum {
+    Basic(TypeClass),
+    Complex(Box<dyn TypeTrait>),
+}
+
+impl Debug for Type {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!("{}", self.type_class()))
+    }
 }
 
 impl Type {
     pub fn from_class(class: TypeClass) -> Self {
         Self {
-            inner: Arc::new(TypeInner { class }),
+            inner: Arc::new(TypeEnum::Basic(class)),
         }
     }
 
-    pub fn type_class(&self) -> &TypeClass {
-        &self.inner.class
+    pub fn from_object(o: impl TypeTrait + 'static) -> Self {
+        Self {
+            inner: Arc::new(TypeEnum::Complex(Box::new(o))),
+        }
     }
 
-    pub fn cast<T>(self) -> T {
-        todo!()
+    pub fn type_class(&self) -> TypeClass {
+        match self.inner.as_ref() {
+            TypeEnum::Basic(basic) => *basic,
+            TypeEnum::Complex(complex) => complex.class(),
+        }
+    }
+
+    pub fn complex(&self) -> bool {
+        matches!(*self.inner, TypeEnum::Complex(..))
     }
 }
 
 impl Display for Type {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", *self.inner)
+        write!(f, "{}", self.type_class())
     }
 }
 
 impl PartialEq for Type {
     fn eq(&self, other: &Self) -> bool {
-        self.inner.as_ref() == other.inner.as_ref()
+        self.type_class() == other.type_class()
     }
 }
 
@@ -286,7 +312,7 @@ pub enum UserTypeClass {
     Union,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum TypeClass {
     /// 'BIT', one bit type
     Bit,
@@ -315,35 +341,10 @@ pub enum TypeClass {
     /// 'STRING' string type
     String,
     /// UserType
-    UserType(Arc<RwLock<UserType>>),
+    UserType,
     /// ArrayType
-    Array(Arc<RwLock<ArrayType>>),
+    Array,
 }
-
-impl PartialEq for TypeClass {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::Int, Self::Int) => true,
-            (Self::Bit, Self::Bit) => true,
-            (Self::Bool, Self::Bool) => true,
-            (Self::SInt, Self::SInt) => true,
-            (Self::Byte, Self::Byte) => true,
-            (Self::UInt, Self::UInt) => true,
-            (Self::UDInt, Self::UDInt) => true,
-            (Self::ULInt, Self::ULInt) => true,
-            (Self::Real, Self::Real) => true,
-            (Self::LReal, Self::LReal) => true,
-            (Self::String, Self::String) => true,
-            (Self::UserType(a), Self::UserType(b)) => {
-                a.read().unwrap().name() == b.read().unwrap().name()
-            }
-            (Self::Array(a), Self::Array(b)) => false,
-            _ => false,
-        }
-    }
-}
-
-impl Eq for TypeClass {}
 
 impl Hash for TypeClass {
     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -353,25 +354,13 @@ impl Hash for TypeClass {
             TypeClass::Byte => 3,
             TypeClass::UInt => 4,
             TypeClass::Int => 5,
-            _ => unimplemented!("{:?}", self),
+            TypeClass::UserType => 6,
+            TypeClass::Array => 7,
+            // Some type shouldn't hash directly like ArrayType or UserType
+            _ => unreachable!("TypeClass shouldn't hash: {:?}", self),
         };
 
         tag.hash(state);
-
-        // TODO: incomplete implements
-        match self {
-            TypeClass::UserType(user_type) => {
-                // user_type.borrow().name().hash(state);
-                user_type.read().unwrap().name().hash(state);
-            }
-            TypeClass::Array(array_type) => {
-                // let array_type = array_type.borrow();
-                let array_type = array_type.read().unwrap();
-                let base_type = array_type.base_type().read().unwrap();
-                base_type.type_class().hash(state);
-            }
-            _ => {}
-        }
     }
 }
 
@@ -391,8 +380,9 @@ impl Display for TypeClass {
             TypeClass::Real => write!(f, "REAL"),
             TypeClass::LReal => write!(f, "LREAL"),
             TypeClass::String => write!(f, "STRING"),
-            TypeClass::UserType(u) => write!(f, "{}", u.read().unwrap()),
-            TypeClass::Array(arr) => write!(f, "{}", arr.read().unwrap()),
+            TypeClass::UserType | TypeClass::Array => {
+                unreachable!("UserType or ArrayType can't display without Type object")
+            }
         }
     }
 }

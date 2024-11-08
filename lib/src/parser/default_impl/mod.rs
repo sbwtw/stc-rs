@@ -3,7 +3,6 @@ use crate::parser::token::Token;
 use crate::parser::*;
 
 use smallvec::smallvec;
-use std::rc::Rc;
 use std::sync::Arc;
 
 ///

@@ -59,9 +59,17 @@ impl UserType {
 
 impl From<UserType> for Type {
     fn from(value: UserType) -> Self {
-        let class = TypeClass::UserType(Arc::new(RwLock::new(value)));
+        Type::from_object(value)
+    }
+}
 
-        Type::from_class(class)
+impl TypeTrait for UserType {
+    fn class(&self) -> TypeClass {
+        TypeClass::UserType
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
@@ -219,8 +227,16 @@ impl Clone for ArrayType {
 
 impl From<ArrayType> for Type {
     fn from(value: ArrayType) -> Self {
-        let class = TypeClass::Array(Arc::new(RwLock::new(value)));
+        Type::from_object(value)
+    }
+}
 
-        Type::from_class(class)
+impl TypeTrait for ArrayType {
+    fn class(&self) -> TypeClass {
+        TypeClass::Array
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }

@@ -38,7 +38,7 @@ fn test_type_analyze() {
     // test left side type
     assert!(assign_expr.left().ty().is_some());
     assert_eq!(
-        *assign_expr.left().ty().unwrap().type_class(),
+        assign_expr.left().ty().unwrap().type_class(),
         TypeClass::Real
     );
 

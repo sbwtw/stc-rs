@@ -33,7 +33,7 @@ fn semantic_token_type_id(tok: &TokenKind) -> (u32, u32) {
 pub struct StcLsp {
     client: Client,
     src_mgr: DashMap<Url, Rope>,
-    units_mgr: UnitsManager,
+    _units_mgr: UnitsManager,
 }
 
 impl StcLsp {
@@ -41,7 +41,7 @@ impl StcLsp {
         Self {
             client: c,
             src_mgr: DashMap::new(),
-            units_mgr: UnitsManager::new(),
+            _units_mgr: UnitsManager::new(),
         }
     }
 }
