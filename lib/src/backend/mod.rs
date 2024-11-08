@@ -40,7 +40,7 @@ pub trait CodeGenBackend {
     fn get_module_bytes(&mut self, w: &mut dyn Write) -> io::Result<()>;
 }
 
-pub trait CompiledCode: Display {
+pub trait CompiledCode: Display + Send + Sync {
     fn get_bytes(&self, w: &mut dyn Write) -> io::Result<()>;
     fn as_any(&self) -> &dyn Any;
 }
