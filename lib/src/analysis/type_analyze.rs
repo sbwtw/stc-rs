@@ -169,10 +169,10 @@ fn analyze_op_expr_type(op1: &Option<Type>, op2: &Option<Type>) -> Option<Type> 
     let tc2 = op2.as_ref()?.type_class();
 
     // Usertype is not handled
-    if matches!(tc1, TypeClass::UserType) {
+    if matches!(tc1, TypeClass::UnknownType) {
         return None;
     }
-    if matches!(tc2, TypeClass::UserType) {
+    if matches!(tc2, TypeClass::UnknownType) {
         return None;
     }
 

@@ -1,4 +1,4 @@
-use super::Expression;
+use super::{Expression, SmallVec3};
 
 /// Lower..Upper
 #[derive(Debug)]
@@ -9,8 +9,8 @@ pub struct RangeExpression {
 
 impl RangeExpression {
     pub fn new(lower: Expression, upper: Expression) -> Self {
-        Self {
-            lower, upper
-        }
+        Self { lower, upper }
     }
 }
+
+pub type Dimensions = SmallVec3<RangeExpression>;

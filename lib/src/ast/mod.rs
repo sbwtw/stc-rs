@@ -1,10 +1,11 @@
-use crate::parser::{LiteralValue, Operator, StString};
+use crate::parser::LiteralValue;
+use crate::prelude::*;
 use bitflags::bitflags;
 use smallvec::SmallVec;
 use std::any::Any;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::hash::{Hash, Hasher};
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 mod message;
 pub use message::*;
@@ -58,7 +59,7 @@ mod global_variable_declaration;
 pub use global_variable_declaration::GlobalVariableDeclare;
 
 mod range_expression;
-pub use range_expression::RangeExpression;
+pub use range_expression::{Dimensions, RangeExpression};
 
 pub type SmallVec8<T> = SmallVec<[T; 8]>;
 pub type SmallVec3<T> = SmallVec<[T; 3]>;
@@ -133,6 +134,15 @@ pub trait TypeTrait: Send + Sync {
     fn as_any(&self) -> &dyn Any;
 }
 
+pub trait UserTypeTrait: TypeTrait {
+    fn get_prototype(&self, scope: Scope) -> Prototype;
+}
+
+pub trait ArrayTypeTrait: TypeTrait {
+    fn base_type(&self) -> &Type;
+    fn dimensions(&self) -> &Dimensions;
+}
+
 #[derive(Clone)]
 pub struct Type {
     inner: Arc<TypeEnum>,
@@ -171,6 +181,15 @@ impl Type {
 
     pub fn complex(&self) -> bool {
         matches!(*self.inner, TypeEnum::Complex(..))
+    }
+}
+
+impl<T> From<T> for Type
+where
+    T: TypeTrait + 'static,
+{
+    fn from(value: T) -> Self {
+        Type::from_object(value)
     }
 }
 
@@ -340,10 +359,12 @@ pub enum TypeClass {
     LReal,
     /// 'STRING' string type
     String,
-    /// UserType
-    UserType,
+    /// UnknownType
+    UnknownType,
     /// ArrayType
     Array,
+    /// StructType
+    Struct,
 }
 
 impl Hash for TypeClass {
@@ -354,7 +375,7 @@ impl Hash for TypeClass {
             TypeClass::Byte => 3,
             TypeClass::UInt => 4,
             TypeClass::Int => 5,
-            TypeClass::UserType => 6,
+            TypeClass::UnknownType => 6,
             TypeClass::Array => 7,
             // Some type shouldn't hash directly like ArrayType or UserType
             _ => unreachable!("TypeClass shouldn't hash: {:?}", self),
@@ -380,7 +401,7 @@ impl Display for TypeClass {
             TypeClass::Real => write!(f, "REAL"),
             TypeClass::LReal => write!(f, "LREAL"),
             TypeClass::String => write!(f, "STRING"),
-            TypeClass::UserType | TypeClass::Array => {
+            TypeClass::UnknownType | TypeClass::Array | TypeClass::Struct => {
                 unreachable!("UserType or ArrayType can't display without Type object")
             }
         }

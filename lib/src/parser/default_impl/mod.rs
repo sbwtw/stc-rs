@@ -235,7 +235,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             TokenKind::Byte => Ok(Some(ByteType::new_type())),
             TokenKind::Int => Ok(Some(IntType::new_type())),
             TokenKind::Real => Ok(Some(RealType::new_type())),
-            TokenKind::Identifier(ident) => Ok(Some(UserType::from_name(ident.clone()).into())),
+            TokenKind::Identifier(ident) => Ok(Some(UnknownType::from_name(ident.clone()).into())),
             _ => {
                 self.next = pos;
                 Ok(None)

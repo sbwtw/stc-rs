@@ -29,27 +29,13 @@ builtin_type_impl!(struct LRealType, TypeClass::LReal);
 builtin_type_impl!(struct StringType, TypeClass::String);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct UserType {
+pub struct UnknownType {
     name: StString,
-    decl_id: Option<usize>,
-    class: Option<UserTypeClass>,
 }
 
-impl UserType {
+impl UnknownType {
     pub fn from_name(name: StString) -> Self {
-        Self {
-            name,
-            decl_id: None,
-            class: None,
-        }
-    }
-
-    pub fn from_proto(name: StString, proto_id: usize) -> Self {
-        Self {
-            name,
-            decl_id: Some(proto_id),
-            class: None,
-        }
+        Self { name }
     }
 
     pub fn name(&self) -> &StString {
@@ -57,15 +43,21 @@ impl UserType {
     }
 }
 
-impl From<UserType> for Type {
-    fn from(value: UserType) -> Self {
-        Type::from_object(value)
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct StructType {
+    name: StString,
+    proto: usize,
+}
+
+impl StructType {
+    pub fn new(name: StString, proto: usize) -> Self {
+        Self { name, proto }
     }
 }
 
-impl TypeTrait for UserType {
+impl TypeTrait for StructType {
     fn class(&self) -> TypeClass {
-        TypeClass::UserType
+        TypeClass::Struct
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -73,7 +65,17 @@ impl TypeTrait for UserType {
     }
 }
 
-impl Display for UserType {
+impl TypeTrait for UnknownType {
+    fn class(&self) -> TypeClass {
+        TypeClass::UnknownType
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+impl Display for UnknownType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.name)
     }
@@ -186,21 +188,26 @@ impl StructDeclare {
 
 #[derive(Debug)]
 pub struct ArrayType {
-    base_type: Arc<RwLock<Type>>,
-    dimensions: SmallVec3<RangeExpression>,
+    base_type: Type,
+    dimensions: Dimensions,
 }
 
 impl ArrayType {
-    pub fn new(base: Type, dimensions: SmallVec3<RangeExpression>) -> Self {
+    pub fn new(base: Type, dimensions: Dimensions) -> Self {
         Self {
-            base_type: Arc::new(RwLock::new(base)),
+            base_type: base,
             dimensions,
         }
     }
+}
 
-    #[inline]
-    pub fn base_type(&self) -> &Arc<RwLock<Type>> {
+impl ArrayTypeTrait for ArrayType {
+    fn base_type(&self) -> &Type {
         &self.base_type
+    }
+
+    fn dimensions(&self) -> &Dimensions {
+        &self.dimensions
     }
 }
 
@@ -222,12 +229,6 @@ impl Eq for ArrayType {}
 impl Clone for ArrayType {
     fn clone(&self) -> Self {
         todo!()
-    }
-}
-
-impl From<ArrayType> for Type {
-    fn from(value: ArrayType) -> Self {
-        Type::from_object(value)
     }
 }
 

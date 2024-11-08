@@ -289,7 +289,7 @@ pub Type: Type = {
     "BOOL" => BoolType::new_type(),
     "BYTE" => ByteType::new_type(),
     "REAL" => RealType::new_type(),
-    "IDENTIFIER" => UserType::from_name(<>).into(),
+    "IDENTIFIER" => UnknownType::from_name(<>).into(),
     <arr: ArrayType> => arr.into(),
 }
 

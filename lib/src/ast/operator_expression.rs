@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::parser::Operator;
 use crate::{impl_ast_display, impl_into_expression};
 
 #[derive(Debug)]

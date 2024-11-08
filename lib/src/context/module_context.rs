@@ -147,14 +147,10 @@ impl PrototypeImpl {
     }
 
     pub fn create_user_type(&self) -> Option<Type> {
-        // Only Structure types can be created as UserType
         match self.decl.kind {
-            DeclKind::Struct(_) | DeclKind::Alias(_) | DeclKind::Enum(_) => {}
-            _ => return None,
+            DeclKind::Struct(_) => Some(StructType::new(self.name().clone(), self.id).into()),
+            _ => None,
         }
-
-        let user_ty = UserType::from_proto(self.decl.identifier().clone(), self.id);
-        Some(user_ty.into())
     }
 
     /// Get return value of prototype
