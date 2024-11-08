@@ -3,7 +3,7 @@ use crate::impl_has_attribute;
 use crate::parser::StString;
 use crate::utils::AttrMap8;
 use std::default::Default;
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct Variable {
@@ -42,10 +42,10 @@ impl Variable {
     pub fn multiple_variable_with_type(
         names: SmallVec8<StString>,
         ty: Type,
-    ) -> SmallVec8<Rc<Self>> {
+    ) -> SmallVec8<Arc<Self>> {
         names
             .iter()
-            .map(|x| Rc::new(Self::with_type(x.clone(), ty.clone())))
+            .map(|x| Arc::new(Self::with_type(x.clone(), ty.clone())))
             .collect()
     }
 
@@ -109,10 +109,10 @@ pub struct VariableDeclareGroup;
 impl VariableDeclareGroup {
     pub fn from_variables(
         flags: VariableFlags,
-        mut vars: SmallVec8<Rc<Variable>>,
-    ) -> SmallVec8<Rc<Variable>> {
+        mut vars: SmallVec8<Arc<Variable>>,
+    ) -> SmallVec8<Arc<Variable>> {
         for v in vars.iter_mut() {
-            Rc::get_mut(v).unwrap().set_flags(flags);
+            Arc::get_mut(v).unwrap().set_flags(flags);
         }
 
         vars

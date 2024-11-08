@@ -2,14 +2,14 @@ use crate::impl_ast_display;
 use crate::impl_has_attribute;
 use crate::prelude::*;
 use crate::utils::AttrMap8;
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct FunctionDeclare {
     name: StString,
     decl_class: DeclareClass,
     return_type: Option<Type>,
-    parameters: SmallVec8<Rc<Variable>>,
+    parameters: SmallVec8<Arc<Variable>>,
     attributes: AttrMap8,
 }
 
@@ -21,7 +21,7 @@ impl FunctionDeclare {
         name: StString,
         class: DeclareClass,
         ty: Option<Type>,
-        variables: SmallVec8<Rc<Variable>>,
+        variables: SmallVec8<Arc<Variable>>,
     ) -> Self {
         Self {
             name,
@@ -44,7 +44,7 @@ impl FunctionDeclare {
         &self.return_type
     }
 
-    pub fn parameters(&self) -> &[Rc<Variable>] {
+    pub fn parameters(&self) -> &[Arc<Variable>] {
         self.parameters.as_slice()
     }
 }

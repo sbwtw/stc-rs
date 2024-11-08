@@ -1,6 +1,5 @@
-use std::rc::Rc;
-
 use crate::{ast::*, impl_has_attribute, utils::AttrMap8};
+use std::sync::Arc;
 
 macro_rules! builtin_type_impl {
     (struct $name:ident, $class:expr) => {
@@ -60,7 +59,7 @@ impl UserType {
 
 impl From<UserType> for Type {
     fn from(value: UserType) -> Self {
-        let class = TypeClass::UserType(RefCell::new(value));
+        let class = TypeClass::UserType(Arc::new(RwLock::new(value)));
 
         Type::from_class(class)
     }
@@ -76,14 +75,14 @@ impl Display for UserType {
 pub struct EnumDeclare {
     name: StString,
     ty: Option<Type>,
-    fields: SmallVec8<Rc<Variable>>,
+    fields: SmallVec8<Arc<Variable>>,
     attributes: AttrMap8,
 }
 
 impl_has_attribute!(EnumDeclare, attributes);
 
 impl EnumDeclare {
-    pub fn new(name: StString, ty: Option<Type>, fields: SmallVec8<Rc<Variable>>) -> Self {
+    pub fn new(name: StString, ty: Option<Type>, fields: SmallVec8<Arc<Variable>>) -> Self {
         Self {
             name,
             ty,
@@ -100,7 +99,7 @@ impl EnumDeclare {
         &self.ty
     }
 
-    pub fn fields(&self) -> &[Rc<Variable>] {
+    pub fn fields(&self) -> &[Arc<Variable>] {
         &self.fields
     }
 }
@@ -143,14 +142,14 @@ impl AliasDeclare {
 #[derive(Debug)]
 pub struct StructDeclare {
     name: StString,
-    variables: SmallVec8<Rc<Variable>>,
+    variables: SmallVec8<Arc<Variable>>,
     attributes: AttrMap8,
 }
 
 impl_has_attribute!(StructDeclare, attributes);
 
 impl StructDeclare {
-    pub fn new(name: StString, variables: SmallVec8<Rc<Variable>>) -> Self {
+    pub fn new(name: StString, variables: SmallVec8<Arc<Variable>>) -> Self {
         Self {
             name,
             variables,
@@ -162,11 +161,11 @@ impl StructDeclare {
         &self.name
     }
 
-    pub fn variables(&self) -> &[Rc<Variable>] {
+    pub fn variables(&self) -> &[Arc<Variable>] {
         self.variables.as_slice()
     }
 
-    pub fn variables_mut(&mut self) -> &mut [Rc<Variable>] {
+    pub fn variables_mut(&mut self) -> &mut [Arc<Variable>] {
         self.variables.as_mut_slice()
     }
 }
@@ -179,20 +178,20 @@ impl StructDeclare {
 
 #[derive(Debug)]
 pub struct ArrayType {
-    base_type: RefCell<Type>,
+    base_type: Arc<RwLock<Type>>,
     dimensions: SmallVec3<RangeExpression>,
 }
 
 impl ArrayType {
     pub fn new(base: Type, dimensions: SmallVec3<RangeExpression>) -> Self {
         Self {
-            base_type: RefCell::new(base),
+            base_type: Arc::new(RwLock::new(base)),
             dimensions,
         }
     }
 
     #[inline]
-    pub fn base_type(&self) -> &RefCell<Type> {
+    pub fn base_type(&self) -> &Arc<RwLock<Type>> {
         &self.base_type
     }
 }
@@ -220,7 +219,7 @@ impl Clone for ArrayType {
 
 impl From<ArrayType> for Type {
     fn from(value: ArrayType) -> Self {
-        let class = TypeClass::Array(RefCell::new(value));
+        let class = TypeClass::Array(Arc::new(RwLock::new(value)));
 
         Type::from_class(class)
     }

@@ -1,9 +1,9 @@
 use crate::ast::*;
 use crate::parser::TokenKind;
 use crate::utils::HasAttribute;
-use std::rc::Rc;
+use std::sync::Arc;
 
-const EMPTY_VARIABLES: &[Rc<Variable>] = &[];
+const EMPTY_VARIABLES: &[Arc<Variable>] = &[];
 
 #[derive(Debug)]
 pub enum DeclKind {
@@ -88,7 +88,7 @@ impl Declaration {
     }
 
     #[inline]
-    pub fn variables(&self) -> &[Rc<Variable>] {
+    pub fn variables(&self) -> &[Arc<Variable>] {
         match self.kind {
             DeclKind::Fun(ref f) => f.parameters(),
             DeclKind::Struct(ref s) => s.variables(),
@@ -125,7 +125,7 @@ impl Declaration {
     }
 
     #[inline]
-    pub fn new_struct(name: StString, variables: SmallVec8<Rc<Variable>>) -> Self {
+    pub fn new_struct(name: StString, variables: SmallVec8<Arc<Variable>>) -> Self {
         Self::struct_(Box::new(StructDeclare::new(name, variables)))
     }
 
@@ -137,7 +137,7 @@ impl Declaration {
     }
 
     #[inline]
-    pub fn new_enum(name: StString, ty: Option<Type>, fields: SmallVec8<Rc<Variable>>) -> Self {
+    pub fn new_enum(name: StString, ty: Option<Type>, fields: SmallVec8<Arc<Variable>>) -> Self {
         Self::enum_(Box::new(EnumDeclare::new(name, ty, fields)))
     }
 

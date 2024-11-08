@@ -3,6 +3,7 @@ use dashmap::DashMap;
 use ropey::Rope;
 use serde_json::Value;
 use stc::parser::{StLexerBuilder, TokenKind};
+use stc::prelude::UnitsManager;
 use strum::IntoEnumIterator;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -32,6 +33,7 @@ fn semantic_token_type_id(tok: &TokenKind) -> (u32, u32) {
 pub struct StcLsp {
     client: Client,
     src_mgr: DashMap<Url, Rope>,
+    units_mgr: UnitsManager,
 }
 
 impl StcLsp {
@@ -39,6 +41,7 @@ impl StcLsp {
         Self {
             client: c,
             src_mgr: DashMap::new(),
+            units_mgr: UnitsManager::new(),
         }
     }
 }

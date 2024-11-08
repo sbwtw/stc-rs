@@ -12,9 +12,8 @@ use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
-use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use uuid::Uuid;
 
 static CONTEXT_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
@@ -30,7 +29,7 @@ fn get_next_declaration_id() -> usize {
 
 #[derive(Clone)]
 pub struct Prototype {
-    inner: Rc<RwLock<PrototypeImpl>>,
+    inner: Arc<RwLock<PrototypeImpl>>,
 }
 
 impl PartialEq for Prototype {
@@ -48,7 +47,7 @@ impl Hash for Prototype {
 }
 
 impl Deref for Prototype {
-    type Target = Rc<RwLock<PrototypeImpl>>;
+    type Target = Arc<RwLock<PrototypeImpl>>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
@@ -58,24 +57,24 @@ impl Deref for Prototype {
 impl Prototype {
     fn new(decl: Declaration) -> Self {
         Self {
-            inner: Rc::new(RwLock::new(PrototypeImpl::new(decl))),
+            inner: Arc::new(RwLock::new(PrototypeImpl::new(decl))),
         }
     }
 
     fn with_object_id(decl: Declaration, id: Uuid) -> Self {
         Self {
-            inner: Rc::new(RwLock::new(PrototypeImpl::with_object_id(decl, id))),
+            inner: Arc::new(RwLock::new(PrototypeImpl::with_object_id(decl, id))),
         }
     }
 }
 
 #[derive(Clone)]
 pub struct Function {
-    inner: Rc<RwLock<FunctionImpl>>,
+    inner: Arc<RwLock<FunctionImpl>>,
 }
 
 impl Deref for Function {
-    type Target = Rc<RwLock<FunctionImpl>>;
+    type Target = Arc<RwLock<FunctionImpl>>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
@@ -85,13 +84,13 @@ impl Deref for Function {
 impl Function {
     fn new(decl_id: usize, function: Statement) -> Self {
         Self {
-            inner: Rc::new(RwLock::new(FunctionImpl::new(decl_id, function))),
+            inner: Arc::new(RwLock::new(FunctionImpl::new(decl_id, function))),
         }
     }
 
     fn with_prototype(proto: &Prototype, function: Statement) -> Self {
         Self {
-            inner: Rc::new(RwLock::new(FunctionImpl::with_prototype(proto, function))),
+            inner: Arc::new(RwLock::new(FunctionImpl::with_prototype(proto, function))),
         }
     }
 
@@ -143,7 +142,7 @@ impl PrototypeImpl {
         self.decl.identifier()
     }
 
-    pub fn variables(&self) -> &[Rc<Variable>] {
+    pub fn variables(&self) -> &[Arc<Variable>] {
         self.decl.variables()
     }
 
@@ -159,7 +158,7 @@ impl PrototypeImpl {
     }
 
     /// Get return value of prototype
-    pub fn return_value(&self) -> Option<&Rc<Variable>> {
+    pub fn return_value(&self) -> Option<&Arc<Variable>> {
         self.variables().iter().find(|x| x.name() == self.name())
     }
 
@@ -284,7 +283,7 @@ impl FunctionImpl {
 
 #[derive(Clone)]
 pub struct ModuleContext {
-    inner: Rc<RwLock<ModuleContextImpl>>,
+    inner: Arc<RwLock<ModuleContextImpl>>,
 }
 
 impl PartialEq for ModuleContext {
@@ -298,7 +297,7 @@ impl Eq for ModuleContext {}
 impl ModuleContext {
     pub fn new(kind: ModuleKind) -> Self {
         Self {
-            inner: Rc::new(RwLock::new(ModuleContextImpl {
+            inner: Arc::new(RwLock::new(ModuleContextImpl {
                 id: get_next_context_id(),
                 kind,
                 declaration_id_map: IndexMap::new(),
@@ -424,13 +423,13 @@ impl ModuleContextImpl {
     }
 
     #[inline]
-    pub fn find_toplevel_global_variable(&self, ident: &StString) -> Option<Rc<Variable>> {
+    pub fn find_toplevel_global_variable(&self, ident: &StString) -> Option<Arc<Variable>> {
         self.find_toplevel_global_variable_map(|x| x.name() == ident)
     }
 
-    pub fn find_toplevel_global_variable_map<F>(&self, f: F) -> Option<Rc<Variable>>
+    pub fn find_toplevel_global_variable_map<F>(&self, f: F) -> Option<Arc<Variable>>
     where
-        F: Fn(&Rc<Variable>) -> bool,
+        F: Fn(&Arc<Variable>) -> bool,
     {
         for decl in self.toplevel_global_variable_declarations.iter() {
             let decl = decl.read().unwrap();

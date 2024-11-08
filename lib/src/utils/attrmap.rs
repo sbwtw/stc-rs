@@ -1,4 +1,4 @@
-use once_cell::unsync::Lazy;
+use once_cell::sync::Lazy;
 use smallmap::Map;
 
 use crate::prelude::StString;

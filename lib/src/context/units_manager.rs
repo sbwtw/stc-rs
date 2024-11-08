@@ -1,13 +1,12 @@
 use crate::context::ModuleContext;
 use crate::prelude::Scope;
 use indexmap::IndexMap;
-use std::rc::Rc;
-use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 /// Program Organization Units Manager
 #[derive(Clone)]
 pub struct UnitsManager {
-    inner: Rc<RwLock<UnitsManagerImpl>>,
+    inner: Arc<RwLock<UnitsManagerImpl>>,
 }
 
 impl UnitsManager {
@@ -38,7 +37,7 @@ impl Default for UnitsManager {
         let mgr = UnitsManagerImpl::new();
 
         Self {
-            inner: Rc::new(RwLock::new(mgr)),
+            inner: Arc::new(RwLock::new(mgr)),
         }
     }
 }

@@ -4,6 +4,7 @@ use crate::parser::*;
 
 use smallvec::smallvec;
 use std::rc::Rc;
+use std::sync::Arc;
 
 ///
 /// A  ->  Aα | β
@@ -366,13 +367,13 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         Err(ParseError::UnexpectedToken(0, vec![format!("{:?}", tok)]))
     }
 
-    fn parse_enum_field_decl(&mut self) -> ParseResult<Rc<Variable>> {
+    fn parse_enum_field_decl(&mut self) -> ParseResult<Arc<Variable>> {
         let field_name = self.except_identifier()?;
         let pos = self.next;
 
         if matches!(*self.next_kind()?, TokenKind::Assign) {
             if let TokenKind::Literal(literal) = self.next_kind()? {
-                return Ok(Some(Rc::new(Variable::with_initial(
+                return Ok(Some(Arc::new(Variable::with_initial(
                     field_name,
                     Box::new(Expression::new_literal(literal.clone())),
                 ))));
@@ -380,10 +381,10 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         }
 
         self.next = pos;
-        Ok(Some(Rc::new(Variable::new(field_name))))
+        Ok(Some(Arc::new(Variable::new(field_name))))
     }
 
-    fn parse_global_variable_declare_factor(&mut self) -> ParseResult<SmallVec8<Rc<Variable>>> {
+    fn parse_global_variable_declare_factor(&mut self) -> ParseResult<SmallVec8<Arc<Variable>>> {
         let mut v = smallvec![];
         loop {
             if !self.has_next() {
@@ -401,7 +402,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         Ok(Some(v))
     }
 
-    fn parse_global_variable_group(&mut self) -> ParseResult<SmallVec8<Rc<Variable>>> {
+    fn parse_global_variable_group(&mut self) -> ParseResult<SmallVec8<Arc<Variable>>> {
         let pos = self.next;
         let tok = self.next_kind()?;
 
@@ -420,7 +421,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         )))
     }
 
-    fn parse_variable_declare_factor(&mut self) -> ParseResult<SmallVec8<Rc<Variable>>> {
+    fn parse_variable_declare_factor(&mut self) -> ParseResult<SmallVec8<Arc<Variable>>> {
         let mut v = SmallVec8::new();
         while let Some(mut x) = self.parse_variable_group()? {
             v.append(&mut x);
@@ -429,7 +430,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         Ok(Some(v))
     }
 
-    fn parse_variable_group(&mut self) -> ParseResult<SmallVec8<Rc<Variable>>> {
+    fn parse_variable_group(&mut self) -> ParseResult<SmallVec8<Arc<Variable>>> {
         let pos = self.next;
         let group_type = match self.parse_variable_group_start()? {
             Some(x) => x,
@@ -487,7 +488,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         Ok(Some(y))
     }
 
-    fn except_variable_declare_list(&mut self) -> Result<SmallVec8<Rc<Variable>>, ParseError> {
+    fn except_variable_declare_list(&mut self) -> Result<SmallVec8<Arc<Variable>>, ParseError> {
         let mut variables = smallvec![];
 
         while let Some(mut v) = self.expect_single_line_variable_declare()? {
@@ -497,7 +498,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         Ok(variables)
     }
 
-    fn expect_single_line_variable_declare(&mut self) -> ParseResult<SmallVec8<Rc<Variable>>> {
+    fn expect_single_line_variable_declare(&mut self) -> ParseResult<SmallVec8<Arc<Variable>>> {
         let pos = self.next;
         let mut name_list = match self.next_kind()? {
             TokenKind::Identifier(s) => smallvec![s.to_owned()],

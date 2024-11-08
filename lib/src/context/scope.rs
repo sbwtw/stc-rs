@@ -1,7 +1,7 @@
 use crate::ast::Variable;
 use crate::context::{ModuleContext, Prototype, UnitsManager};
 use crate::parser::StString;
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Clone, Default)]
 pub struct Scope {
@@ -51,19 +51,19 @@ impl Scope {
         }
     }
 
-    pub fn find_variable(&self, ident: &StString) -> Option<Rc<Variable>> {
+    pub fn find_variable(&self, ident: &StString) -> Option<Arc<Variable>> {
         self.find_local_variable(ident)
             .or_else(|| self.find_global_variable(ident))
     }
 
-    pub fn find_local_variable(&self, ident: &StString) -> Option<Rc<Variable>> {
+    pub fn find_local_variable(&self, ident: &StString) -> Option<Arc<Variable>> {
         self.local_declaration.as_ref().and_then(|decl| {
             let decl = decl.read().unwrap();
             decl.variables().iter().find(|x| x.name() == ident).cloned()
         })
     }
 
-    pub fn find_global_variable(&self, ident: &StString) -> Option<Rc<Variable>> {
+    pub fn find_global_variable(&self, ident: &StString) -> Option<Arc<Variable>> {
         self.local_context
             .as_ref()
             .and_then(|ctx| ctx.read().find_toplevel_global_variable(ident))

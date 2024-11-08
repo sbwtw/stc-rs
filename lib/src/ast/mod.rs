@@ -1,11 +1,9 @@
+use crate::parser::{LiteralValue, Operator, StString};
 use bitflags::bitflags;
 use smallvec::SmallVec;
-use std::cell::RefCell;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::hash::{Hash, Hasher};
-use std::rc::Rc;
-
-use crate::parser::{LiteralValue, Operator, StString};
+use std::sync::{Arc, RwLock};
 
 mod message;
 pub use message::*;
@@ -131,13 +129,13 @@ impl_into_expression!(LiteralValue, |x| Expression::literal(Box::new(
 
 #[derive(Clone, Debug)]
 pub struct Type {
-    inner: Rc<TypeInner>,
+    inner: Arc<TypeInner>,
 }
 
 impl Type {
     pub fn from_class(class: TypeClass) -> Self {
         Self {
-            inner: Rc::new(TypeInner { class }),
+            inner: Arc::new(TypeInner { class }),
         }
     }
 
@@ -288,7 +286,7 @@ pub enum UserTypeClass {
     Union,
 }
 
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 pub enum TypeClass {
     /// 'BIT', one bit type
     Bit,
@@ -317,10 +315,35 @@ pub enum TypeClass {
     /// 'STRING' string type
     String,
     /// UserType
-    UserType(RefCell<UserType>),
+    UserType(Arc<RwLock<UserType>>),
     /// ArrayType
-    Array(RefCell<ArrayType>),
+    Array(Arc<RwLock<ArrayType>>),
 }
+
+impl PartialEq for TypeClass {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Int, Self::Int) => true,
+            (Self::Bit, Self::Bit) => true,
+            (Self::Bool, Self::Bool) => true,
+            (Self::SInt, Self::SInt) => true,
+            (Self::Byte, Self::Byte) => true,
+            (Self::UInt, Self::UInt) => true,
+            (Self::UDInt, Self::UDInt) => true,
+            (Self::ULInt, Self::ULInt) => true,
+            (Self::Real, Self::Real) => true,
+            (Self::LReal, Self::LReal) => true,
+            (Self::String, Self::String) => true,
+            (Self::UserType(a), Self::UserType(b)) => {
+                a.read().unwrap().name() == b.read().unwrap().name()
+            }
+            (Self::Array(a), Self::Array(b)) => false,
+            _ => false,
+        }
+    }
+}
+
+impl Eq for TypeClass {}
 
 impl Hash for TypeClass {
     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -338,11 +361,13 @@ impl Hash for TypeClass {
         // TODO: incomplete implements
         match self {
             TypeClass::UserType(user_type) => {
-                user_type.borrow().name().hash(state);
+                // user_type.borrow().name().hash(state);
+                user_type.read().unwrap().name().hash(state);
             }
             TypeClass::Array(array_type) => {
-                let array_type = array_type.borrow();
-                let base_type = array_type.base_type().borrow();
+                // let array_type = array_type.borrow();
+                let array_type = array_type.read().unwrap();
+                let base_type = array_type.base_type().read().unwrap();
                 base_type.type_class().hash(state);
             }
             _ => {}
@@ -366,8 +391,8 @@ impl Display for TypeClass {
             TypeClass::Real => write!(f, "REAL"),
             TypeClass::LReal => write!(f, "LREAL"),
             TypeClass::String => write!(f, "STRING"),
-            TypeClass::UserType(u) => write!(f, "{}", u.borrow()),
-            TypeClass::Array(arr) => write!(f, "{}", arr.borrow()),
+            TypeClass::UserType(u) => write!(f, "{}", u.read().unwrap()),
+            TypeClass::Array(arr) => write!(f, "{}", arr.read().unwrap()),
         }
     }
 }
