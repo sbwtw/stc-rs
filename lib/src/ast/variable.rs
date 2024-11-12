@@ -44,8 +44,8 @@ impl Variable {
         ty: Type,
     ) -> SmallVec8<Arc<Self>> {
         names
-            .iter()
-            .map(|x| Arc::new(Self::with_type(x.clone(), ty.clone())))
+            .into_iter()
+            .map(|x| Arc::new(Self::with_type(x, ty.clone())))
             .collect()
     }
 
