@@ -26,6 +26,14 @@ impl DefaultParser {
 }
 
 impl ParserTrait for DefaultParser {
+    fn name(&self) -> String {
+        "DefaultParser".to_string()
+    }
+
+    fn parse_pou(&self, lexer: &mut StLexer) -> Result<(Declaration, Statement), ParseError> {
+        todo!()
+    }
+
     #[inline]
     fn parse_decl(&self, lexer: &mut StLexer) -> Result<Declaration, ParseError> {
         DefaultParserImpl::new(lexer.into_iter()).parse_declaration()

@@ -38,7 +38,8 @@ where
 
 pub struct LalrpopParser {
     decl_parser: Lazy<st::DeclarationParser>,
-    body_parser: Lazy<st::StFunctionParser>,
+    body_parser: Lazy<st::StBodyParser>,
+    pou_parser: Lazy<st::StPOUParser>,
     literal_parser: Lazy<st::LiteralExprParser>,
     expression_parser: Lazy<st::ExprParser>,
 }
@@ -53,7 +54,8 @@ impl Default for LalrpopParser {
     fn default() -> Self {
         Self {
             decl_parser: Lazy::new(st::DeclarationParser::new),
-            body_parser: Lazy::new(st::StFunctionParser::new),
+            body_parser: Lazy::new(st::StBodyParser::new),
+            pou_parser: Lazy::new(st::StPOUParser::new),
             literal_parser: Lazy::new(st::LiteralExprParser::new),
             expression_parser: Lazy::new(st::ExprParser::new),
         }
@@ -61,6 +63,18 @@ impl Default for LalrpopParser {
 }
 
 impl ParserTrait for LalrpopParser {
+    #[inline]
+    fn name(&self) -> String {
+        "Lalrpop Parser".to_string()
+    }
+
+    #[inline]
+    fn parse_pou(&self, lexer: &mut StLexer) -> Result<(Declaration, Statement), ParseError> {
+        self.pou_parser
+            .parse(LalrPopLexerWrapper::new(lexer.into_iter()))
+            .map_err(Into::into)
+    }
+
     #[inline]
     fn parse_decl(&self, lexer: &mut StLexer) -> Result<Declaration, ParseError> {
         self.decl_parser

@@ -39,7 +39,10 @@ impl From<Project> for ModuleContext {
 
         for pou in proj.pou_list.pou {
             let mut lexer = StLexerBuilder::new().build_str(&pou.interface.content);
-            let decl = ParserBuilder::default().build().parse(&mut lexer).unwrap();
+            let decl = ParserBuilder::default()
+                .build()
+                .parse_decl(&mut lexer)
+                .unwrap();
             let func = ctx_write.add_declaration(
                 decl,
                 pou.uuid_text

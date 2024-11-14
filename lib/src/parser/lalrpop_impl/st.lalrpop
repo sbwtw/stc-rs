@@ -107,8 +107,13 @@ SmallComma3<T>: SmallVec3<T> = {
     }
 };
 
-/// Top-level ST function
-pub StFunction = StatementList;
+/// Top-Level ST decl + impl body
+pub StPOU: (Declaration, Statement) = {
+    Declaration StatementList => (<>),
+}
+
+/// Top-level ST function body
+pub StBody = StatementList;
 
 /// ST Statements
 StatementList: Statement = {

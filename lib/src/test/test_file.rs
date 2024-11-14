@@ -7,7 +7,7 @@ fn main() {
     let mut lexer = StLexerBuilder::new().build_file(f).unwrap();
 
     let parser = ParserBuilder::default().build();
-    match parser.parse(&mut lexer) {
+    match parser.parse_decl(&mut lexer) {
         Ok(r) => {
             println!("{:?}", r);
         }

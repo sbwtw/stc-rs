@@ -2,7 +2,7 @@ use crate::lsp_types::{TokenModifiers, TokenTypes};
 use dashmap::DashMap;
 use ropey::Rope;
 use serde_json::Value;
-use stc::parser::{StLexerBuilder, TokenKind};
+use stc::parser::{ParserBuilder, StLexerBuilder, TokenKind};
 use stc::prelude::UnitsManager;
 use strum::IntoEnumIterator;
 use tower_lsp::jsonrpc::Result;
@@ -50,6 +50,15 @@ impl StcLsp {
     pub fn on_file_change(&self, url: &Url, text: String) {
         let rope = text.into();
         self.src_mgr.insert(url.clone(), rope);
+
+        let rope_data = self.src_mgr.get(url).unwrap();
+        let code = rope_data.value();
+
+        let mut lexer = StLexerBuilder::default().build_iter(code.chars());
+        let parser = ParserBuilder::default().build();
+
+        let (_decl, _body) = parser.parse_pou(&mut lexer).unwrap();
+        // TODO: save parse results
     }
 }
 

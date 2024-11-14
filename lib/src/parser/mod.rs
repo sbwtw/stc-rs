@@ -74,7 +74,17 @@ pub struct Parser<T: ParserTrait> {
 
 impl<T: ParserTrait> Parser<T> {
     #[inline]
-    pub fn parse(&self, lexer: &mut StLexer) -> Result<Declaration, ParseError> {
+    pub fn name(&self) -> String {
+        self.inner.name()
+    }
+
+    #[inline]
+    pub fn parse_pou(&self, lexer: &mut StLexer) -> Result<(Declaration, Statement), ParseError> {
+        self.inner.parse_pou(lexer)
+    }
+
+    #[inline]
+    pub fn parse_decl(&self, lexer: &mut StLexer) -> Result<Declaration, ParseError> {
         self.inner.parse_decl(lexer)
     }
 
@@ -118,6 +128,8 @@ impl ParserBuilder {
 }
 
 pub trait ParserTrait {
+    fn name(&self) -> String;
+    fn parse_pou(&self, lexer: &mut StLexer) -> Result<(Declaration, Statement), ParseError>;
     fn parse_decl(&self, lexer: &mut StLexer) -> Result<Declaration, ParseError>;
     fn parse_stmt(&self, lexer: &mut StLexer) -> Result<Statement, ParseError>;
     fn parse_literal(&self, lexer: &mut StLexer) -> Result<LiteralExpression, ParseError>;
