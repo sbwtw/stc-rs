@@ -153,6 +153,10 @@ impl PrototypeImpl {
         }
     }
 
+    pub fn set_decl(&mut self, decl: Declaration) {
+        self.decl = decl
+    }
+
     /// Get return value of prototype
     pub fn return_value(&self) -> Option<&Arc<Variable>> {
         self.variables().iter().find(|x| x.name() == self.name())
@@ -297,6 +301,7 @@ impl ModuleContext {
                 id: get_next_context_id(),
                 kind,
                 declaration_id_map: IndexMap::new(),
+                declaration_uuid_map: HashMap::new(),
                 declaration_name_map: HashMap::new(),
                 function_id_map: IndexMap::new(),
                 toplevel_global_variable_declarations: HashSet::new(),
@@ -320,6 +325,7 @@ pub struct ModuleContextImpl {
     id: usize,
     kind: ModuleKind,
     declaration_id_map: IndexMap<usize, Prototype>,
+    declaration_uuid_map: HashMap<Uuid, Prototype>,
     declaration_name_map: HashMap<StString, Prototype>,
     function_id_map: IndexMap<usize, Function>,
     toplevel_global_variable_declarations: HashSet<Prototype>,
@@ -343,6 +349,12 @@ impl ModuleContextImpl {
     }
 
     pub fn add_declaration(&mut self, decl: Declaration, id: Uuid) -> usize {
+        // update decl
+        if let Some(proto) = self.declaration_uuid_map.get_mut(&id) {
+            proto.write().unwrap().set_decl(decl);
+            return proto.read().unwrap().id();
+        }
+
         let name = decl.identifier().clone();
         let mut toplevel_global_variable_declaration = false;
 
@@ -357,6 +369,7 @@ impl ModuleContextImpl {
 
         self.declaration_id_map.insert(proto_id, decl.clone());
         self.declaration_name_map.insert(name, decl.clone());
+        self.declaration_uuid_map.insert(id, decl.clone());
 
         if toplevel_global_variable_declaration {
             self.toplevel_global_variable_declarations.insert(decl);
@@ -365,6 +378,7 @@ impl ModuleContextImpl {
         proto_id
     }
 
+    /// Returns old value if exists
     pub fn add_function(&mut self, decl_id: usize, fun: Statement) -> Option<Function> {
         let fun = match self.get_declaration_by_id(decl_id) {
             Some(decl) => Function::with_prototype(decl, fun),
@@ -411,6 +425,11 @@ impl ModuleContextImpl {
     #[inline]
     pub fn get_declaration_by_id(&self, decl_id: usize) -> Option<&Prototype> {
         self.declaration_id_map.get(&decl_id)
+    }
+
+    #[inline]
+    pub fn get_declaration_by_uuid(&self, uuid: &Uuid) -> Option<&Prototype> {
+        self.declaration_uuid_map.get(uuid)
     }
 
     #[inline]

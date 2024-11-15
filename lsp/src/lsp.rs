@@ -3,7 +3,7 @@ use dashmap::DashMap;
 use ropey::Rope;
 use serde_json::Value;
 use stc::parser::{ParserBuilder, StLexerBuilder, TokenKind};
-use stc::prelude::UnitsManager;
+use stc::prelude::{ModuleContext, ModuleKind, UnitsManager, Uuid};
 use strum::IntoEnumIterator;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -33,15 +33,23 @@ fn semantic_token_type_id(tok: &TokenKind) -> (u32, u32) {
 pub struct StcLsp {
     client: Client,
     src_mgr: DashMap<Url, Rope>,
+    uuid_mgr: DashMap<Url, Uuid>,
     _units_mgr: UnitsManager,
+    app_ctx: ModuleContext,
 }
 
 impl StcLsp {
     pub fn new(c: Client) -> Self {
+        let ctx = ModuleContext::new(ModuleKind::Application);
+        let mgr = UnitsManager::new();
+        mgr.write().add_context(ctx.clone());
+
         Self {
             client: c,
             src_mgr: DashMap::new(),
-            _units_mgr: UnitsManager::new(),
+            _units_mgr: mgr,
+            app_ctx: ctx,
+            uuid_mgr: DashMap::new(),
         }
     }
 }
@@ -51,14 +59,31 @@ impl StcLsp {
         let rope = text.into();
         self.src_mgr.insert(url.clone(), rope);
 
-        let rope_data = self.src_mgr.get(url).unwrap();
-        let code = rope_data.value();
+        let src_data = self.src_mgr.get(url).unwrap();
+        let code = src_data.value();
 
         let mut lexer = StLexerBuilder::default().build_iter(code.chars());
         let parser = ParserBuilder::default().build();
+        let uuid = self.uuid(url);
 
-        let (_decl, _body) = parser.parse_pou(&mut lexer).unwrap();
-        // TODO: save parse results
+        // TODO: error records
+        let (decl, body) = match parser.parse_pou(&mut lexer) {
+            Ok((x, y)) => (x, y),
+            Err(_) => return,
+        };
+
+        // Update ctx
+        let mut ctx = self.app_ctx.write();
+        let decl_id = ctx.add_declaration(decl, uuid);
+        ctx.add_function(decl_id, body);
+    }
+
+    pub fn uuid(&self, url: &Url) -> Uuid {
+        *self
+            .uuid_mgr
+            .entry(url.clone())
+            .or_insert(Uuid::new_v4())
+            .value()
     }
 }
 
@@ -111,8 +136,6 @@ impl LanguageServer for StcLsp {
     }
 
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
-        trace!("did_change: {}", params.text_document.uri);
-
         for change in params.content_changes.into_iter() {
             // Only full text support
             assert!(change.range.is_none());

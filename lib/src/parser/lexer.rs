@@ -300,7 +300,7 @@ impl<'input> StLexer<'input> {
             }
         }
 
-        return Ok((s, flags));
+        Ok((s, flags))
     }
 
     /// 123^.456, return ateed string
