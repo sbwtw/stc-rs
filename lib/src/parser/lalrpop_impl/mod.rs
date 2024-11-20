@@ -6,12 +6,18 @@ use once_cell::sync::Lazy;
 
 lalrpop_mod!(st, "/parser/lalrpop_impl/st.rs");
 
-type LalrPopLexerItem = (usize, TokenKind, usize);
+type LalrPopLexerItem = (Location, TokenKind, Location);
 type LalrPopLexerResult = Result<LalrPopLexerItem, LexicalError>;
 
 impl From<Token> for LalrPopLexerItem {
     fn from(tok: Token) -> Self {
-        (tok.pos.mark, tok.kind, tok.pos.offset)
+        // TODO: multi-line token support
+        let end_loc = Location {
+            mark: tok.location.mark,
+            offset: tok.location.offset + tok.length,
+        };
+
+        (tok.location, tok.kind, end_loc)
     }
 }
 

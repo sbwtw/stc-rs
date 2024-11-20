@@ -1,8 +1,8 @@
 use crate::parser::*;
 use std::fmt::{self, Display, Formatter};
 
-#[derive(Debug)]
-pub struct TokenPosition {
+#[derive(Debug, Clone, Default, Copy)]
+pub struct Location {
     pub mark: usize,
     pub offset: usize,
 }
@@ -11,7 +11,7 @@ pub struct TokenPosition {
 pub struct Token {
     pub kind: TokenKind,
     pub length: usize,
-    pub pos: TokenPosition,
+    pub location: Location,
 }
 
 impl Token {
@@ -19,7 +19,7 @@ impl Token {
         Self {
             kind,
             length: 0,
-            pos: TokenPosition { mark: 0, offset: 0 },
+            location: Location { mark: 0, offset: 0 },
         }
     }
 }
@@ -29,7 +29,7 @@ impl Default for Token {
         Self {
             kind: TokenKind::None,
             length: 0,
-            pos: TokenPosition { mark: 0, offset: 0 },
+            location: Location { mark: 0, offset: 0 },
         }
     }
 }

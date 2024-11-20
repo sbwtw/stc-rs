@@ -14,7 +14,7 @@ mod operator;
 pub use operator::Operator;
 
 mod token;
-pub use token::TokenKind;
+pub use token::{Location, TokenKind};
 
 #[macro_export]
 macro_rules! parse_statement {
@@ -32,22 +32,22 @@ mod test;
 pub enum ParseError {
     LexerError(LexicalError),
     UnexpectedEnd,
-    InvalidToken(usize),
+    InvalidToken(Location),
     InvalidTokenAt(String),
-    UnexpectedToken(usize, Vec<String>),
+    UnexpectedToken(Location, Vec<String>),
 }
 
 impl ParseError {
-    pub fn expect_tokens(pos: usize, tokens: &[TokenKind]) -> Self {
+    pub fn expect_tokens(loc: Location, tokens: &[TokenKind]) -> Self {
         let tokens: Vec<_> = tokens.iter().map(|x| x.into()).collect();
 
-        Self::UnexpectedToken(pos, tokens)
+        Self::UnexpectedToken(loc, tokens)
     }
 }
 
 #[cfg(feature = "lalrpop_parser")]
-impl From<lalrpop_util::ParseError<usize, TokenKind, LexicalError>> for ParseError {
-    fn from(e: lalrpop_util::ParseError<usize, TokenKind, LexicalError>) -> Self {
+impl From<lalrpop_util::ParseError<Location, TokenKind, LexicalError>> for ParseError {
+    fn from(e: lalrpop_util::ParseError<Location, TokenKind, LexicalError>) -> Self {
         match e {
             lalrpop_util::ParseError::InvalidToken { location: loc } => {
                 ParseError::InvalidToken(loc)

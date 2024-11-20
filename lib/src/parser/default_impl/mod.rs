@@ -52,14 +52,14 @@ impl ParserTrait for DefaultParser {
         }
 
         // TODO: Parse no result
-        Err(ParseError::InvalidToken(0))
+        Err(ParseError::InvalidToken(Location { mark: 0, offset: 0 }))
     }
 
     #[inline]
     fn parse_expression(&self, lexer: &mut StLexer) -> Result<Expression, ParseError> {
         match DefaultParserImpl::new(lexer.into_iter()).parse_expression()? {
             Some(expr) => Ok(expr),
-            None => Err(ParseError::InvalidToken(0)),
+            None => Err(ParseError::InvalidToken(Location { mark: 0, offset: 0 })),
         }
     }
 }
@@ -210,7 +210,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let tok = self.next_token()?;
         match &tok.kind {
             TokenKind::Identifier(ident) => Ok(ident.clone()),
-            _ => Err(ParseError::InvalidToken(0)),
+            _ => Err(ParseError::InvalidToken(Location { mark: 0, offset: 0 })),
         }
     }
 
@@ -226,7 +226,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             }
         }
 
-        Err(ParseError::expect_tokens(0, tokens))
+        Err(ParseError::expect_tokens(tok.location, tokens))
     }
 
     fn parse_type(&mut self) -> ParseResult<Type> {
@@ -371,7 +371,10 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             return Ok(Some(Declaration::new_struct(name, fields)));
         }
 
-        Err(ParseError::UnexpectedToken(0, vec![format!("{:?}", tok)]))
+        Err(ParseError::UnexpectedToken(
+            Location { mark: 0, offset: 0 },
+            vec![format!("{:?}", tok)],
+        ))
     }
 
     fn parse_enum_field_decl(&mut self) -> ParseResult<Arc<Variable>> {

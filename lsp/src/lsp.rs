@@ -182,22 +182,22 @@ impl LanguageServer for StcLsp {
         let mut last_offset = 0;
         let mut tokens: Vec<SemanticToken> = vec![];
         for tok in lexer.flatten() {
-            if tok.pos.mark != last_line {
+            if tok.location.mark != last_line {
                 last_offset = 0;
             }
 
             let (tt, tm) = semantic_token_type_id(&tok.kind);
             let token = SemanticToken {
-                delta_line: (tok.pos.mark - last_line) as u32,
-                delta_start: (tok.pos.offset - last_offset) as u32,
+                delta_line: (tok.location.mark - last_line) as u32,
+                delta_start: (tok.location.offset - last_offset) as u32,
                 length: tok.length as u32,
                 token_type: tt,
                 token_modifiers_bitset: tm,
             };
             tokens.push(token);
 
-            last_line = tok.pos.mark;
-            last_offset = tok.pos.offset;
+            last_line = tok.location.mark;
+            last_offset = tok.location.offset;
         }
 
         Ok(Some(SemanticTokensResult::Tokens(SemanticTokens {
