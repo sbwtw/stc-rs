@@ -197,7 +197,7 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
         self.write(format_args!("{}", TokenKind::RightParentheses));
     }
 
-    fn visit_expr_statement(&mut self, _: &Statement, expr_st: &ExprStatement) {
+    fn visit_expr_statement(&mut self, _: &StmtInfo, expr_st: &ExprStatement) {
         self.write_indent();
         self.visit_expression(expr_st.expr());
         self.writeln(format_args!(";"));

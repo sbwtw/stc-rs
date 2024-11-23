@@ -57,7 +57,10 @@ impl Statement {
     ) -> Self {
         Self {
             kind: StmtKind::Expr(expr),
-            info: StmtInfo::default(),
+            info: StmtInfo {
+                start_pos: start,
+                end_pos: end,
+            },
         }
     }
 
