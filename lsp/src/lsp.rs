@@ -10,6 +10,8 @@ use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer};
 use tracing::*;
 
+const COMPLETION_TRIGGER_DOT: &str = ".";
+
 fn semantic_token_type_id(tok: &TokenKind) -> (u32, u32) {
     match tok {
         TokenKind::Identifier(_) => (TokenTypes::Variable as u32, TokenModifiers::None as u32),
@@ -55,10 +57,31 @@ impl StcLsp {
 }
 
 impl StcLsp {
-    pub fn on_file_change(&self, url: &Url, text: String) {
-        let rope = text.into();
-        self.src_mgr.insert(url.clone(), rope);
+    // fn src_offset(&self, url: &Url, pos: Position) -> usize {
+    //     let map = self.src_offset.get(url).unwrap();
+    //     map.get(&(pos.line as usize)).unwrap() + pos.character as usize
+    // }
 
+    pub fn on_file_change(&self, url: &Url, range: Option<Range>, text: String) {
+        if range.is_none() || !self.src_mgr.contains_key(url) {
+            self.src_mgr.insert(url.clone(), text.into());
+        } else {
+            unimplemented!()
+        }
+
+        // let range = range.unwrap();
+        // let start_offset = self.src_offset(url, range.start);
+        // let end_offset = self.src_offset(url, range.end);
+        //
+        // let mut rope = self.src_mgr.get_mut(url).unwrap();
+        // let rope = rope.value_mut();
+        // rope.remove(start_offset..end_offset);
+        // rope.insert(start_offset, &text);
+
+        self.update_ast(url)
+    }
+
+    pub fn update_ast(&self, url: &Url) {
         let src_data = self.src_mgr.get(url).unwrap();
         let code = src_data.value();
 
@@ -106,6 +129,13 @@ impl LanguageServer for StcLsp {
                 }),
             ),
             text_document_sync: Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::FULL)),
+            completion_provider: Some(CompletionOptions {
+                resolve_provider: Some(false),
+                trigger_characters: Some(vec![COMPLETION_TRIGGER_DOT.into()]),
+                work_done_progress_options: Default::default(),
+                all_commit_characters: None,
+                completion_item: None,
+            }),
             document_highlight_provider: Some(OneOf::Left(true)),
             // Use utf-8 for position encoding
             // position_encoding: Some(PositionEncodingKind::UTF8),
@@ -129,23 +159,20 @@ impl LanguageServer for StcLsp {
         Ok(())
     }
 
+    async fn did_open(&self, params: DidOpenTextDocumentParams) {
+        self.on_file_change(&params.text_document.uri, None, params.text_document.text)
+    }
+
     // async fn initialized(&self, params: InitializedParams) {
     //     trace!("{:?}", params);
     // }
 
-    async fn did_open(&self, params: DidOpenTextDocumentParams) {
-        self.on_file_change(&params.text_document.uri, params.text_document.text)
-    }
-
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
-        dbg!(&params);
-
         for change in params.content_changes.into_iter() {
-            // Only full text support
-            assert!(change.range.is_none());
+            // range length is deprecated
             assert!(change.range_length.is_none());
 
-            self.on_file_change(&params.text_document.uri, change.text);
+            self.on_file_change(&params.text_document.uri, change.range, change.text);
         }
     }
 
@@ -153,7 +180,7 @@ impl LanguageServer for StcLsp {
         trace!("did_save: {}", params.text_document.uri);
 
         if let Some(content) = params.text {
-            self.on_file_change(&params.text_document.uri, content)
+            self.on_file_change(&params.text_document.uri, None, content)
         }
     }
 
@@ -231,6 +258,22 @@ impl LanguageServer for StcLsp {
         //     .map_err(|_| jsonrpc::Error::invalid_request())?;
 
         Ok(None)
+    }
+
+    async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
+        if let Some(trigger) = params.context.and_then(|x| x.trigger_character) {
+            // TODO: only handle '.' trigger
+            if trigger != COMPLETION_TRIGGER_DOT {
+                return Ok(None);
+            }
+        }
+
+        let test_item = CompletionItem {
+            label: String::from("test"),
+            ..Default::default()
+        };
+
+        Ok(Some(CompletionResponse::Array(vec![test_item])))
     }
 
     async fn execute_command(&self, params: ExecuteCommandParams) -> Result<Option<Value>> {
