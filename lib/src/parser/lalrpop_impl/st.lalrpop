@@ -151,7 +151,7 @@ pub Expr: Expression = {
 };
 
 VarExpr: Expression = {
-    "IDENTIFIER" => Expression::variable(Box::new(VariableExpression::new(<>))),
+    <start: @L> <ident: "IDENTIFIER"> <end: @R> => Expression::variable(Box::new(VariableExpression::new(ident)), Some(start), Some(end)),
 }
 
 AssignExpr: AssignExpression = {

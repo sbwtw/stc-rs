@@ -173,7 +173,7 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
     }
 
     #[inline]
-    fn visit_variable_expression(&mut self, variable: &'_ VariableExpression) {
+    fn visit_variable_expression(&mut self, expr: &'_ ExprInfo, variable: &'_ VariableExpression) {
         self.write(format_args!("{}", variable.org_name()));
     }
 
@@ -203,7 +203,7 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
         self.writeln(format_args!(";"));
     }
 
-    fn visit_if_statement(&mut self, _: &Statement, stmt: &IfStatement) {
+    fn visit_if_statement(&mut self, _: &StmtInfo, stmt: &IfStatement) {
         self.write_indent();
         self.write(format_args!("IF "));
         self.visit_expression(stmt.condition());

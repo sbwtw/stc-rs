@@ -71,7 +71,11 @@ impl AstVisitorMut for TypeAnalyzer {
         self.top_mut().derived_type = Some(literal.literal().ty())
     }
 
-    fn visit_variable_expression_mut(&mut self, variable: &mut VariableExpression) {
+    fn visit_variable_expression_mut(
+        &mut self,
+        expr: &mut ExprInfo,
+        variable: &mut VariableExpression,
+    ) {
         let derived_variable = if self.top().search_local_only {
             self.current_scope().find_local_variable(variable.name())
         } else {

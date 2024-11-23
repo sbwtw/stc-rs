@@ -1,5 +1,4 @@
-use crate::ast::{AstVisitor, Type};
-use crate::impl_ast_display;
+use crate::ast::Type;
 use crate::parser::StString;
 
 #[derive(Debug, Clone)]
@@ -8,7 +7,7 @@ pub struct VariableExpression {
     ty: Option<Type>,
 }
 
-impl_ast_display!(VariableExpression, visit_variable_expression);
+// impl_ast_display!(VariableExpression, visit_variable_expression);
 
 impl VariableExpression {
     pub fn new(var: StString) -> Self {

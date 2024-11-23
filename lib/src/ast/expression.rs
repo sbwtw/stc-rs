@@ -3,7 +3,6 @@ use crate::ast::{
     LiteralExpression, OperatorExpression, RangeExpression, VariableExpression,
 };
 use crate::impl_ast_display;
-use crate::parser::{LiteralValue, Operator};
 use crate::prelude::*;
 
 use smallvec::{smallvec, SmallVec};
@@ -21,7 +20,14 @@ pub enum ExprKind {
 
 #[derive(Debug)]
 pub struct Expression {
-    pub(crate) kind: ExprKind,
+    pub kind: ExprKind,
+    pub info: ExprInfo,
+}
+
+#[derive(Debug, Default)]
+pub struct ExprInfo {
+    pub start: Option<Location>,
+    pub end: Option<Location>,
 }
 
 impl_ast_display!(Expression, visit_expression);
@@ -50,6 +56,7 @@ impl Expression {
     pub fn assign(assign: Box<AssignExpression>) -> Self {
         Self {
             kind: ExprKind::Assign(assign),
+            info: ExprInfo::default(),
         }
     }
 
@@ -62,6 +69,7 @@ impl Expression {
     pub fn call(call: Box<CallExpression>) -> Self {
         Self {
             kind: ExprKind::Call(call),
+            info: ExprInfo::default(),
         }
     }
 
@@ -69,6 +77,7 @@ impl Expression {
     pub fn literal(literal: Box<LiteralExpression>) -> Self {
         Self {
             kind: ExprKind::Literal(literal),
+            info: ExprInfo::default(),
         }
     }
 
@@ -81,6 +90,7 @@ impl Expression {
     pub fn operator(operator: Box<OperatorExpression>) -> Self {
         Self {
             kind: ExprKind::Operator(operator),
+            info: ExprInfo::default(),
         }
     }
 
@@ -95,21 +105,27 @@ impl Expression {
     }
 
     #[inline]
-    pub fn variable(variable: Box<VariableExpression>) -> Self {
+    pub fn variable(
+        variable: Box<VariableExpression>,
+        start: Option<Location>,
+        end: Option<Location>,
+    ) -> Self {
         Self {
             kind: ExprKind::Variable(variable),
+            info: ExprInfo { start, end },
         }
     }
 
     #[inline]
-    pub fn new_variable(var: StString) -> Self {
-        Self::variable(Box::new(VariableExpression::new(var)))
+    pub fn new_variable(var: StString, start: Option<Location>, end: Option<Location>) -> Self {
+        Self::variable(Box::new(VariableExpression::new(var)), start, end)
     }
 
     #[inline]
     pub fn compo(compo: Box<CompoAccessExpression>) -> Self {
         Self {
             kind: ExprKind::Compo(compo),
+            info: ExprInfo::default(),
         }
     }
 
@@ -122,6 +138,7 @@ impl Expression {
     pub fn range(range: Box<RangeExpression>) -> Self {
         Self {
             kind: ExprKind::Range(range),
+            info: ExprInfo::default(),
         }
     }
 

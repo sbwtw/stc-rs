@@ -1,7 +1,8 @@
-use crate::ast::call_expression::CallExpression;
-use crate::ast::*;
-
 use super::RangeExpression;
+use crate::ast::call_expression::CallExpression;
+use crate::ast::expression::ExprInfo;
+use crate::ast::statement::StmtInfo;
+use crate::ast::*;
 
 // Mutable visitor
 pub trait DeclVisitorMut: Sized {
@@ -48,7 +49,11 @@ pub trait AstVisitorMut: Sized {
     }
 
     #[inline]
-    fn visit_variable_expression_mut(&mut self, variable: &mut VariableExpression) {
+    fn visit_variable_expression_mut(
+        &mut self,
+        expr: &mut ExprInfo,
+        variable: &mut VariableExpression,
+    ) {
         walk_variable_expression_mut(self, variable)
     }
 
@@ -83,8 +88,8 @@ pub trait AstVisitorMut: Sized {
     }
 
     #[inline]
-    fn visit_if_statement_mut(&mut self, ifst: &mut IfStatement) {
-        walk_if_statement_mut(self, ifst)
+    fn visit_if_statement_mut(&mut self, info: &mut StmtInfo, ifst: &mut IfStatement) {
+        walk_if_statement_mut(self, info, ifst)
     }
 
     #[inline]
@@ -121,7 +126,9 @@ fn walk_expression_mut<V: AstVisitorMut>(vis: &mut V, expr: &mut Expression) {
         ExprKind::Assign(ref mut assign) => vis.visit_assign_expression_mut(assign),
         ExprKind::Operator(ref mut operator) => vis.visit_operator_expression_mut(operator),
         ExprKind::Compo(ref mut compo) => vis.visit_compo_access_expression_mut(compo),
-        ExprKind::Variable(ref mut variable) => vis.visit_variable_expression_mut(variable),
+        ExprKind::Variable(ref mut variable) => {
+            vis.visit_variable_expression_mut(&mut expr.info, variable)
+        }
         ExprKind::Literal(ref mut literal) => vis.visit_literal_mut(literal),
         ExprKind::Call(ref mut call) => vis.visit_call_expression_mut(call),
         ExprKind::Range(ref mut range) => vis.visit_range_expression_mut(range),
@@ -132,7 +139,7 @@ fn walk_expression_mut<V: AstVisitorMut>(vis: &mut V, expr: &mut Expression) {
 fn walk_statement_mut<V: AstVisitorMut>(vis: &mut V, stmt: &mut Statement) {
     match stmt.kind {
         StmtKind::Expr(ref mut expr) => vis.visit_expr_statement_mut(expr),
-        StmtKind::If(ref mut ifst) => vis.visit_if_statement_mut(ifst),
+        StmtKind::If(ref mut ifst) => vis.visit_if_statement_mut(&mut stmt.info, ifst),
         StmtKind::Stmts(ref mut v) => vis.visit_statement_list_mut(v),
     }
 }
@@ -150,7 +157,11 @@ fn walk_expr_statement_mut<V: AstVisitorMut>(vis: &mut V, expr: &mut ExprStateme
 }
 
 #[inline]
-fn walk_if_statement_mut<V: AstVisitorMut>(vis: &mut V, ifst: &mut IfStatement) {
+fn walk_if_statement_mut<V: AstVisitorMut>(
+    vis: &mut V,
+    info: &mut StmtInfo,
+    ifst: &mut IfStatement,
+) {
     vis.visit_expression_mut(ifst.condition_mut());
     if let Some(ctrl) = ifst.then_controlled_mut() {
         vis.visit_statement_mut(ctrl);
@@ -271,8 +282,12 @@ pub trait AstVisitor<'ast>: Sized {
     }
 
     #[inline]
-    fn visit_variable_expression(&mut self, variable: &'ast VariableExpression) {
-        walk_variable_expression(self, variable)
+    fn visit_variable_expression(
+        &mut self,
+        info: &'ast ExprInfo,
+        variable: &'ast VariableExpression,
+    ) {
+        walk_variable_expression(self, info, variable)
     }
 
     #[inline]
@@ -306,8 +321,8 @@ pub trait AstVisitor<'ast>: Sized {
     }
 
     #[inline]
-    fn visit_if_statement(&mut self, stmt: &'ast Statement, ifst: &'ast IfStatement) {
-        walk_if_statement(self, stmt, ifst)
+    fn visit_if_statement(&mut self, info: &'ast StmtInfo, ifst: &'ast IfStatement) {
+        walk_if_statement(self, info, ifst)
     }
 
     #[inline]
@@ -330,7 +345,12 @@ pub trait AstVisitor<'ast>: Sized {
 fn walk_literal<'a, V: AstVisitor<'a>>(_: &mut V, _: &'a LiteralExpression) {}
 
 #[inline]
-fn walk_variable_expression<'a, V: AstVisitor<'a>>(_: &mut V, _: &'a VariableExpression) {}
+fn walk_variable_expression<'a, V: AstVisitor<'a>>(
+    _: &mut V,
+    _: &'a ExprInfo,
+    _: &'a VariableExpression,
+) {
+}
 
 #[inline]
 fn walk_call_expression<'a, V: AstVisitor<'a>>(_: &mut V, _: &'a CallExpression) {}
@@ -344,7 +364,7 @@ fn walk_expression<'a, V: AstVisitor<'a>>(vis: &mut V, expr: &'a Expression) {
         ExprKind::Assign(ref assign) => vis.visit_assign_expression(assign),
         ExprKind::Operator(ref operator) => vis.visit_operator_expression(operator),
         ExprKind::Compo(ref compo) => vis.visit_compo_access_expression(compo),
-        ExprKind::Variable(ref variable) => vis.visit_variable_expression(variable),
+        ExprKind::Variable(ref variable) => vis.visit_variable_expression(&expr.info, variable),
         ExprKind::Literal(ref literal) => vis.visit_literal(literal),
         ExprKind::Call(ref call) => vis.visit_call_expression(call),
         ExprKind::Range(ref range) => vis.visit_range_expression(range),
@@ -355,7 +375,7 @@ fn walk_expression<'a, V: AstVisitor<'a>>(vis: &mut V, expr: &'a Expression) {
 fn walk_statement<'a, V: AstVisitor<'a>>(vis: &mut V, stmt: &'a Statement) {
     match stmt.kind {
         StmtKind::Expr(ref expr) => vis.visit_expr_statement(stmt, expr),
-        StmtKind::If(ref ifst) => vis.visit_if_statement(stmt, ifst),
+        StmtKind::If(ref ifst) => vis.visit_if_statement(&stmt.info, ifst),
         StmtKind::Stmts(ref v) => vis.visit_statement_list(v),
     }
 }
@@ -378,7 +398,7 @@ fn walk_expr_statement<'a, V: AstVisitor<'a>>(
 
 fn walk_if_statement<'a, V: AstVisitor<'a>>(
     vis: &mut V,
-    stmt: &'a Statement,
+    info: &'a StmtInfo,
     ifst: &'a IfStatement,
 ) {
     vis.visit_expression(ifst.condition());

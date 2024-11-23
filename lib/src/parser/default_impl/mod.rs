@@ -1357,7 +1357,9 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let pos = self.next;
 
         match self.next_kind()? {
-            TokenKind::Identifier(ident) => Ok(Some(Expression::new_variable(ident.clone()))),
+            TokenKind::Identifier(ident) => {
+                Ok(Some(Expression::new_variable(ident.clone(), None, None)))
+            }
             _ => {
                 self.next = pos;
                 Ok(None)

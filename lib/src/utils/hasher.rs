@@ -120,7 +120,7 @@ impl<H: Hasher> AstVisitor<'_> for AstHasher<H> {
         literal.literal().ty().hash(&mut self.hasher);
     }
 
-    fn visit_variable_expression(&mut self, variable: &'_ VariableExpression) {
+    fn visit_variable_expression(&mut self, _: &'_ ExprInfo, variable: &'_ VariableExpression) {
         VisitType::Variable.hash(&mut self.hasher);
         variable.name().hash(&mut self.hasher);
         if let Some(ty) = variable.ty() {
@@ -133,7 +133,7 @@ impl<H: Hasher> AstVisitor<'_> for AstHasher<H> {
         self.visit_expression(stmt.expr())
     }
 
-    fn visit_if_statement(&mut self, _: &Statement, if_stmt: &IfStatement) {
+    fn visit_if_statement(&mut self, _: &StmtInfo, if_stmt: &IfStatement) {
         VisitType::IfStatement.hash(&mut self.hasher);
         self.visit_expression(if_stmt.condition());
 

@@ -475,15 +475,19 @@ impl AstVisitorMut for LuaBackend {
         // }
     }
 
-    fn visit_variable_expression_mut(&mut self, var_expr: &mut VariableExpression) {
+    fn visit_variable_expression_mut(
+        &mut self,
+        expr: &mut ExprInfo,
+        var_expr: &mut VariableExpression,
+    ) {
         let scope = self.current_scope();
         let var = scope.find_variable(var_expr.name());
 
-        trace!(
-            "LuaGen: variable expression: {}: {:?}",
-            var_expr,
-            var.as_ref().and_then(|x| x.ty())
-        );
+        // trace!(
+        //     "LuaGen: variable expression: {}: {:?}",
+        //     var_expr,
+        //     var.as_ref().and_then(|x| x.ty())
+        // );
 
         let access_mode = self.top_attribute().access_mode;
         match access_mode {
@@ -570,7 +574,7 @@ impl AstVisitorMut for LuaBackend {
         self.reg_mgr.free(&callee_reg);
     }
 
-    fn visit_if_statement_mut(&mut self, ifst: &mut IfStatement) {
+    fn visit_if_statement_mut(&mut self, _: &mut StmtInfo, ifst: &mut IfStatement) {
         trace!("LuaGen: if statement: {}", ifst.condition());
 
         let if_exit_label = self.create_label("if-exit");

@@ -44,10 +44,10 @@ mod compo_access_expression;
 pub use compo_access_expression::CompoAccessExpression;
 
 mod statement;
-pub use statement::{Statement, StmtKind};
+pub use statement::{Statement, StmtInfo, StmtKind};
 
 mod expression;
-pub use expression::{ExprKind, Expression};
+pub use expression::{ExprInfo, ExprKind, Expression};
 
 mod variable_expression;
 pub use variable_expression::VariableExpression;
