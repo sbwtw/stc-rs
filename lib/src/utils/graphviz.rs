@@ -4,32 +4,71 @@ use crate::utils::{AstHasher, Crc32Hasher, StringifyVisitor};
 use chrono::Local;
 use regex::Regex;
 use smallvec::smallvec;
-use std::borrow::Cow;
 use std::fmt::Arguments;
 use std::io::Write;
 use std::iter::FromIterator;
 
+struct EscapedString(String);
+
+impl<S: AsRef<str>> From<S> for EscapedString {
+    fn from(value: S) -> Self {
+        let regex = Regex::new(r#"([<>|"])"#).unwrap();
+        let value = regex.replace_all(value.as_ref(), "\\$1");
+
+        Self(value.to_string())
+    }
+}
+
 /// Labels in same line
-struct Labels(SmallVec8<String>);
+struct Labels(SmallVec8<EscapedString>);
+
+/// SubLabel connect to another node, The Label name is not escape
+struct SubLabel(String, String);
+
+impl SubLabel {
+    pub fn new<S1: Into<String>, S2: Into<String>>(pos: S1, label: S2) -> Self {
+        Self(pos.into(), label.into())
+    }
+}
+
+impl From<SubLabel> for EscapedString {
+    fn from(value: SubLabel) -> Self {
+        // self.0 is position mark, only self.1 should be escaped
+        let escaped = EscapedString::from(value.1);
+        EscapedString(format!("<{}> {}", value.0, escaped.0))
+    }
+}
 
 impl<S> FromIterator<S> for Labels
 where
     S: AsRef<str>,
 {
     fn from_iter<T: IntoIterator<Item = S>>(iter: T) -> Self {
-        Self(iter.into_iter().map(|x| x.as_ref().to_string()).collect())
+        Self(iter.into_iter().map(|x| x.as_ref().into()).collect())
+    }
+}
+
+impl FromIterator<SubLabel> for Labels {
+    fn from_iter<T: IntoIterator<Item = SubLabel>>(iter: T) -> Self {
+        Self(iter.into_iter().map(|x| x.into()).collect())
     }
 }
 
 impl From<Labels> for String {
     fn from(value: Labels) -> Self {
-        value.0.join("|")
+        // Extract raw String from Labels to join
+        value
+            .0
+            .into_iter()
+            .map(|x| x.0)
+            .collect::<Vec<_>>()
+            .join("|")
     }
 }
 
 impl<S: AsRef<str>> From<S> for Labels {
     fn from(value: S) -> Self {
-        Self(smallvec![value.as_ref().to_string()])
+        Self(smallvec![value.as_ref().into()])
     }
 }
 
@@ -47,11 +86,7 @@ impl LabelGroups {
             return self;
         }
 
-        self.0
-            .last_mut()
-            .unwrap()
-            .0
-            .push(label.as_ref().to_string());
+        self.0.last_mut().unwrap().0.push(label.as_ref().into());
         self
     }
 
@@ -102,12 +137,6 @@ fn location_label(start: Option<Location>, end: Option<Location>) -> Option<Stri
     }
 }
 
-fn graphviz_escape<S: AsRef<str>>(s: &S) -> Cow<str> {
-    let regex = Regex::new(r#"([<>|"])"#).unwrap();
-
-    regex.replace_all(s.as_ref(), "\\$1")
-}
-
 struct GraphvizAttribute {
     node_name: String,
 }
@@ -120,7 +149,6 @@ impl GraphvizAttribute {
     }
 }
 
-#[allow(unused)]
 pub struct GraphvizExporter<W: Write> {
     writer: W,
     unique_name_id: usize,
@@ -172,13 +200,13 @@ impl<W: Write> GraphvizExporter<W> {
         format!("{}_{}", name.as_ref(), self.unique_name_id)
     }
 
-    fn unique_name_with_pos<S: AsRef<str>>(&mut self, name: S) -> (String, String) {
+    fn sub_label_to_new_node<S: AsRef<str>>(&mut self, sub_label_name: S) -> (String, SubLabel) {
         self.unique_name_id += 1;
 
-        let pos = format!("P{}_{}", name.as_ref(), self.unique_name_id);
-        let label = format!("<{}> {}", &pos, name.as_ref());
+        let pos = format!("pos_{}_{}", sub_label_name.as_ref(), self.unique_name_id);
+        let sub_label = SubLabel::new(&pos, sub_label_name.as_ref());
 
-        (pos, label)
+        (pos, sub_label)
     }
 
     // fn top(&self) -> &GraphvizAttribute {
@@ -217,8 +245,22 @@ impl<W: Write> GraphvizExporter<W> {
         ));
     }
 
-    fn connect<S1: AsRef<str>, S2: AsRef<str>>(&mut self, from: S1, to: S2) {
-        self.writeln(format_args!("{} -> {};", from.as_ref(), to.as_ref()));
+    fn connect_sub<S1: AsRef<str>, S2: AsRef<str>, S3: AsRef<str>>(
+        &mut self,
+        from: S1,
+        from_sub: S2,
+        to: S3,
+    ) {
+        self.writeln(format_args!(
+            "{}:{} -> {};",
+            from.as_ref(),
+            from_sub.as_ref(),
+            to.as_ref()
+        ))
+    }
+
+    fn connect<S1: AsRef<str>, S3: AsRef<str>>(&mut self, from: S1, to: S3) {
+        self.writeln(format_args!("{} -> {};", from.as_ref(), to.as_ref()))
     }
 
     fn connect_from_pos<S1: AsRef<str>, S2: AsRef<str>, S3: AsRef<str>>(
@@ -294,24 +336,24 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
     }
 
     fn visit_statement_list(&mut self, stmts: &Vec<Statement>) {
-        let name = self.unique_node("statement_list");
+        let node = self.unique_node("statement_list");
         let mut labels = Vec::with_capacity(stmts.len());
         for (i, s) in stmts.iter().enumerate() {
-            let pos = self.unique_node("pos");
-            labels.push(format!("<{}> {}", &pos, i));
+            let sub_node = self.unique_node("pos");
+            labels.push(SubLabel::new(&sub_node, i.to_string()));
 
             self.push_empty();
             self.visit_statement(s);
             let attr = self.pop();
 
-            self.connect(format!("{}:{}", &name, pos), attr.node_name);
+            self.connect_sub(&node, sub_node, attr.node_name);
         }
 
         let info_groups = LabelGroups::new("StmtList").append_group(Labels::from_iter(labels));
-        self.write_node(&name, info_groups);
+        self.write_node(&node, info_groups);
 
         if let Some(top) = self.top_mut() {
-            top.node_name = name;
+            top.node_name = node;
         }
     }
 
@@ -325,7 +367,7 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
         let location = location_label(info.start_pos, info.end_pos);
         let info_group = LabelGroups::new("ExprStmt")
             .append_label_opt(location)
-            .append_group::<Labels>(graphviz_escape(&expr_st.expr().to_string()).into());
+            .append_group::<Labels>(expr_st.expr().to_string().into());
         self.write_node(&node, info_group);
         self.connect(&node, attr.node_name);
         if let Some(top) = self.top_mut() {
@@ -343,7 +385,7 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
         self.visit_expression(ifst.condition());
         let attr = self.pop();
 
-        let (pos, label) = self.unique_name_with_pos("Cond");
+        let (pos, label) = self.sub_label_to_new_node("Cond");
         self.connect_from_pos(&name, pos, attr.node_name);
         labels.push(label);
 
@@ -352,7 +394,7 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
             self.visit_statement(then);
             let attr = self.pop();
 
-            let (pos, label) = self.unique_name_with_pos("Then");
+            let (pos, label) = self.sub_label_to_new_node("Then");
             self.connect_from_pos(&name, pos, attr.node_name);
             labels.push(label);
         }
@@ -362,7 +404,7 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
             let else_if_node = self.unique_node("else_if_statement");
             let mut else_if_labels = vec![];
 
-            let (pos, label) = self.unique_name_with_pos("ElseIf");
+            let (pos, label) = self.sub_label_to_new_node("ElseIf");
             self.connect_from_pos(&name, pos, &else_if_node);
             labels.push(label);
 
@@ -370,7 +412,7 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
             self.visit_expression(else_if.condition());
             let attr = self.pop();
 
-            let (pos, label) = self.unique_name_with_pos("ElseIfCond");
+            let (pos, label) = self.sub_label_to_new_node("ElseIfCond");
             self.connect_from_pos(&else_if_node, pos, attr.node_name);
             else_if_labels.push(label);
 
@@ -379,7 +421,7 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
                 self.visit_statement(controlled);
                 let attr = self.pop();
 
-                let (pos, label) = self.unique_name_with_pos("ElseIfThen");
+                let (pos, label) = self.sub_label_to_new_node("ElseIfThen");
                 self.connect_from_pos(&else_if_node, pos, attr.node_name);
                 else_if_labels.push(label);
             }
@@ -394,7 +436,7 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
             self.visit_statement(else_ctrl);
             let attr = self.pop();
 
-            let (pos, label) = self.unique_name_with_pos("Else");
+            let (pos, label) = self.sub_label_to_new_node("Else");
             self.connect_from_pos(&name, pos, attr.node_name);
             labels.push(label);
         }
@@ -414,12 +456,12 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
         let name = self.unique_node("operator_expression");
 
         let labels = [
-            format!("Operator '{}'", graphviz_escape(&expr.op().to_string())),
+            format!("Operator '{}'", &expr.op()),
             format!("Type: {}", display_type(expr.ty())),
         ];
 
-        let info_groups = LabelGroups::from_iter(labels)
-            .append_group::<Labels>(graphviz_escape(&expr.to_string()).into());
+        let info_groups =
+            LabelGroups::from_iter(labels).append_group::<Labels>(expr.to_string().into());
         self.write_node(&name, info_groups);
 
         for operand in expr.operands() {
@@ -444,7 +486,7 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
         self.visit_expression(assign.left());
         let attr = self.pop();
 
-        let (pos, label) = self.unique_name_with_pos("Left");
+        let (pos, label) = self.sub_label_to_new_node("Left");
         self.connect_from_pos(&name, pos, attr.node_name);
         labels.push(label);
 
@@ -452,7 +494,7 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
         self.visit_expression(assign.right());
         let attr = self.pop();
 
-        let (pos, label) = self.unique_name_with_pos("Right");
+        let (pos, label) = self.sub_label_to_new_node("Right");
         self.connect_from_pos(&name, pos, attr.node_name);
         labels.push(label);
 
@@ -480,7 +522,7 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
         self.visit_expression(compo.left());
         let attr = self.pop();
 
-        let (pos, label) = self.unique_name_with_pos("Left");
+        let (pos, label) = self.sub_label_to_new_node("Left");
         self.connect_from_pos(&name, pos, attr.node_name);
         labels.push(label);
 
@@ -488,7 +530,7 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
         self.visit_expression(compo.right());
         let attr = self.pop();
 
-        let (pos, label) = self.unique_name_with_pos("Right");
+        let (pos, label) = self.sub_label_to_new_node("Right");
         self.connect_from_pos(&name, pos, attr.node_name);
         labels.push(label);
 
