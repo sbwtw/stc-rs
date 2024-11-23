@@ -1,5 +1,4 @@
 use crate::ast::*;
-use crate::{impl_ast_display, impl_into_statement};
 
 #[derive(Debug)]
 pub struct IfStatement {
@@ -9,8 +8,7 @@ pub struct IfStatement {
     else_if_list: Vec<ElseIfStatement>,
 }
 
-impl_ast_display!(IfStatement, visit_if_statement);
-impl_into_statement!(IfStatement, |x| Statement::if_stmt(Box::new(x)));
+// impl_into_statement!(IfStatement, |x| Statement::if_stmt(Box::new(x)));
 
 impl IfStatement {
     #[allow(unused)]

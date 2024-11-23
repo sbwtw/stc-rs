@@ -109,7 +109,7 @@ SmallComma3<T>: SmallVec3<T> = {
 
 /// Top-Level ST decl + impl body
 pub StPOU: (Declaration, Statement) = {
-    Declaration StatementList => (<>),
+    Declaration StatementList,
 }
 
 /// Top-level ST function body
@@ -123,8 +123,8 @@ StatementList: Statement = {
 
 /// Single statement
 Statement: Statement = {
-    <e:Expr> ";" => Statement::expr(Box::new(ExprStatement::new(<>))),
-    IfStatement => Statement::if_stmt(Box::new(<>)),
+    <start: @L> <e:Expr> ";" <end: @R> => Statement::expr(Box::new(ExprStatement::new(e)), Some(start), Some(end)),
+    <start: @L> <e:IfStatement> <end: @R> => Statement::if_stmt(Box::new(e), Some(start), Some(end)),
 }
 
 IfStatement: IfStatement = {

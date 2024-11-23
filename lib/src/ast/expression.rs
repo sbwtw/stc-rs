@@ -1,11 +1,10 @@
 use crate::ast::{
     AssignExpression, AstVisitor, AstVisitorMut, CallExpression, CompoAccessExpression,
-    ExprStatement, IntoStatement, LiteralExpression, OperatorExpression, RangeExpression,
-    Statement, VariableExpression,
+    LiteralExpression, OperatorExpression, RangeExpression, VariableExpression,
 };
+use crate::impl_ast_display;
 use crate::parser::{LiteralValue, Operator};
 use crate::prelude::*;
-use crate::{impl_ast_display, impl_into_statement};
 
 use smallvec::{smallvec, SmallVec};
 
@@ -26,9 +25,9 @@ pub struct Expression {
 }
 
 impl_ast_display!(Expression, visit_expression);
-impl_into_statement!(Expression, |x| Statement::expr(Box::new(
-    ExprStatement::new(x)
-)));
+// impl_into_statement!(Expression, |x| Statement::expr(Box::new(
+//     ExprStatement::new(x)
+// )));
 
 impl Expression {
     #[inline]

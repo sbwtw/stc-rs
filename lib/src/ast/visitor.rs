@@ -301,13 +301,13 @@ pub trait AstVisitor<'ast>: Sized {
     }
 
     #[inline]
-    fn visit_expr_statement(&mut self, expr: &'ast ExprStatement) {
-        walk_expr_statement(self, expr)
+    fn visit_expr_statement(&mut self, stmt: &'ast Statement, expr: &'ast ExprStatement) {
+        walk_expr_statement(self, stmt, expr)
     }
 
     #[inline]
-    fn visit_if_statement(&mut self, ifst: &'ast IfStatement) {
-        walk_if_statement(self, ifst)
+    fn visit_if_statement(&mut self, stmt: &'ast Statement, ifst: &'ast IfStatement) {
+        walk_if_statement(self, stmt, ifst)
     }
 
     #[inline]
@@ -354,8 +354,8 @@ fn walk_expression<'a, V: AstVisitor<'a>>(vis: &mut V, expr: &'a Expression) {
 #[inline]
 fn walk_statement<'a, V: AstVisitor<'a>>(vis: &mut V, stmt: &'a Statement) {
     match stmt.kind {
-        StmtKind::Expr(ref expr) => vis.visit_expr_statement(expr),
-        StmtKind::If(ref ifst) => vis.visit_if_statement(ifst),
+        StmtKind::Expr(ref expr) => vis.visit_expr_statement(stmt, expr),
+        StmtKind::If(ref ifst) => vis.visit_if_statement(stmt, ifst),
         StmtKind::Stmts(ref v) => vis.visit_statement_list(v),
     }
 }
@@ -368,11 +368,19 @@ fn walk_statement_list<'a, V: AstVisitor<'a>>(vis: &mut V, stmts: &'a Vec<Statem
 }
 
 #[inline]
-fn walk_expr_statement<'a, V: AstVisitor<'a>>(vis: &mut V, expr: &'a ExprStatement) {
+fn walk_expr_statement<'a, V: AstVisitor<'a>>(
+    vis: &mut V,
+    stmt: &'a Statement,
+    expr: &'a ExprStatement,
+) {
     vis.visit_expression(expr.expr())
 }
 
-fn walk_if_statement<'a, V: AstVisitor<'a>>(vis: &mut V, ifst: &'a IfStatement) {
+fn walk_if_statement<'a, V: AstVisitor<'a>>(
+    vis: &mut V,
+    stmt: &'a Statement,
+    ifst: &'a IfStatement,
+) {
     vis.visit_expression(ifst.condition());
     if let Some(ctrl) = ifst.then_controlled() {
         vis.visit_statement(ctrl);

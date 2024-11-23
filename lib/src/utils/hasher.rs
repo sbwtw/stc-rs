@@ -128,12 +128,12 @@ impl<H: Hasher> AstVisitor<'_> for AstHasher<H> {
         }
     }
 
-    fn visit_expr_statement(&mut self, stmt: &ExprStatement) {
+    fn visit_expr_statement(&mut self, _: &Statement, stmt: &ExprStatement) {
         VisitType::ExprStatement.hash(&mut self.hasher);
         self.visit_expression(stmt.expr())
     }
 
-    fn visit_if_statement(&mut self, if_stmt: &IfStatement) {
+    fn visit_if_statement(&mut self, _: &Statement, if_stmt: &IfStatement) {
         VisitType::IfStatement.hash(&mut self.hasher);
         self.visit_expression(if_stmt.condition());
 

@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::parser::Location;
 use crate::utils::{AstHasher, Crc32Hasher, StringifyVisitor};
 use chrono::Local;
 use regex::Regex;
@@ -18,6 +19,28 @@ impl GraphvizLabelGroup {
         GraphvizLabelGroup::Labels(vec![name.as_ref().to_owned()])
     }
 
+    #[inline]
+    fn from_name_with_location<S: AsRef<str>>(
+        name: S,
+        start: Option<Location>,
+        end: Option<Location>,
+    ) -> Self {
+        let loc = match (start, end) {
+            (None, None) => return Self::from_name(name),
+            (Some(loc), None) | (None, Some(loc)) => {
+                format!("{},{}", loc.mark, loc.offset)
+            }
+            (Some(start), Some(end)) => {
+                format!(
+                    "{},{}:{},{}",
+                    start.mark, start.offset, end.mark, end.offset
+                )
+            }
+        };
+
+        GraphvizLabelGroup::Labels(vec![name.as_ref().to_owned(), loc])
+    }
+
     fn append_group(self, group: GraphvizLabelGroup) -> Self {
         match self {
             GraphvizLabelGroup::Labels(labels) => {
@@ -28,6 +51,14 @@ impl GraphvizLabelGroup {
                 groups.push(group);
                 GraphvizLabelGroup::Groups(groups)
             }
+        }
+    }
+
+    #[inline]
+    fn append_group_opt(self, opt_group: Option<GraphvizLabelGroup>) -> Self {
+        match opt_group {
+            Some(g) => self.append_group(g),
+            None => self,
         }
     }
 }
@@ -290,18 +321,23 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
         }
     }
 
-    fn visit_expr_statement(&mut self, stmt: &ExprStatement) {
+    fn visit_expr_statement(&mut self, stmt: &Statement, expr_st: &ExprStatement) {
         let name = self.unique_name("expr_statement");
 
         self.push_empty();
-        self.visit_expression(stmt.expr());
+        self.visit_expression(expr_st.expr());
         let attr = self.pop();
 
         self.write_node(
             &name,
-            GraphvizLabelGroup::from_name("ExprStatement").append_group(
-                GraphvizLabelGroup::from_name(graphviz_escape(&stmt.expr().to_string())),
-            ),
+            GraphvizLabelGroup::from_name_with_location(
+                "ExprStatement",
+                stmt.start_pos,
+                stmt.end_pos,
+            )
+            .append_group(GraphvizLabelGroup::from_name(graphviz_escape(
+                &expr_st.expr().to_string(),
+            ))),
         );
         self.connect(&name, attr.node_name);
         if let Some(top) = self.top_mut() {
@@ -309,20 +345,20 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
         }
     }
 
-    fn visit_if_statement(&mut self, stmt: &IfStatement) {
+    fn visit_if_statement(&mut self, stmt: &Statement, ifst: &IfStatement) {
         let name = self.unique_name("if_statement");
 
         let mut labels = vec![];
 
         self.push_empty();
-        self.visit_expression(stmt.condition());
+        self.visit_expression(ifst.condition());
         let attr = self.pop();
 
         let (pos, label) = self.unique_name_with_pos("Cond");
         self.connect_from_pos(&name, pos, attr.node_name);
         labels.push(label);
 
-        if let Some(then) = stmt.then_controlled() {
+        if let Some(then) = ifst.then_controlled() {
             self.push_empty();
             self.visit_statement(then);
             let attr = self.pop();
@@ -333,7 +369,7 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
         }
 
         // else if list
-        for else_if in stmt.else_if_list() {
+        for else_if in ifst.else_if_list() {
             let else_if_node = self.unique_name("else_if_statement");
             let mut else_if_labels = vec![];
 
@@ -364,7 +400,7 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
             self.write_node(&else_if_node, else_if_labels);
         }
 
-        if let Some(else_ctrl) = stmt.else_controlled() {
+        if let Some(else_ctrl) = ifst.else_controlled() {
             self.push_empty();
             self.visit_statement(else_ctrl);
             let attr = self.pop();
@@ -374,9 +410,15 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
             labels.push(label);
         }
 
-        let labels = GraphvizLabelGroup::from_name("IfStatement")
-            .append_group(GraphvizLabelGroup::from_iter(&labels));
-        self.write_node(&name, labels);
+        dbg!(stmt.start_pos);
+        let groups = GraphvizLabelGroup::from_name_with_location(
+            "IfStatement",
+            stmt.start_pos,
+            stmt.end_pos,
+        )
+        .append_group(GraphvizLabelGroup::from_iter(&labels));
+
+        self.write_node(&name, groups);
 
         if let Some(top) = self.top_mut() {
             top.node_name = name;

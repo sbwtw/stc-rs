@@ -81,21 +81,21 @@ macro_rules! impl_ast_display {
     };
 }
 
-pub trait IntoStatement {
-    fn into_statement(self) -> Statement;
-}
-
-#[macro_export]
-macro_rules! impl_into_statement {
-    ($ty:ident, $closure:expr) => {
-        impl IntoStatement for $ty {
-            fn into_statement(self) -> Statement {
-                let f: &dyn Fn(Self) -> Statement = &$closure;
-                f(self)
-            }
-        }
-    };
-}
+// pub trait IntoStatement {
+//     fn into_statement(self) -> Statement;
+// }
+//
+// #[macro_export]
+// macro_rules! impl_into_statement {
+//     ($ty:ident, $closure:expr) => {
+//         impl IntoStatement for $ty {
+//             fn into_statement(self) -> Statement {
+//                 let f: &dyn Fn(Self) -> Statement = &$closure;
+//                 f(self)
+//             }
+//         }
+//     };
+// }
 
 // #[macro_export]
 // macro_rules! impl_accept {

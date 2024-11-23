@@ -630,9 +630,11 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         match self.next_kind()? {
             // IF .. THEN .. END_IF
             TokenKind::EndIf => {
-                return Ok(Statement::if_stmt(Box::new(IfStatement::from_then(
-                    cond, then_ctrl,
-                ))));
+                return Ok(Statement::if_stmt(
+                    Box::new(IfStatement::from_then(cond, then_ctrl)),
+                    None,
+                    None,
+                ));
             }
             // IF .. THEN .. ELSE .. END_IF
             TokenKind::Else => {
@@ -643,9 +645,11 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
                 };
                 let _ = self.except_one(TokenKind::EndIf)?;
 
-                return Ok(Statement::if_stmt(Box::new(IfStatement::from_then_else(
-                    cond, then_ctrl, else_ctrl,
-                ))));
+                return Ok(Statement::if_stmt(
+                    Box::new(IfStatement::from_then_else(cond, then_ctrl, else_ctrl)),
+                    None,
+                    None,
+                ));
             }
             _ => self.next = pos,
         }

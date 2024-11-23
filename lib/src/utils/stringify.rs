@@ -197,13 +197,13 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
         self.write(format_args!("{}", TokenKind::RightParentheses));
     }
 
-    fn visit_expr_statement(&mut self, stmt: &ExprStatement) {
+    fn visit_expr_statement(&mut self, _: &Statement, expr_st: &ExprStatement) {
         self.write_indent();
-        self.visit_expression(stmt.expr());
+        self.visit_expression(expr_st.expr());
         self.writeln(format_args!(";"));
     }
 
-    fn visit_if_statement(&mut self, stmt: &IfStatement) {
+    fn visit_if_statement(&mut self, _: &Statement, stmt: &IfStatement) {
         self.write_indent();
         self.write(format_args!("IF "));
         self.visit_expression(stmt.condition());
