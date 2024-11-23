@@ -107,6 +107,8 @@ impl LanguageServer for StcLsp {
             ),
             text_document_sync: Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::FULL)),
             document_highlight_provider: Some(OneOf::Left(true)),
+            // Use utf-8 for position encoding
+            // position_encoding: Some(PositionEncodingKind::UTF8),
             ..ServerCapabilities::default()
         };
 
@@ -136,6 +138,8 @@ impl LanguageServer for StcLsp {
     }
 
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
+        dbg!(&params);
+
         for change in params.content_changes.into_iter() {
             // Only full text support
             assert!(change.range.is_none());

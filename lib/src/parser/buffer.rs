@@ -14,14 +14,16 @@ pub trait Buffer {
     /// Peek character at 'n' position from current
     fn peek(&mut self, n: usize) -> Option<char>;
     fn current_line(&self) -> usize;
-    fn current_offset(&self) -> usize;
+    fn line_offset(&self) -> usize;
+    fn buffer_offset(&mut self) -> usize;
 }
 
 pub struct IterBuffer<'str> {
     iter: Box<dyn Iterator<Item = char> + 'str>,
     peek_buffer: VecDeque<char>,
     current_line: usize,
-    current_offset: usize,
+    line_offset: usize,
+    buffer_offset: usize,
 }
 
 impl<'str> IterBuffer<'str> {
@@ -30,7 +32,8 @@ impl<'str> IterBuffer<'str> {
             iter: Box::new(iter),
             peek_buffer: VecDeque::with_capacity(1024),
             current_line: 0,
-            current_offset: 0,
+            line_offset: 0,
+            buffer_offset: 0,
         }
     }
 }
@@ -46,13 +49,16 @@ impl Buffer for IterBuffer<'_> {
         match c {
             None => {}
             Some('\r') | Some('\n') => {
-                self.current_offset = 0;
+                self.buffer_offset += 1;
+                self.line_offset = 0;
                 self.current_line += 1;
                 let br = c == Some('\n');
 
                 // Extra break line character eat
                 match (br, self.peek1()) {
                     (true, Some('\r')) | (false, Some('\n')) => {
+                        self.buffer_offset += 1;
+
                         if !self.peek_buffer.is_empty() {
                             self.peek_buffer.pop_front()
                         } else {
@@ -63,7 +69,8 @@ impl Buffer for IterBuffer<'_> {
                 }
             }
             _ => {
-                self.current_offset += 1;
+                self.line_offset += 1;
+                self.buffer_offset += 1;
             }
         };
     }
@@ -98,8 +105,12 @@ impl Buffer for IterBuffer<'_> {
         self.current_line
     }
 
-    fn current_offset(&self) -> usize {
-        self.current_offset
+    fn line_offset(&self) -> usize {
+        self.line_offset
+    }
+
+    fn buffer_offset(&mut self) -> usize {
+        self.buffer_offset
     }
 }
 
@@ -171,7 +182,13 @@ impl<R: Read + Seek> Buffer for StreamBuffer<R> {
         self.current_line
     }
 
-    fn current_offset(&self) -> usize {
+    #[inline]
+    fn line_offset(&self) -> usize {
         self.current_offset
+    }
+
+    #[inline]
+    fn buffer_offset(&mut self) -> usize {
+        self.reader.stream_position().unwrap() as usize
     }
 }

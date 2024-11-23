@@ -7,6 +7,14 @@ use smallmap::Map;
 use std::fmt::{self, Display, Formatter};
 use std::io;
 
+/// The location info for input
+#[derive(Default)]
+pub struct LocInfo {
+    pub mark: usize,
+    pub text_line: usize,
+    pub buffer_offset: usize,
+}
+
 pub(crate) type LexerResult = Result<Token, LexicalError>;
 
 bitflags! {
@@ -134,6 +142,7 @@ pub struct StLexer<'a> {
     buffer: Box<dyn Buffer + 'a>,
     keywords: Map<StString, TokenKind>,
     options: StLexerOptions,
+    loc_info: Vec<LocInfo>,
 }
 
 macro_rules! keywords {
@@ -235,6 +244,7 @@ impl StLexerBuilder {
             buffer: Box::new(IterBuffer::new(input.chars())),
             keywords: self.keywords,
             options: self.options,
+            loc_info: vec![LocInfo::default()],
         }
     }
 
@@ -243,6 +253,7 @@ impl StLexerBuilder {
             buffer: Box::new(IterBuffer::new(iter)),
             keywords: self.keywords,
             options: self.options,
+            loc_info: vec![LocInfo::default()],
         }
     }
 
@@ -251,11 +262,13 @@ impl StLexerBuilder {
             buffer: Box::new(StreamBuffer::from_file(file)?),
             keywords: self.keywords,
             options: self.options,
+            loc_info: vec![LocInfo::default()],
         })
     }
 }
 
 impl<'input> StLexer<'input> {
+    #[inline]
     pub fn eof(&mut self) -> bool {
         loop {
             match self.buffer.peek1() {
@@ -264,6 +277,25 @@ impl<'input> StLexer<'input> {
                 _ => return false,
             }
         }
+    }
+
+    #[inline]
+    pub fn buffer_offset_by_line(&self, line: usize) -> Option<usize> {
+        self.loc_info
+            .iter()
+            .find(|x| x.text_line == line)
+            .map(|x| x.buffer_offset)
+    }
+
+    fn record_line_location(&mut self) {
+        let text_line = self.buffer.current_line();
+        let buffer_offset = self.buffer.buffer_offset();
+
+        self.loc_info.push(LocInfo {
+            mark: text_line,
+            text_line,
+            buffer_offset,
+        });
     }
 
     // ^123.456
@@ -396,7 +428,7 @@ impl<'input> StLexer<'input> {
                     Some(c) => {
                         return Some(Err(LexicalError::UnexpectedCharacter(
                             self.buffer.current_line(),
-                            self.buffer.current_offset(),
+                            self.buffer.line_offset(),
                             c,
                         )))
                     }
@@ -491,6 +523,7 @@ impl<'input> StLexer<'input> {
                     tok.length += 1;
                 }
                 _ => {
+                    self.record_line_location();
                     return Ok(tok);
                 }
             }
@@ -581,7 +614,7 @@ impl<'input> StLexer<'input> {
             length: 1,
             location: Location {
                 mark: self.buffer.current_line(),
-                offset: self.buffer.current_offset(),
+                offset: self.buffer.line_offset(),
             },
             ..Default::default()
         };
@@ -677,7 +710,7 @@ impl<'input> StLexer<'input> {
                 self.buffer.consume1();
                 Some(Err(LexicalError::UnexpectedCharacter(
                     self.buffer.current_line(),
-                    self.buffer.current_offset(),
+                    self.buffer.line_offset(),
                     c,
                 )))
             }
@@ -908,5 +941,29 @@ mod test {
         // test_literal_parse!("sint#-123", TokenKind::Literal(..), 9);
         test_literal_parse!("0.5", TokenKind::Literal(LiteralValue::LReal(..)), 3);
         // test_literal_parse!("-0.5", TokenKind::Literal(LiteralValue::LReal(..)), 4);
+    }
+
+    #[test]
+    fn test_line_info() {
+        macro_rules! test_line_lexer {
+            ($str:literal) => {{
+                let mut lexer = StLexerBuilder::new().build_str($str);
+                while let Some(_) = lexer.next() {}
+
+                lexer
+            }};
+        }
+
+        let lexer = test_line_lexer!("a\nb\nc");
+        assert_eq!(lexer.buffer_offset_by_line(0), Some(0));
+        assert_eq!(lexer.buffer_offset_by_line(1), Some(2));
+        assert_eq!(lexer.buffer_offset_by_line(2), Some(4));
+        assert_eq!(lexer.buffer_offset_by_line(3), None);
+
+        let lexer = test_line_lexer!("a\r\nb\r\nc");
+        assert_eq!(lexer.buffer_offset_by_line(0), Some(0));
+        assert_eq!(lexer.buffer_offset_by_line(1), Some(3));
+        assert_eq!(lexer.buffer_offset_by_line(2), Some(6));
+        assert_eq!(lexer.buffer_offset_by_line(3), None);
     }
 }
