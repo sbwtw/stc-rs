@@ -8,7 +8,7 @@ name = "viewer"
 path = "src/bin.rs"
 
 [dependencies]
-stc-rs = { path = "../lib" }
+stc-rs = { path = "../lib", default-features = false, features = ["lua_backend"] }
 pretty_env_logger = "*"
 log = "*"
 once_cell = "*"

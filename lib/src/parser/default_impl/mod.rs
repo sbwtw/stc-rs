@@ -2,7 +2,7 @@ use crate::ast::*;
 use crate::parser::token::Token;
 use crate::parser::*;
 
-use smallvec::smallvec;
+use smallvec::{smallvec, SmallVec};
 use std::sync::Arc;
 
 ///
@@ -26,6 +26,7 @@ impl DefaultParser {
 }
 
 impl ParserTrait for DefaultParser {
+    #[inline]
     fn name(&self) -> String {
         "DefaultParser".to_string()
     }
@@ -70,7 +71,7 @@ struct DefaultParserImpl<I: Iterator<Item = LexerResult>> {
     /// next token index
     next: usize,
     /// save all tokens, because we need to backtracking
-    tokens: Vec<Token>,
+    tokens: SmallVec<[Token; 1024]>,
 }
 
 impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
@@ -78,8 +79,36 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         Self {
             lexer,
             next: 0,
-            tokens: vec![],
+            tokens: smallvec![],
         }
+    }
+
+    /// Clear backtracking tokens
+    fn clear_tokens(&mut self, pos: usize) {
+        self.tokens.truncate(pos);
+        self.next = pos;
+    }
+
+    /// Get start location for Token `tok_pos`
+    #[inline]
+    fn start_location(&self, tok_pos: usize) -> Option<Location> {
+        Some(self.tokens[tok_pos].location)
+    }
+
+    /// Get end location for Token `tok_pos`
+    #[inline]
+    fn end_location(&self, tok_pos: usize) -> Option<Location> {
+        let tok = &self.tokens[tok_pos];
+        let mut start_loc = tok.location;
+        start_loc.offset += tok.length;
+
+        Some(start_loc)
+    }
+
+    /// Get the end location for self.tokens[self.next - 1]
+    #[inline]
+    fn current_end_location(&self) -> Option<Location> {
+        self.end_location(self.next - 1)
     }
 
     /// get next token from self.tokens[self.next], if self.next is not exist, get token from lexer.
@@ -543,13 +572,13 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let mut statements: Vec<_> = vec![];
 
         loop {
-            let p = self.next;
+            let pos = self.next;
             match self.next_token() {
                 Err(ParseError::UnexpectedEnd) => {
                     break;
                 }
                 _ => {
-                    self.next = p;
+                    self.next = pos;
                 }
             }
 
@@ -559,6 +588,9 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
                 }
                 None => break,
             }
+
+            // Clear backtracking tokens
+            self.clear_tokens(0);
         }
 
         // extract statement list to single statement
@@ -612,6 +644,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
     // 'IF' token already taken
     fn expect_if_statement(&mut self) -> Result<Statement, ParseError> {
+        let if_position = self.start_location(self.next - 1);
         let cond = match self.parse_expression()? {
             Some(expr) => expr,
             // TODO: error type
@@ -632,8 +665,8 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             TokenKind::EndIf => {
                 return Ok(Statement::if_stmt(
                     Box::new(IfStatement::from_then(cond, then_ctrl)),
-                    None,
-                    None,
+                    if_position,
+                    self.end_location(self.next - 1),
                 ));
             }
             // IF .. THEN .. ELSE .. END_IF
@@ -647,8 +680,8 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
                 return Ok(Statement::if_stmt(
                     Box::new(IfStatement::from_then_else(cond, then_ctrl, else_ctrl)),
-                    None,
-                    None,
+                    if_position,
+                    self.current_end_location(),
                 ));
             }
             _ => self.next = pos,
@@ -666,6 +699,7 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
     fn parse_expr_statement(&mut self) -> ParseResult<Statement> {
         let pos = self.next;
+        let expr_start = self.start_location(self.next);
         let expr = match self.parse_expression()? {
             Some(expr) => expr,
             None => {
@@ -679,7 +713,11 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
             return Ok(None);
         }
 
-        Ok(Some(Statement::new_expr(expr)))
+        Ok(Some(Statement::expr(
+            expr,
+            expr_start,
+            self.current_end_location(),
+        )))
     }
 
     fn parse_op_expression(&mut self) -> ParseResult<Box<Expression>> {
@@ -693,10 +731,11 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
     fn parse_expression(&mut self) -> ParseResult<Expression> {
         let pos = self.next;
         if let Some(bitor) = self.parse_bitor_expression()? {
-            return match self.parse_expression_fix()? {
-                Some(fix) => Ok(Some(Expression::new_assign(bitor, fix))),
-                None => Ok(Some(bitor)),
+            let r = match self.parse_expression_fix()? {
+                Some(fix) => Expression::new_assign(bitor, fix),
+                None => bitor,
             };
+            return Ok(Some(r));
         }
 
         self.next = pos;

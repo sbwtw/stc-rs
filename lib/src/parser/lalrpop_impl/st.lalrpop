@@ -123,7 +123,7 @@ StatementList: Statement = {
 
 /// Single statement
 Statement: Statement = {
-    <start: @L> <e:Expr> ";" <end: @R> => Statement::expr(Box::new(ExprStatement::new(e)), Some(start), Some(end)),
+    <start: @L> <e:Expr> ";" <end: @R> => Statement::expr(e, Some(start), Some(end)),
     <start: @L> <e:IfStatement> <end: @R> => Statement::if_stmt(Box::new(e), Some(start), Some(end)),
 }
 

@@ -44,7 +44,11 @@ impl Statement {
     }
 
     #[inline]
-    pub fn expr(expr: Box<ExprStatement>, start: Option<Location>, end: Option<Location>) -> Self {
+    pub fn expr_stmt(
+        expr: Box<ExprStatement>,
+        start: Option<Location>,
+        end: Option<Location>,
+    ) -> Self {
         Self {
             kind: StmtKind::Expr(expr),
             start_pos: start,
@@ -53,8 +57,8 @@ impl Statement {
     }
 
     #[inline]
-    pub fn new_expr(expr: Expression) -> Self {
-        Self::expr(Box::new(ExprStatement::new(expr)), None, None)
+    pub fn expr(expr: Expression, start: Option<Location>, end: Option<Location>) -> Self {
+        Self::expr_stmt(Box::new(ExprStatement::new(expr)), start, end)
     }
 
     #[inline]
