@@ -410,7 +410,6 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
             labels.push(label);
         }
 
-        dbg!(stmt.start_pos);
         let groups = GraphvizLabelGroup::from_name_with_location(
             "IfStatement",
             stmt.start_pos,

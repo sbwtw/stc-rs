@@ -11,8 +11,6 @@ path = "src/bin.rs"
 stc-rs = { path = "../lib" }
 pretty_env_logger = "*"
 log = "*"
-gtk4 = { version = "*", optional = true }
-glib = { version = "*", optional = true }
 once_cell = "*"
 async-channel = "*"
 quick-xml = { version = "*", features = ["serialize"] }
@@ -22,4 +20,3 @@ egui_extras = { version = "*", features = ["default", "image"], optional = true 
 [features]
 default = ["gui-egui"]
 gui-egui = ["eframe", "egui_extras"]
-gui-gtk4 = ["gtk4", "glib"]
