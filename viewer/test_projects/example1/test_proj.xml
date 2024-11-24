@@ -28,6 +28,9 @@ end_if
 
 print(a);
 print(b);
+
+print(os.clock());
+
 ]]>
             </body>
         </pou>

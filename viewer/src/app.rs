@@ -66,14 +66,6 @@ impl StcViewerApp {
 
         let mut buf = vec![0u8; 0];
         code_gen.backend().get_module_bytes(&mut buf).unwrap();
-        for (i, v) in buf.iter().enumerate() {
-            print!("{:0>2x} ", v);
-
-            if i % 16 == 15 {
-                println!();
-            }
-        }
-        println!();
 
         let mut f = fs::OpenOptions::new()
             .write(true)

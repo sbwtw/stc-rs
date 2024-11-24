@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::parser::Location;
+use crate::parser::{Location, TokenKind};
 use crate::utils::{AstHasher, Crc32Hasher, StringifyVisitor};
 use chrono::Local;
 use regex::Regex;
@@ -367,7 +367,7 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
         let location = location_label(info.start_pos, info.end_pos);
         let info_group = LabelGroups::new("ExprStmt")
             .append_label_opt(location)
-            .append_group::<Labels>(expr_st.expr().to_string().into());
+            .append_group::<Labels>(format!("{}{}", expr_st.expr(), TokenKind::Semicolon).into());
         self.write_node(&node, info_group);
         self.connect(&node, attr.node_name);
         if let Some(top) = self.top_mut() {

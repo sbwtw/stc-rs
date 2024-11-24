@@ -14,6 +14,7 @@ struct StcViewerEGui {
     search_text: String,
     content: RichText,
     show_origin_ast: bool,
+    current_function: Option<Function>,
 }
 
 impl StcViewerEGui {
@@ -30,14 +31,16 @@ impl StcViewerEGui {
         self.content = RichText::new(text).font(FontId::monospace(12.));
     }
 
-    fn show_func(&mut self, func: &Function) {
-        let f = func.read();
-        let content = match (self.show_origin_ast, f.compiled_code()) {
-            (false, Some(code)) => format!("{}", code),
-            _ => format!("{}", f.parse_tree()),
-        };
+    fn show_func(&mut self) {
+        if let Some(f) = self.current_function.clone() {
+            let f = f.read();
+            let content = match (self.show_origin_ast, f.compiled_code()) {
+                (false, Some(code)) => format!("{}", code),
+                _ => format!("{}", f.parse_tree()),
+            };
 
-        self.set_content(content);
+            self.set_content(content);
+        }
     }
 
     fn ui_app(&mut self, ui: &mut egui::Ui, app: ModuleContext) {
@@ -67,7 +70,8 @@ impl StcViewerEGui {
                                 .display_name();
 
                             if ui.button(proto).clicked() {
-                                self.show_func(func);
+                                self.current_function = Some(func.clone());
+                                self.show_func();
                             }
                         }
                     });
@@ -118,10 +122,14 @@ impl eframe::App for StcViewerEGui {
             ui.horizontal(|ui| {
                 let compile_button = ui.button("Compile");
                 if compile_button.clicked() {
-                    self.app.compile()
+                    self.app.compile();
+                    self.show_func();
                 }
 
-                ui.checkbox(&mut self.show_origin_ast, "Show AST");
+                let show_ast = ui.checkbox(&mut self.show_origin_ast, "Show AST");
+                if show_ast.clicked() {
+                    self.show_func();
+                }
             });
 
             // Content Area
