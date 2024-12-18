@@ -139,6 +139,7 @@ impl LanguageServer for StcLsp {
             document_highlight_provider: Some(OneOf::Left(true)),
             // Use utf-8 for position encoding
             // position_encoding: Some(PositionEncodingKind::UTF8),
+            folding_range_provider: Some(FoldingRangeProviderCapability::Simple(true)),
             ..ServerCapabilities::default()
         };
 
@@ -198,6 +199,21 @@ impl LanguageServer for StcLsp {
         // trace!("{:?}", params.text_document_position_params);
 
         Ok(None)
+    }
+
+    async fn folding_range(&self, params: FoldingRangeParams) -> Result<Option<Vec<FoldingRange>>> {
+        trace!("{:?}", params);
+
+        let r = FoldingRange {
+            start_line: 3,
+            start_character: None,
+            end_line: 5,
+            end_character: None,
+            kind: None,
+            collapsed_text: None,
+        };
+
+        Ok(Some(vec![r]))
     }
 
     async fn semantic_tokens_full(

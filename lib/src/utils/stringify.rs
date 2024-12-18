@@ -98,7 +98,7 @@ impl<W: Write> DeclVisitor<'_> for StringifyVisitor<W> {
                 self.write_indent();
                 self.writeln(format_args!(
                     "{}: {};",
-                    v.name().origin_string(),
+                    v.name().string(),
                     v.ty().expect("Variable type not exist!")
                 ));
                 self.indent -= 1;
@@ -117,7 +117,7 @@ impl<W: Write> DeclVisitor<'_> for StringifyVisitor<W> {
         self.writeln(format_args!(
             "{} {} {}",
             TokenKind::Type,
-            decl.name().origin_string(),
+            decl.name().string(),
             TokenKind::Colon
         ));
         self.writeln(format_args!("{}", TokenKind::LeftParentheses));
@@ -127,7 +127,7 @@ impl<W: Write> DeclVisitor<'_> for StringifyVisitor<W> {
         let field_count = decl.fields().len();
         for (index, field) in decl.fields().iter().enumerate() {
             self.write_indent();
-            self.write(format_args!("{}", field.name().origin_string()));
+            self.write(format_args!("{}", field.name().string()));
             if let Some(val) = field.initial() {
                 self.write(format_args!(" {} ", TokenKind::Assign));
                 self.visit_expression(val);
@@ -174,7 +174,7 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
 
     #[inline]
     fn visit_variable_expression(&mut self, expr: &'_ ExprInfo, variable: &'_ VariableExpression) {
-        self.write(format_args!("{}", variable.org_name()));
+        self.write(format_args!("{}", variable.name()));
     }
 
     fn visit_call_expression(&mut self, call: &'_ CallExpression) {

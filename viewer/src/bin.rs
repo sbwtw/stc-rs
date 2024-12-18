@@ -23,7 +23,7 @@ impl PrototypeDisplayName for Prototype {
         if name.is_empty() {
             format!("{} - {} (No Name)", proto.decl().kind(), proto.id())
         } else {
-            name.origin_string().to_owned()
+            name.string().to_owned()
         }
     }
 }

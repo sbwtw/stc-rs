@@ -35,51 +35,29 @@ impl Ord for StChar {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum StString {
-    Origin(String),
-    Converted(String, String),
-}
+#[derive(Debug, Clone, Default)]
+pub struct StString(String);
 
 impl StString {
     pub fn new<S: AsRef<str>>(str: S) -> Self {
         let origin = str.as_ref().to_owned();
-
-        if str.as_ref().as_bytes().iter().any(u8::is_ascii_lowercase) {
-            let converted = origin.to_ascii_uppercase();
-            Self::Converted(origin, converted)
-        } else {
-            Self::Origin(origin)
-        }
+        Self(origin)
     }
 
     pub fn empty() -> Self {
-        Self::Origin(String::new())
+        Self(String::new())
     }
 
     pub fn is_empty(&self) -> bool {
-        self.origin_string().is_empty()
+        self.0.is_empty()
     }
 
-    pub fn origin_string(&self) -> &String {
-        match &self {
-            Self::Origin(s) => s,
-            Self::Converted(origin, _) => origin,
-        }
-    }
-
-    fn string(&self) -> &String {
-        match &self {
-            Self::Origin(s) => s,
-            Self::Converted(_, converted) => converted,
-        }
+    pub fn string(&self) -> &String {
+        &self.0
     }
 
     pub fn len(&self) -> usize {
-        match &self {
-            Self::Origin(s) => s.len(),
-            Self::Converted(orig, _) => orig.len(),
-        }
+        self.0.len()
     }
 
     pub fn chars(&self) -> impl Iterator<Item = StChar> + '_ {
@@ -89,7 +67,7 @@ impl StString {
 
 impl From<TokenKind> for StString {
     fn from(value: TokenKind) -> Self {
-        StString::Origin(Into::<String>::into(&value))
+        StString(Into::<String>::into(&value))
     }
 }
 
@@ -113,7 +91,7 @@ impl<'a> From<&'a StString> for &'a str {
 
 impl PartialEq for StString {
     fn eq(&self, other: &Self) -> bool {
-        self.string().eq(other.string())
+        self.0.eq_ignore_ascii_case(&other.0)
     }
 }
 
@@ -131,7 +109,9 @@ impl PartialEq<str> for StString {
 
 impl Hash for StString {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.string().hash(state)
+        for c in self.0.to_ascii_uppercase().as_bytes() {
+            state.write_u8(*c);
+        }
     }
 }
 
@@ -143,24 +123,31 @@ impl PartialOrd for StString {
 
 impl Ord for StString {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.string().cmp(other.string())
+        self.0.to_uppercase().cmp(&other.0.to_uppercase())
     }
 }
 
 impl Display for StString {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str(self.origin_string())
-    }
-}
-
-impl Default for StString {
-    fn default() -> Self {
-        Self::Origin(String::new())
+        f.write_str(self.string())
     }
 }
 
 impl AsRef<str> for StString {
     fn as_ref(&self) -> &str {
-        self.origin_string().as_str()
+        self.string().as_str()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::prelude::*;
+
+    #[test]
+    fn test_ststring() {
+        let s1: StString = "abc".into();
+        let s2: StString = "ABC".into();
+
+        assert_eq!(s1, s2);
     }
 }

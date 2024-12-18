@@ -411,7 +411,7 @@ impl From<&TokenKind> for String {
                 tmp_string = format!("{}", x);
                 tmp_string.as_str()
             }
-            TokenKind::Identifier(s) => s.origin_string(),
+            TokenKind::Identifier(s) => s.string(),
         };
 
         s.to_owned()

@@ -497,17 +497,15 @@ impl AstVisitorMut for LuaBackend {
 
                 let arg_regs = self.reg_mgr.alloc_hard_batch(arg_cnt);
                 self.top_attribute().registers = arg_regs.into();
-                self.top_attribute().const_idx =
-                    Some(self.add_string_constant(var_expr.org_name()));
+                self.top_attribute().const_idx = Some(self.add_string_constant(var_expr.name()));
             }
             // Read Symbol
             LuaAccessMode::ReadSymbol => {
-                self.top_attribute().const_idx =
-                    Some(self.add_string_constant(var_expr.org_name()));
+                self.top_attribute().const_idx = Some(self.add_string_constant(var_expr.name()));
             }
             LuaAccessMode::WriteRegister => {
                 let dst = self.top_attribute().registers[0];
-                let constant_index = self.add_string_constant(var_expr.org_name());
+                let constant_index = self.add_string_constant(var_expr.name());
                 self.code_gettabup(dst, constant_index);
             }
             // Write register into stack
@@ -516,7 +514,7 @@ impl AstVisitorMut for LuaBackend {
             LuaAccessMode::LoadNewRegister => {
                 let scope = self.top_attribute().scope.as_ref().unwrap();
                 if let Some(variable) = scope.find_variable(var_expr.name()) {
-                    let const_idx = self.add_string_constant(var_expr.org_name());
+                    let const_idx = self.add_string_constant(var_expr.name());
                     let reg = self.reg_mgr.alloc_local_variable(variable.name());
 
                     self.code_gettabup(reg, const_idx);

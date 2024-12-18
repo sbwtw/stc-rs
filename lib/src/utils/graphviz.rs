@@ -316,7 +316,7 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
         let loc_group = location_label(info.start, info.end);
         let basic_info = format!(
             "{}: {}",
-            variable.name().origin_string(),
+            variable.name().string(),
             display_type(variable.ty())
         );
         let info_group = LabelGroups::new(basic_info).append_label_opt(loc_group);

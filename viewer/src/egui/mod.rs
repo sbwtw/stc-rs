@@ -1,6 +1,6 @@
 use crate::app::StcViewerApp;
 use crate::{PrototypeContent, PrototypeDisplayName};
-use eframe::egui;
+use eframe::egui::{self, Theme};
 use eframe::egui::{vec2, CollapsingHeader, FontId, Label, RichText, TextEdit};
 use log::*;
 use stc::prelude::*;
@@ -154,7 +154,9 @@ pub fn main() -> Result<(), eframe::Error> {
     eframe::run_native(
         "stc-viewer - egui",
         options,
-        Box::new(|_cc| {
+        Box::new(|cc| {
+            cc.egui_ctx.set_theme(Theme::Light);
+
             // for images support
             // egui_extras::install_image_loaders(&cc.egui_ctx);
 

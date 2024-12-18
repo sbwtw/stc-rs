@@ -173,13 +173,13 @@ impl PrototypeImpl {
 }
 
 fn proto_name_string(name: &StString) -> Cow<String> {
-    let s = name.origin_string();
+    let s = name.string();
 
     if s.is_empty() {
         return Cow::Owned("(No Name)".to_owned());
     }
 
-    Cow::Borrowed(name.origin_string())
+    Cow::Borrowed(name.string())
 }
 
 impl Display for PrototypeImpl {

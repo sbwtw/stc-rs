@@ -56,7 +56,7 @@ impl Variable {
 
     #[inline]
     pub fn origin_name(&self) -> &String {
-        self.name.origin_string()
+        self.name.string()
     }
 
     #[inline]

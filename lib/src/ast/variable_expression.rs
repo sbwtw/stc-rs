@@ -17,15 +17,10 @@ impl VariableExpression {
         }
     }
 
+    /// Origin name of the variable
     #[inline]
     pub fn name(&self) -> &StString {
         &self.name
-    }
-
-    /// Origin name of the variable
-    #[inline]
-    pub fn org_name(&self) -> &String {
-        self.name().origin_string()
     }
 
     #[inline]
