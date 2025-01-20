@@ -277,11 +277,19 @@ impl LanguageServer for StcLsp {
     }
 
     async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
-        if let Some(trigger) = params.context.and_then(|x| x.trigger_character) {
-            // TODO: only handle '.' trigger
-            if trigger != COMPLETION_TRIGGER_DOT {
-                return Ok(None);
-            }
+        if params.context.is_none() {
+            return Ok(None);
+        }
+
+        let ctx = params.context.unwrap();
+        // Only handle character trigger
+        if ctx.trigger_kind != CompletionTriggerKind::TRIGGER_CHARACTER {
+            return Ok(None);
+        }
+
+        match ctx.trigger_character {
+            Some(trigger) => if trigger == COMPLETION_TRIGGER_DOT {},
+            _ => return Ok(None),
         }
 
         let test_item = CompletionItem {
