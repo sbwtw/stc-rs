@@ -19,7 +19,7 @@ jobs:
       with:
         apt: libpango1.0-dev libgtk-4-dev liblua5.4-dev lua5.4
 
-    - uses: KyleMayes/install-llvm-action@v1
+    - uses: KyleMayes/install-llvm-action@v2
       with:
         version: "18.1"
         directory: ${{ runner.temp }}/llvm-18
