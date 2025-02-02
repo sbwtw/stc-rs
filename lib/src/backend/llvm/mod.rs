@@ -16,7 +16,7 @@ impl CodeGenBackend for LLVMBackend {
     type Label = ();
 
     fn new(mgr: UnitsManager, app: ModuleContext) -> Self {
-        todo!()
+        Self {}
     }
 
     fn gen_function(&mut self, func: usize) -> Result<Box<dyn CompiledCode>, CodeGenError> {

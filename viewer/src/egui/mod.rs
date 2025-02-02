@@ -1,10 +1,27 @@
 use crate::app::StcViewerApp;
 use crate::{PrototypeContent, PrototypeDisplayName};
-use eframe::egui::{self, Theme};
+use eframe::egui::{self, ComboBox, Theme};
 use eframe::egui::{vec2, CollapsingHeader, FontId, Label, RichText, TextEdit};
 use log::*;
 use stc::prelude::*;
 use std::default::Default;
+use std::fmt::{Display, Formatter};
+
+#[derive(Default, Eq, PartialEq, Clone, Copy)]
+pub enum CompileBackend {
+    #[default]
+    Lua,
+    LLVM,
+}
+
+impl Display for CompileBackend {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CompileBackend::Lua => f.write_str("Lua"),
+            CompileBackend::LLVM => f.write_str("LLVM"),
+        }
+    }
+}
 
 #[derive(Default)]
 struct StcViewerEGui {
@@ -14,6 +31,7 @@ struct StcViewerEGui {
     search_text: String,
     content: RichText,
     show_origin_ast: bool,
+    selected_backend: CompileBackend,
     current_function: Option<Function>,
 }
 
@@ -21,7 +39,7 @@ impl StcViewerEGui {
     pub fn new(app: StcViewerApp) -> Self {
         Self {
             app,
-
+            selected_backend: CompileBackend::Lua,
             ..Default::default()
         }
     }
@@ -120,9 +138,24 @@ impl eframe::App for StcViewerEGui {
         egui::CentralPanel::default().show(ctx, |ui| {
             // Tools Bar
             ui.horizontal(|ui| {
+                ComboBox::from_label("Backend")
+                    .selected_text(format!("{}", self.selected_backend))
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(
+                            &mut self.selected_backend,
+                            CompileBackend::Lua,
+                            format!("{}", CompileBackend::Lua),
+                        );
+                        ui.selectable_value(
+                            &mut self.selected_backend,
+                            CompileBackend::LLVM,
+                            format!("{}", CompileBackend::LLVM),
+                        );
+                    });
+
                 let compile_button = ui.button("Compile");
                 if compile_button.clicked() {
-                    self.app.compile();
+                    self.app.compile(self.selected_backend);
                     self.show_func();
                 }
 

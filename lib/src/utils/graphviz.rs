@@ -19,9 +19,6 @@ impl<S: AsRef<str>> From<S> for EscapedString {
     }
 }
 
-/// Labels in same line
-struct Labels(SmallVec8<EscapedString>);
-
 /// SubLabel connect to another node, The Label name is not escape
 struct SubLabel(String, String);
 
@@ -38,6 +35,9 @@ impl From<SubLabel> for EscapedString {
         EscapedString(format!("<{}> {}", value.0, escaped.0))
     }
 }
+
+/// Labels in same line
+struct Labels(SmallVec8<EscapedString>);
 
 impl<S> FromIterator<S> for Labels
 where
@@ -394,9 +394,9 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
             self.visit_statement(then);
             let attr = self.pop();
 
-            let (pos, label) = self.sub_label_to_new_node("Then");
+            let (pos, then_node) = self.sub_label_to_new_node("Then");
             self.connect_from_pos(&name, pos, attr.node_name);
-            labels.push(label);
+            labels.push(then_node);
         }
 
         // else if list

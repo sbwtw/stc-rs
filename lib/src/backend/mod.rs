@@ -1,5 +1,9 @@
 #[cfg(feature = "llvm_backend")]
 mod llvm;
+
+#[cfg(feature = "llvm_backend")]
+pub use llvm::LLVMBackend;
+
 #[cfg(feature = "lua_backend")]
 mod lua;
 

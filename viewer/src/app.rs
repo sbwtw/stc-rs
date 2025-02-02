@@ -1,9 +1,10 @@
 use stc::analysis::TypeAnalyzer;
-use stc::backend::{CodeGenBackend, CodeGenDriver, LuaBackend};
+use stc::backend::{CodeGenBackend, CodeGenDriver, LLVMBackend, LuaBackend};
 use stc::prelude::*;
 use stc::serde::Project;
 use stc::utils::write_ast_to_file;
 
+use crate::egui::CompileBackend;
 use log::info;
 use quick_xml::de::from_str;
 use std::fs;
@@ -37,7 +38,7 @@ impl StcViewerApp {
         Self::from_app(app.unwrap())
     }
 
-    pub fn compile(&mut self) {
+    pub fn compile(&mut self, backend: CompileBackend) {
         let app = self.mgr.read().active_application().unwrap();
         let app_read = app.read();
         let app_id = app_read.id();
@@ -60,6 +61,19 @@ impl StcViewerApp {
             }
         }
 
+        match backend {
+            CompileBackend::Lua => self.generate_code_lua(app_id),
+            CompileBackend::LLVM => self.generate_code_llvm(app_id),
+        }
+    }
+
+    fn generate_code_llvm(&mut self, app_id: usize) {
+        let mut code_gen: CodeGenDriver<LLVMBackend> =
+            CodeGenDriver::new(self.mgr.clone(), app_id).unwrap();
+        println!("CodeGen: {:?}", code_gen.build_application());
+    }
+
+    fn generate_code_lua(&mut self, app_id: usize) {
         let mut code_gen: CodeGenDriver<LuaBackend> =
             CodeGenDriver::new(self.mgr.clone(), app_id).unwrap();
         println!("CodeGen: {:?}", code_gen.build_application());
