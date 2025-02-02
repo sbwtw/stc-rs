@@ -4,6 +4,10 @@ use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::module::Module;
 
+mod ir;
+pub use ir::LLVMBackendContext;
+pub use ir::LLVMModuleBuilder;
+
 struct LLVMBackendImpl<'ctx> {
     ctx: &'ctx Context,
     module: Module<'ctx>,

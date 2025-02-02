@@ -2,7 +2,7 @@
 mod llvm;
 
 #[cfg(feature = "llvm_backend")]
-pub use llvm::LLVMBackend;
+pub use llvm::{LLVMBackend, LLVMBackendContext, LLVMModuleBuilder};
 
 #[cfg(feature = "lua_backend")]
 mod lua;

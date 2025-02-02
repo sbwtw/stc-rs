@@ -1,5 +1,5 @@
 use stc::analysis::TypeAnalyzer;
-use stc::backend::{CodeGenBackend, CodeGenDriver, LLVMBackend, LuaBackend};
+use stc::backend::*;
 use stc::prelude::*;
 use stc::serde::Project;
 use stc::utils::write_ast_to_file;
@@ -67,10 +67,14 @@ impl StcViewerApp {
         }
     }
 
-    fn generate_code_llvm(&mut self, app_id: usize) {
-        let mut code_gen: CodeGenDriver<LLVMBackend> =
-            CodeGenDriver::new(self.mgr.clone(), app_id).unwrap();
-        println!("CodeGen: {:?}", code_gen.build_application());
+    fn generate_code_llvm(&mut self, _app_id: usize) {
+        // let mut code_gen: CodeGenDriver<LLVMBackend> =
+        //     CodeGenDriver::new(self.mgr.clone(), app_id).unwrap();
+        // println!("CodeGen: {:?}", code_gen.build_application());
+
+        let context = LLVMBackendContext::new();
+        let module_builder = LLVMModuleBuilder::new(&context);
+        module_builder.test();
     }
 
     fn generate_code_lua(&mut self, app_id: usize) {

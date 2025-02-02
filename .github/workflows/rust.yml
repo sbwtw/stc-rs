@@ -21,21 +21,21 @@ jobs:
 
     - uses: KyleMayes/install-llvm-action@v1
       with:
-        version: "17.0"
-        directory: ${{ runner.temp }}/llvm-17
+        version: "18.0"
+        directory: ${{ runner.temp }}/llvm-18
 
     - uses: actions/checkout@v3
     - name: Build
       run: cargo build --verbose
       env:
-        LLVM_SYS_170_PREFIX: ${{ runner.temp }}/llvm-17
+        LLVM_SYS_180_PREFIX: ${{ runner.temp }}/llvm-18
     - name: Run tests
       run: |
         cargo test --verbose
       env:
-        LLVM_SYS_170_PREFIX: ${{ runner.temp }}/llvm-17
+        LLVM_SYS_180_PREFIX: ${{ runner.temp }}/llvm-18
     - name: Run tests with default parser
       run: |
         cargo test --verbose --no-default-features --package stc-rs
       env:
-        LLVM_SYS_170_PREFIX: ${{ runner.temp }}/llvm-17
+        LLVM_SYS_180_PREFIX: ${{ runner.temp }}/llvm-18

@@ -27,7 +27,7 @@ log = "*"
 indexmap = "*"
 byteorder = "*"
 uuid = { version = "*", features = ["v4", "fast-rng", "macro-diagnostics", "serde"] }
-inkwell = { version = "*", optional = true, features = ["llvm17-0-no-llvm-linking"] }
+inkwell = { version = "*", optional = true, features = ["llvm18-0-prefer-dynamic"] }
 mlua = { version = "*", features = ["lua54", "macros", "async"], optional = true }
 serde = { version = "*", features = ["derive"] }
 
@@ -38,7 +38,7 @@ quick-xml = { version = "*", features = ["serialize"] }
 [build-dependencies]
 cbindgen = "*"
 lalrpop = { version = "*", optional = true }
-llvm-sys = { version = "170", optional = true, features = ["prefer-dynamic"] }
+llvm-sys = { version = "180", optional = true, features = ["prefer-dynamic"] }
 
 [features]
 default = ["lua_backend", "lalrpop_parser"]
