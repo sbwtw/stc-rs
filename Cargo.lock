@@ -3498,7 +3498,6 @@ dependencies = [
  "inkwell",
  "lalrpop",
  "lalrpop-util",
- "llvm-sys",
  "log",
  "mlua",
  "once_cell",

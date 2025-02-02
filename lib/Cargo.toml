@@ -38,10 +38,9 @@ quick-xml = { version = "*", features = ["serialize"] }
 [build-dependencies]
 cbindgen = "*"
 lalrpop = { version = "*", optional = true }
-llvm-sys = { version = "180", optional = true, features = ["prefer-dynamic"] }
 
 [features]
 default = ["lua_backend", "lalrpop_parser"]
 lalrpop_parser = ["lalrpop", "lalrpop-util"]
-llvm_backend = ["inkwell", "llvm-sys"]
+llvm_backend = ["inkwell"]
 lua_backend = ["mlua"]
