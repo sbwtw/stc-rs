@@ -1,14 +1,14 @@
 [package]
 name = "viewer"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [[bin]]
 name = "viewer"
 path = "src/bin.rs"
 
 [dependencies]
-stc-rs = { path = "../lib", default-features = false, features = ["lua_backend", "llvm_backend"] }
+stc-rs = { path = "../lib", default-features = false, features = ["lua_backend"] }
 pretty_env_logger = "*"
 log = "*"
 once_cell = "*"

@@ -2,7 +2,7 @@
 name = "stc-rs"
 version = "0.1.0"
 authors = ["石博文 <sbw@sbw.so>"]
-edition = "2021"
+edition = "2024"
 build = "src/build.rs"
 
 [lib]
