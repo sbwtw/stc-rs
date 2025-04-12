@@ -120,11 +120,8 @@ impl<H: Hasher> AstVisitor<'_> for AstHasher<H> {
         literal.literal().ty().hash(&mut self.hasher);
     }
 
-    fn visit_variable_expression(
-        &mut self,
-        _: &'_ Option<LocSpan>,
-        variable: &'_ VariableExpression,
-    ) {
+    fn visit_variable_expression(&mut self, variable: &'_ Spanned<VariableExpression>) {
+        let variable = &variable.value;
         VisitType::Variable.hash(&mut self.hasher);
         variable.name().hash(&mut self.hasher);
         if let Some(ty) = variable.ty() {

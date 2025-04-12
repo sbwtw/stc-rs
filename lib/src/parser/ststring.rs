@@ -1,9 +1,8 @@
+use super::TokenKind;
 use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::hash::{Hash, Hasher};
-
-use super::TokenKind;
 
 #[derive(Clone)]
 pub struct StChar(char);

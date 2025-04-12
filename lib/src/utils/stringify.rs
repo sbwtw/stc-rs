@@ -173,12 +173,8 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
     }
 
     #[inline]
-    fn visit_variable_expression(
-        &mut self,
-        info: &'_ Option<LocSpan>,
-        variable: &'_ VariableExpression,
-    ) {
-        self.write(format_args!("{}", variable.name()));
+    fn visit_variable_expression(&mut self, variable: &'_ Spanned<VariableExpression>) {
+        self.write(format_args!("{}", variable.value.name()));
     }
 
     fn visit_call_expression(&mut self, call: &'_ CallExpression) {

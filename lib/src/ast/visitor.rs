@@ -47,11 +47,7 @@ pub trait AstVisitorMut: Sized {
     }
 
     #[inline]
-    fn visit_variable_expression_mut(
-        &mut self,
-        loc: &mut Option<LocSpan>,
-        variable: &mut VariableExpression,
-    ) {
+    fn visit_variable_expression_mut(&mut self, variable: &mut Spanned<VariableExpression>) {
         walk_variable_expression_mut(self, variable)
     }
 
@@ -110,7 +106,7 @@ pub trait AstVisitorMut: Sized {
 fn walk_literal_mut<V: AstVisitorMut>(_: &mut V, _: &mut LiteralExpression) {}
 
 #[inline]
-fn walk_variable_expression_mut<V: AstVisitorMut>(_: &mut V, _: &mut VariableExpression) {}
+fn walk_variable_expression_mut<V: AstVisitorMut>(_: &mut V, _: &mut Spanned<VariableExpression>) {}
 
 #[inline]
 fn walk_call_expression_mut<V: AstVisitorMut>(_: &mut V, _: &mut CallExpression) {}
@@ -124,9 +120,7 @@ fn walk_expression_mut<V: AstVisitorMut>(vis: &mut V, expr: &mut Expression) {
         ExprKind::Assign(ref mut assign) => vis.visit_assign_expression_mut(assign),
         ExprKind::Operator(ref mut operator) => vis.visit_operator_expression_mut(operator),
         ExprKind::Compo(ref mut compo) => vis.visit_compo_access_expression_mut(compo),
-        ExprKind::Variable(ref mut variable) => {
-            vis.visit_variable_expression_mut(&mut expr.loc, variable)
-        }
+        ExprKind::Variable(ref mut variable) => vis.visit_variable_expression_mut(variable),
         ExprKind::Literal(ref mut literal) => vis.visit_literal_mut(literal),
         ExprKind::Call(ref mut call) => vis.visit_call_expression_mut(call),
         ExprKind::Range(ref mut range) => vis.visit_range_expression_mut(range),
@@ -280,12 +274,8 @@ pub trait AstVisitor<'ast>: Sized {
     }
 
     #[inline]
-    fn visit_variable_expression(
-        &mut self,
-        info: &'ast Option<LocSpan>,
-        variable: &'ast VariableExpression,
-    ) {
-        walk_variable_expression(self, info, variable)
+    fn visit_variable_expression(&mut self, variable: &'ast Spanned<VariableExpression>) {
+        walk_variable_expression(self, variable)
     }
 
     #[inline]
@@ -343,12 +333,7 @@ pub trait AstVisitor<'ast>: Sized {
 fn walk_literal<'a, V: AstVisitor<'a>>(_: &mut V, _: &'a LiteralExpression) {}
 
 #[inline]
-fn walk_variable_expression<'a, V: AstVisitor<'a>>(
-    _: &mut V,
-    _: &'a Option<LocSpan>,
-    _: &'a VariableExpression,
-) {
-}
+fn walk_variable_expression<'a, V: AstVisitor<'a>>(_: &mut V, _: &'a Spanned<VariableExpression>) {}
 
 #[inline]
 fn walk_call_expression<'a, V: AstVisitor<'a>>(_: &mut V, _: &'a CallExpression) {}
@@ -362,7 +347,7 @@ fn walk_expression<'a, V: AstVisitor<'a>>(vis: &mut V, expr: &'a Expression) {
         ExprKind::Assign(ref assign) => vis.visit_assign_expression(assign),
         ExprKind::Operator(ref operator) => vis.visit_operator_expression(operator),
         ExprKind::Compo(ref compo) => vis.visit_compo_access_expression(compo),
-        ExprKind::Variable(ref variable) => vis.visit_variable_expression(&expr.loc, variable),
+        ExprKind::Variable(ref variable) => vis.visit_variable_expression(variable),
         ExprKind::Literal(ref literal) => vis.visit_literal(literal),
         ExprKind::Call(ref call) => vis.visit_call_expression(call),
         ExprKind::Range(ref range) => vis.visit_range_expression(range),

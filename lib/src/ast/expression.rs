@@ -12,7 +12,7 @@ pub enum ExprKind {
     Assign(Box<AssignExpression>),
     Literal(Box<LiteralExpression>),
     Operator(Box<OperatorExpression>),
-    Variable(Box<VariableExpression>),
+    Variable(Box<Spanned<VariableExpression>>),
     Compo(Box<CompoAccessExpression>),
     Call(Box<CallExpression>),
     Range(Box<RangeExpression>),
@@ -21,7 +21,6 @@ pub enum ExprKind {
 #[derive(Debug)]
 pub struct Expression {
     pub kind: ExprKind,
-    pub loc: Option<LocSpan>,
 }
 
 impl_ast_display!(Expression, visit_expression);
@@ -39,7 +38,7 @@ impl Expression {
     #[inline]
     pub fn ty(&self) -> Option<&Type> {
         match &self.kind {
-            ExprKind::Variable(var_expr) => var_expr.ty(),
+            ExprKind::Variable(var_expr) => var_expr.value.ty(),
             ExprKind::Assign(assign_expr) => assign_expr.ty(),
             ExprKind::Operator(op_expr) => op_expr.ty(),
             _ => None,
@@ -50,7 +49,6 @@ impl Expression {
     pub fn assign(assign: Box<AssignExpression>) -> Self {
         Self {
             kind: ExprKind::Assign(assign),
-            loc: None,
         }
     }
 
@@ -63,7 +61,6 @@ impl Expression {
     pub fn call(call: Box<CallExpression>) -> Self {
         Self {
             kind: ExprKind::Call(call),
-            loc: None,
         }
     }
 
@@ -71,7 +68,6 @@ impl Expression {
     pub fn literal(literal: Box<LiteralExpression>) -> Self {
         Self {
             kind: ExprKind::Literal(literal),
-            loc: None,
         }
     }
 
@@ -84,7 +80,6 @@ impl Expression {
     pub fn operator(operator: Box<OperatorExpression>) -> Self {
         Self {
             kind: ExprKind::Operator(operator),
-            loc: None,
         }
     }
 
@@ -99,8 +94,8 @@ impl Expression {
     }
 
     #[inline]
-    pub fn variable(
-        variable: Box<VariableExpression>,
+    pub fn spanned_variable(
+        variable: VariableExpression,
         start: Option<TokLoc>,
         end: Option<TokLoc>,
     ) -> Self {
@@ -111,21 +106,33 @@ impl Expression {
         };
 
         Self {
-            kind: ExprKind::Variable(variable),
-            loc,
+            // kind: ExprKind::Variable(Box::new(Spanned<VariableExpression> { value: variable,  })),
+            kind: ExprKind::Variable(Box::new(Spanned {
+                value: variable,
+                span: loc,
+            })),
+        }
+    }
+
+    #[inline]
+    pub fn variable(var_expr: VariableExpression) -> Self {
+        Self {
+            kind: ExprKind::Variable(Box::new(Spanned {
+                value: var_expr,
+                span: None,
+            })),
         }
     }
 
     #[inline]
     pub fn new_variable(var: StString, start: Option<TokLoc>, end: Option<TokLoc>) -> Self {
-        Self::variable(Box::new(VariableExpression::new(var)), start, end)
+        Self::spanned_variable(VariableExpression::new(var), start, end)
     }
 
     #[inline]
     pub fn compo(compo: Box<CompoAccessExpression>) -> Self {
         Self {
             kind: ExprKind::Compo(compo),
-            loc: None,
         }
     }
 
@@ -138,14 +145,13 @@ impl Expression {
     pub fn range(range: Box<RangeExpression>) -> Self {
         Self {
             kind: ExprKind::Range(range),
-            loc: None,
         }
     }
 
     #[inline]
     pub fn get_variable_expression(&self) -> Option<&VariableExpression> {
         match &self.kind {
-            ExprKind::Variable(var) => Some(var),
+            ExprKind::Variable(var) => Some(&var.value),
             _ => None,
         }
     }

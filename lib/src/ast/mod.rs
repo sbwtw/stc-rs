@@ -115,7 +115,7 @@ pub trait IntoExpression {
 
 #[macro_export]
 macro_rules! impl_into_expression {
-    ($ty:ident, $closure:expr) => {
+    ($ty:ty, $closure:expr) => {
         impl IntoExpression for $ty {
             fn into_expression(self) -> Expression {
                 let f: &dyn Fn(Self) -> Expression = &$closure;
@@ -127,6 +127,17 @@ macro_rules! impl_into_expression {
 
 /// Location range
 pub type LocSpan = Range<TokLoc>;
+#[derive(Debug, Clone)]
+pub struct Spanned<T> {
+    pub span: Option<LocSpan>,
+    pub value: T,
+}
+
+impl<T> Spanned<T> {
+    pub fn hint(&self, pos: &TokLoc) -> bool {
+        false
+    }
+}
 
 pub trait TypeTrait: Send + Sync {
     fn class(&self) -> TypeClass;

@@ -1,5 +1,7 @@
 use crate::ast::Type;
+use crate::impl_into_expression;
 use crate::parser::StString;
+use crate::prelude::*;
 
 #[derive(Debug, Clone)]
 pub struct VariableExpression {
@@ -7,7 +9,11 @@ pub struct VariableExpression {
     ty: Option<Type>,
 }
 
-// impl_ast_display!(VariableExpression, visit_variable_expression);
+impl_into_expression!(VariableExpression, |x| Expression::variable(x));
+impl_into_expression!(Spanned<VariableExpression>, |x| match x.span {
+    Some(loc) => Expression::spanned_variable(x.value, Some(loc.start), Some(loc.end)),
+    _ => Expression::variable(x.value),
+});
 
 impl VariableExpression {
     pub fn new(var: StString) -> Self {

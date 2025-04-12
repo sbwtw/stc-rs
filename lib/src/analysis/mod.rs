@@ -1,4 +1,5 @@
-mod type_analyze;
+mod find;
+pub use find::find_access_path;
 
-use crate::prelude::*;
+mod type_analyze;
 pub use type_analyze::TypeAnalyzer;

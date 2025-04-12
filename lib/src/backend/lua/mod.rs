@@ -475,11 +475,8 @@ impl AstVisitorMut for LuaBackend {
         // }
     }
 
-    fn visit_variable_expression_mut(
-        &mut self,
-        loc: &mut Option<LocSpan>,
-        var_expr: &mut VariableExpression,
-    ) {
+    fn visit_variable_expression_mut(&mut self, var_expr: &mut Spanned<VariableExpression>) {
+        let var_expr = &mut var_expr.value;
         let scope = self.current_scope();
         let var = scope.find_variable(var_expr.name());
 

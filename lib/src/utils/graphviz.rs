@@ -309,11 +309,9 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
         }
     }
 
-    fn visit_variable_expression(
-        &mut self,
-        info: &'_ Option<LocSpan>,
-        variable: &'_ VariableExpression,
-    ) {
+    fn visit_variable_expression(&mut self, variable: &'_ Spanned<VariableExpression>) {
+        let info = &variable.span;
+        let variable = &variable.value;
         let name = self.unique_node("variable");
 
         let loc_group = location_label(info);
