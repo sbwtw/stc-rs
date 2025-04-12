@@ -63,20 +63,19 @@ impl StcViewerApp {
 
         match backend {
             CompileBackend::Lua => self.generate_code_lua(app_id),
-            CompileBackend::LLVM => panic!(),
-            // CompileBackend::LLVM => self.generate_code_llvm(app_id),
+            CompileBackend::LLVM => self.generate_code_llvm(app_id),
         }
     }
 
-    // fn generate_code_llvm(&mut self, _app_id: usize) {
-    //     // let mut code_gen: CodeGenDriver<LLVMBackend> =
-    //     //     CodeGenDriver::new(self.mgr.clone(), app_id).unwrap();
-    //     // println!("CodeGen: {:?}", code_gen.build_application());
+    fn generate_code_llvm(&mut self, _app_id: usize) {
+        // let mut code_gen: CodeGenDriver<LLVMBackend> =
+        //     CodeGenDriver::new(self.mgr.clone(), app_id).unwrap();
+        // println!("CodeGen: {:?}", code_gen.build_application());
 
-    //     let context = LLVMBackendContext::new();
-    //     let module_builder = LLVMModuleBuilder::new(&context);
-    //     module_builder.test();
-    // }
+        let context = LLVMBackendContext::new();
+        let module_builder = LLVMModuleBuilder::new(&context);
+        module_builder.test();
+    }
 
     fn generate_code_lua(&mut self, app_id: usize) {
         let mut code_gen: CodeGenDriver<LuaBackend> =
