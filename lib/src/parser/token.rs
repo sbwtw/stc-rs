@@ -1,17 +1,25 @@
 use crate::parser::*;
 use std::fmt::{self, Display, Formatter};
+use std::hash::{Hash, Hasher};
 
 #[derive(Debug, Clone, Default, Copy)]
-pub struct Location {
-    pub mark: usize,
-    pub offset: usize,
+pub struct TokLoc {
+    pub line: usize,
+    pub line_offset: usize,
+}
+
+impl Hash for TokLoc {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.line.hash(state);
+        self.line_offset.hash(state);
+    }
 }
 
 #[derive(Debug)]
 pub struct Token {
     pub kind: TokenKind,
     pub length: usize,
-    pub location: Location,
+    pub location: TokLoc,
 }
 
 impl Token {
@@ -19,7 +27,10 @@ impl Token {
         Self {
             kind,
             length: 0,
-            location: Location { mark: 0, offset: 0 },
+            location: TokLoc {
+                line: 0,
+                line_offset: 0,
+            },
         }
     }
 }
@@ -29,7 +40,10 @@ impl Default for Token {
         Self {
             kind: TokenKind::None,
             length: 0,
-            location: Location { mark: 0, offset: 0 },
+            location: TokLoc {
+                line: 0,
+                line_offset: 0,
+            },
         }
     }
 }

@@ -24,7 +24,7 @@ use crate::prelude::*;
 
 use indexmap::{IndexMap, IndexSet};
 use log::*;
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 use std::mem;
 use std::rc::Rc;
 
@@ -477,7 +477,7 @@ impl AstVisitorMut for LuaBackend {
 
     fn visit_variable_expression_mut(
         &mut self,
-        expr: &mut ExprInfo,
+        loc: &mut Option<LocSpan>,
         var_expr: &mut VariableExpression,
     ) {
         let scope = self.current_scope();
@@ -572,7 +572,7 @@ impl AstVisitorMut for LuaBackend {
         self.reg_mgr.free(&callee_reg);
     }
 
-    fn visit_if_statement_mut(&mut self, _: &mut StmtInfo, ifst: &mut IfStatement) {
+    fn visit_if_statement_mut(&mut self, _: &mut Option<LocSpan>, ifst: &mut IfStatement) {
         trace!("LuaGen: if statement: {}", ifst.condition());
 
         let if_exit_label = self.create_label("if-exit");

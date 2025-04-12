@@ -173,7 +173,11 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
     }
 
     #[inline]
-    fn visit_variable_expression(&mut self, expr: &'_ ExprInfo, variable: &'_ VariableExpression) {
+    fn visit_variable_expression(
+        &mut self,
+        info: &'_ Option<LocSpan>,
+        variable: &'_ VariableExpression,
+    ) {
         self.write(format_args!("{}", variable.name()));
     }
 
@@ -197,13 +201,13 @@ impl<W: Write> AstVisitor<'_> for StringifyVisitor<W> {
         self.write(format_args!("{}", TokenKind::RightParentheses));
     }
 
-    fn visit_expr_statement(&mut self, _: &StmtInfo, expr_st: &ExprStatement) {
+    fn visit_expr_statement(&mut self, _: &Option<LocSpan>, expr_st: &ExprStatement) {
         self.write_indent();
         self.visit_expression(expr_st.expr());
         self.writeln(format_args!(";"));
     }
 
-    fn visit_if_statement(&mut self, _: &StmtInfo, stmt: &IfStatement) {
+    fn visit_if_statement(&mut self, _: &Option<LocSpan>, stmt: &IfStatement) {
         self.write_indent();
         self.write(format_args!("IF "));
         self.visit_expression(stmt.condition());

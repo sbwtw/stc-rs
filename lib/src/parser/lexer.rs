@@ -1,5 +1,6 @@
 use crate::ast::*;
-use crate::parser::token::{Location, Token};
+use crate::impl_into_expression;
+use crate::parser::token::{TokLoc, Token};
 use crate::parser::{Buffer, IterBuffer, StreamBuffer, TokenKind};
 use crate::prelude::StString;
 use bitflags::bitflags;
@@ -9,9 +10,9 @@ use std::io;
 
 /// The location info for input
 #[derive(Default)]
-pub struct LocInfo {
-    pub mark: usize,
-    pub text_line: usize,
+pub struct LexerLocInfo {
+    pub line: usize,
+    pub line_offset: usize,
     pub buffer_offset: usize,
 }
 
@@ -48,6 +49,10 @@ pub enum LiteralValue {
     LReal(String),
     String(String),
 }
+
+impl_into_expression!(LiteralValue, |x| Expression::literal(Box::new(
+    LiteralExpression::new(x)
+)));
 
 impl LiteralValue {
     pub fn ty(&self) -> Type {
@@ -142,7 +147,7 @@ pub struct StLexer<'a> {
     buffer: Box<dyn Buffer + 'a>,
     keywords: Map<StString, TokenKind>,
     options: StLexerOptions,
-    loc_info: Vec<LocInfo>,
+    loc_info: Vec<LexerLocInfo>,
 }
 
 macro_rules! keywords {
@@ -244,7 +249,7 @@ impl StLexerBuilder {
             buffer: Box::new(IterBuffer::new(input.chars())),
             keywords: self.keywords,
             options: self.options,
-            loc_info: vec![LocInfo::default()],
+            loc_info: vec![LexerLocInfo::default()],
         }
     }
 
@@ -253,7 +258,7 @@ impl StLexerBuilder {
             buffer: Box::new(IterBuffer::new(iter)),
             keywords: self.keywords,
             options: self.options,
-            loc_info: vec![LocInfo::default()],
+            loc_info: vec![LexerLocInfo::default()],
         }
     }
 
@@ -262,7 +267,7 @@ impl StLexerBuilder {
             buffer: Box::new(StreamBuffer::from_file(file)?),
             keywords: self.keywords,
             options: self.options,
-            loc_info: vec![LocInfo::default()],
+            loc_info: vec![LexerLocInfo::default()],
         })
     }
 }
@@ -283,7 +288,7 @@ impl<'input> StLexer<'input> {
     pub fn buffer_offset_by_line(&self, line: usize) -> Option<usize> {
         self.loc_info
             .iter()
-            .find(|x| x.text_line == line)
+            .find(|x| x.line == line)
             .map(|x| x.buffer_offset)
     }
 
@@ -291,10 +296,10 @@ impl<'input> StLexer<'input> {
         let text_line = self.buffer.current_line();
         let buffer_offset = self.buffer.buffer_offset();
 
-        self.loc_info.push(LocInfo {
-            mark: text_line,
-            text_line,
+        self.loc_info.push(LexerLocInfo {
+            line: text_line,
             buffer_offset,
+            line_offset: self.buffer.line_offset(),
         });
     }
 
@@ -430,7 +435,7 @@ impl<'input> StLexer<'input> {
                             self.buffer.current_line(),
                             self.buffer.line_offset(),
                             c,
-                        )))
+                        )));
                     }
                     _ => return Some(Err(LexicalError::UnexpectedEnd)),
                 }
@@ -612,9 +617,9 @@ impl<'input> StLexer<'input> {
     fn next_raw(&mut self) -> Option<<Self as Iterator>::Item> {
         let mut tok = Token {
             length: 1,
-            location: Location {
-                mark: self.buffer.current_line(),
-                offset: self.buffer.line_offset(),
+            location: TokLoc {
+                line: self.buffer.current_line(),
+                line_offset: self.buffer.line_offset(),
             },
             ..Default::default()
         };
@@ -772,9 +777,11 @@ mod test {
         let s1_chars = s1.chars();
         let s2: StString = "AbC".into();
         let s2_chars = s2.chars();
-        assert!(s1_chars
-            .zip(s2_chars)
-            .all(|(x, y)| x.cmp(&y) == Ordering::Equal && y.cmp(&x) == Ordering::Equal))
+        assert!(
+            s1_chars
+                .zip(s2_chars)
+                .all(|(x, y)| x.cmp(&y) == Ordering::Equal && y.cmp(&x) == Ordering::Equal)
+        )
     }
 
     #[test]
@@ -783,13 +790,13 @@ mod test {
         let mut lexer = StLexerBuilder::new().build_str(s);
 
         let x = lexer.next().unwrap().unwrap();
-        assert_eq!(x.location.offset, 0);
-        assert_eq!(x.location.mark, 0);
+        assert_eq!(x.location.line_offset, 0);
+        assert_eq!(x.location.line, 0);
         assert_eq!(x.length, 2);
         assert_eq!(x.kind, TokenKind::If);
 
         let x = lexer.next().unwrap().unwrap();
-        assert_eq!(x.location.offset, 3);
+        assert_eq!(x.location.line_offset, 3);
         assert_eq!(x.length, 3);
         assert!(matches!(x.kind, TokenKind::Identifier(_)));
 
@@ -802,18 +809,18 @@ mod test {
         let mut lexer = StLexerBuilder::new().build_str(s);
 
         let x = lexer.next().unwrap().unwrap();
-        assert_eq!(x.location.offset, 0);
+        assert_eq!(x.location.line_offset, 0);
         assert_eq!(x.length, 1);
         assert!(matches!(x.kind, TokenKind::Literal(_)));
 
         let x = lexer.next().unwrap().unwrap();
-        assert_eq!(x.location.offset, 2);
+        assert_eq!(x.location.line_offset, 2);
         assert_eq!(x.length, 1);
         assert!(matches!(x.kind, TokenKind::Plus));
 
         let x = lexer.next().unwrap().unwrap();
-        assert_eq!(x.location.mark, 1);
-        assert_eq!(x.location.offset, 0);
+        assert_eq!(x.location.line, 1);
+        assert_eq!(x.location.line_offset, 0);
         assert_eq!(x.length, 1);
         assert!(matches!(x.kind, TokenKind::Identifier(_)));
     }
@@ -824,7 +831,7 @@ mod test {
         let mut lexer = StLexerBuilder::new().build_str(s);
 
         let x = lexer.next().unwrap().unwrap();
-        assert_eq!(x.location.offset, 0);
+        assert_eq!(x.location.line_offset, 0);
         assert_eq!(x.length, 6);
         assert!(matches!(x.kind, TokenKind::Identifier(_)));
     }
@@ -895,8 +902,8 @@ mod test {
         assert!(matches!(x.kind, TokenKind::Identifier(..)));
         let y = lexer.next().unwrap().unwrap();
         assert!(matches!(y.kind, TokenKind::Identifier(..)));
-        assert_eq!(y.location.mark, 1);
-        assert_eq!(y.location.offset, 0);
+        assert_eq!(y.location.line, 1);
+        assert_eq!(y.location.line_offset, 0);
 
         let s = "a\n\rb";
         let mut lexer = StLexerBuilder::new().build_str(s);
@@ -905,8 +912,8 @@ mod test {
         assert!(matches!(x.kind, TokenKind::Identifier(..)));
         let y = lexer.next().unwrap().unwrap();
         assert!(matches!(y.kind, TokenKind::Identifier(..)));
-        assert_eq!(y.location.mark, 1);
-        assert_eq!(y.location.offset, 0);
+        assert_eq!(y.location.line, 1);
+        assert_eq!(y.location.line_offset, 0);
 
         let s = "a\n\nb";
         let mut lexer = StLexerBuilder::new().build_str(s);
@@ -915,8 +922,8 @@ mod test {
         assert!(matches!(x.kind, TokenKind::Identifier(..)));
         let y = lexer.next().unwrap().unwrap();
         assert!(matches!(y.kind, TokenKind::Identifier(..)));
-        assert_eq!(y.location.mark, 2);
-        assert_eq!(y.location.offset, 0);
+        assert_eq!(y.location.line, 2);
+        assert_eq!(y.location.line_offset, 0);
     }
 
     #[test]

@@ -73,7 +73,7 @@ impl AstVisitorMut for TypeAnalyzer {
 
     fn visit_variable_expression_mut(
         &mut self,
-        expr: &mut ExprInfo,
+        loc: &mut Option<LocSpan>,
         variable: &mut VariableExpression,
     ) {
         let derived_variable = if self.top().search_local_only {
@@ -215,6 +215,6 @@ fn analyze_op_expr_type(op1: &Option<Type>, op2: &Option<Type>) -> Option<Type> 
             TypeClass::Byte | TypeClass::SInt | TypeClass::Bit => op1.clone(),
             _ => None,
         },
-        _ => unimplemented!("{:?}", op1),
+        _ => unimplemented!("unimplemented convert {:?} to {:?}", op1, op2),
     }
 }

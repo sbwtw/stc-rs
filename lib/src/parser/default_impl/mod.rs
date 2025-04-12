@@ -2,7 +2,7 @@ use crate::ast::*;
 use crate::parser::token::Token;
 use crate::parser::*;
 
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 use std::sync::Arc;
 
 ///
@@ -53,14 +53,20 @@ impl ParserTrait for DefaultParser {
         }
 
         // TODO: Parse no result
-        Err(ParseError::InvalidToken(Location { mark: 0, offset: 0 }))
+        Err(ParseError::InvalidToken(TokLoc {
+            line: 0,
+            line_offset: 0,
+        }))
     }
 
     #[inline]
     fn parse_expression(&self, lexer: &mut StLexer) -> Result<Expression, ParseError> {
         match DefaultParserImpl::new(lexer.into_iter()).parse_expression()? {
             Some(expr) => Ok(expr),
-            None => Err(ParseError::InvalidToken(Location { mark: 0, offset: 0 })),
+            None => Err(ParseError::InvalidToken(TokLoc {
+                line: 0,
+                line_offset: 0,
+            })),
         }
     }
 }
@@ -91,23 +97,23 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
 
     /// Get start location for Token `tok_pos`
     #[inline]
-    fn start_location(&self, tok_pos: usize) -> Option<Location> {
+    fn start_location(&self, tok_pos: usize) -> Option<TokLoc> {
         Some(self.tokens[tok_pos].location)
     }
 
     /// Get end location for Token `tok_pos`
     #[inline]
-    fn end_location(&self, tok_pos: usize) -> Option<Location> {
+    fn end_location(&self, tok_pos: usize) -> Option<TokLoc> {
         let tok = &self.tokens[tok_pos];
         let mut start_loc = tok.location;
-        start_loc.offset += tok.length;
+        start_loc.line_offset += tok.length;
 
         Some(start_loc)
     }
 
     /// Get the end location for self.tokens[self.next - 1]
     #[inline]
-    fn current_end_location(&self) -> Option<Location> {
+    fn current_end_location(&self) -> Option<TokLoc> {
         self.end_location(self.next - 1)
     }
 
@@ -239,7 +245,10 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         let tok = self.next_token()?;
         match &tok.kind {
             TokenKind::Identifier(ident) => Ok(ident.clone()),
-            _ => Err(ParseError::InvalidToken(Location { mark: 0, offset: 0 })),
+            _ => Err(ParseError::InvalidToken(TokLoc {
+                line: 0,
+                line_offset: 0,
+            })),
         }
     }
 
@@ -401,7 +410,10 @@ impl<I: Iterator<Item = LexerResult>> DefaultParserImpl<I> {
         }
 
         Err(ParseError::UnexpectedToken(
-            Location { mark: 0, offset: 0 },
+            TokLoc {
+                line: 0,
+                line_offset: 0,
+            },
             vec![format!("{:?}", tok)],
         ))
     }

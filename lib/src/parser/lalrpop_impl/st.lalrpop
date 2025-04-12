@@ -6,7 +6,7 @@ use smallvec::smallvec;
 grammar;
 
 extern {
-    type Location = Location;
+    type Location = TokLoc;
     type Error = LexicalError;
 
     enum TokenKind {

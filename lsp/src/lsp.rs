@@ -229,22 +229,22 @@ impl LanguageServer for StcLsp {
         let mut last_offset = 0;
         let mut tokens: Vec<SemanticToken> = vec![];
         for tok in lexer.flatten() {
-            if tok.location.mark != last_line {
+            if tok.location.line != last_line {
                 last_offset = 0;
             }
 
             let (tt, tm) = semantic_token_type_id(&tok.kind);
             let token = SemanticToken {
-                delta_line: (tok.location.mark - last_line) as u32,
-                delta_start: (tok.location.offset - last_offset) as u32,
+                delta_line: (tok.location.line - last_line) as u32,
+                delta_start: (tok.location.line_offset - last_offset) as u32,
                 length: tok.length as u32,
                 token_type: tt,
                 token_modifiers_bitset: tm,
             };
             tokens.push(token);
 
-            last_line = tok.location.mark;
-            last_offset = tok.location.offset;
+            last_line = tok.location.line;
+            last_offset = tok.location.line_offset;
         }
 
         Ok(Some(SemanticTokensResult::Tokens(SemanticTokens {
@@ -276,18 +276,16 @@ impl LanguageServer for StcLsp {
         Ok(None)
     }
 
-    async fn inlay_hint(&self, params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
-        trace!("{:?}", params);
-
+    async fn inlay_hint(&self, _params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
         Ok(None)
     }
 
     async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
-        if params.context.is_none() {
-            return Ok(None);
-        }
+        let ctx = match params.context {
+            Some(ctx) => ctx,
+            _ => return Ok(None),
+        };
 
-        let ctx = params.context.unwrap();
         // Only handle character trigger
         if ctx.trigger_kind != CompletionTriggerKind::TRIGGER_CHARACTER {
             return Ok(None);
@@ -297,6 +295,8 @@ impl LanguageServer for StcLsp {
             Some(trigger) => if trigger == COMPLETION_TRIGGER_DOT {},
             _ => return Ok(None),
         }
+
+        // let position = params.text_document_position.position;
 
         let test_item = CompletionItem {
             label: String::from("test"),

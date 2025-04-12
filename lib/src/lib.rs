@@ -12,7 +12,7 @@ pub mod utils;
 pub mod prelude {
     pub use crate::ast::*;
     pub use crate::context::*;
-    pub use crate::parser::{LiteralValue, Location, Operator, StString};
+    pub use crate::parser::{LiteralValue, Operator, StString, TokLoc};
 
     pub use uuid::Uuid;
 }

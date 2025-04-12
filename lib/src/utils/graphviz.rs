@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::parser::{Location, TokenKind};
+use crate::parser::TokenKind;
 use crate::utils::{AstHasher, Crc32Hasher, StringifyVisitor};
 use chrono::Local;
 use regex::Regex;
@@ -126,15 +126,14 @@ impl From<LabelGroups> for String {
     }
 }
 
-fn location_label(start: Option<Location>, end: Option<Location>) -> Option<String> {
-    match (start, end) {
-        (None, None) => None,
-        (Some(loc), None) | (None, Some(loc)) => Some(format!("{},{}", loc.mark, loc.offset)),
-        (Some(start), Some(end)) => Some(format!(
+#[inline]
+fn location_label(loc: &Option<LocSpan>) -> Option<String> {
+    loc.as_ref().map(|x| {
+        format!(
             "{},{}:{},{}",
-            start.mark, start.offset, end.mark, end.offset
-        )),
-    }
+            x.start.line, x.start.line_offset, x.end.line, x.end.line_offset
+        )
+    })
 }
 
 struct GraphvizAttribute {
@@ -310,10 +309,14 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
         }
     }
 
-    fn visit_variable_expression(&mut self, info: &'_ ExprInfo, variable: &'_ VariableExpression) {
+    fn visit_variable_expression(
+        &mut self,
+        info: &'_ Option<LocSpan>,
+        variable: &'_ VariableExpression,
+    ) {
         let name = self.unique_node("variable");
 
-        let loc_group = location_label(info.start, info.end);
+        let loc_group = location_label(info);
         let basic_info = format!(
             "{}: {}",
             variable.name().string(),
@@ -357,14 +360,14 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
         }
     }
 
-    fn visit_expr_statement(&mut self, info: &StmtInfo, expr_st: &ExprStatement) {
+    fn visit_expr_statement(&mut self, info: &Option<LocSpan>, expr_st: &ExprStatement) {
         let node = self.unique_node("expr_statement");
 
         self.push_empty();
         self.visit_expression(expr_st.expr());
         let attr = self.pop();
 
-        let location = location_label(info.start_pos, info.end_pos);
+        let location = location_label(info);
         let info_group = LabelGroups::new("ExprStmt")
             .append_label_opt(location)
             .append_group::<Labels>(format!("{}{}", expr_st.expr(), TokenKind::Semicolon).into());
@@ -375,7 +378,7 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
         }
     }
 
-    fn visit_if_statement(&mut self, info: &StmtInfo, ifst: &IfStatement) {
+    fn visit_if_statement(&mut self, info: &Option<LocSpan>, ifst: &IfStatement) {
         let name = self.unique_node("if_statement");
 
         // condition + then + else + else-if-list
@@ -441,7 +444,7 @@ impl<W: Write> AstVisitor<'_> for GraphvizExporter<W> {
             labels.push(label);
         }
 
-        let location = location_label(info.start_pos, info.end_pos);
+        let location = location_label(info);
         let info_groups = LabelGroups::new("IfStatement")
             .append_label_opt(location)
             .append_group(Labels::from_iter(labels));

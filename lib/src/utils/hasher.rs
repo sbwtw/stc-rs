@@ -1,6 +1,6 @@
 use crate::ast::*;
 use crate::parser::LiteralValue;
-use crc::{Crc, Digest, CRC_32_ISO_HDLC};
+use crc::{CRC_32_ISO_HDLC, Crc, Digest};
 use std::cell::RefCell;
 use std::hash::{Hash, Hasher};
 
@@ -120,7 +120,11 @@ impl<H: Hasher> AstVisitor<'_> for AstHasher<H> {
         literal.literal().ty().hash(&mut self.hasher);
     }
 
-    fn visit_variable_expression(&mut self, _: &'_ ExprInfo, variable: &'_ VariableExpression) {
+    fn visit_variable_expression(
+        &mut self,
+        _: &'_ Option<LocSpan>,
+        variable: &'_ VariableExpression,
+    ) {
         VisitType::Variable.hash(&mut self.hasher);
         variable.name().hash(&mut self.hasher);
         if let Some(ty) = variable.ty() {
@@ -128,13 +132,15 @@ impl<H: Hasher> AstVisitor<'_> for AstHasher<H> {
         }
     }
 
-    fn visit_expr_statement(&mut self, _: &StmtInfo, stmt: &ExprStatement) {
+    fn visit_expr_statement(&mut self, info: &Option<LocSpan>, stmt: &ExprStatement) {
         VisitType::ExprStatement.hash(&mut self.hasher);
+        info.hash(&mut self.hasher);
         self.visit_expression(stmt.expr())
     }
 
-    fn visit_if_statement(&mut self, _: &StmtInfo, if_stmt: &IfStatement) {
+    fn visit_if_statement(&mut self, info: &Option<LocSpan>, if_stmt: &IfStatement) {
         VisitType::IfStatement.hash(&mut self.hasher);
+        info.hash(&mut self.hasher);
         self.visit_expression(if_stmt.condition());
 
         if let Some(then) = if_stmt.then_controlled() {

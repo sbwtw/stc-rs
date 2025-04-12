@@ -1,10 +1,10 @@
-use crate::parser::LiteralValue;
 use crate::prelude::*;
 use bitflags::bitflags;
 use smallvec::SmallVec;
 use std::any::Any;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::hash::{Hash, Hasher};
+use std::ops::Range;
 use std::sync::Arc;
 
 mod message;
@@ -44,10 +44,10 @@ mod compo_access_expression;
 pub use compo_access_expression::CompoAccessExpression;
 
 mod statement;
-pub use statement::{Statement, StmtInfo, StmtKind};
+pub use statement::{Statement, StmtKind};
 
 mod expression;
-pub use expression::{ExprInfo, ExprKind, Expression};
+pub use expression::{ExprKind, Expression};
 
 mod variable_expression;
 pub use variable_expression::VariableExpression;
@@ -125,9 +125,8 @@ macro_rules! impl_into_expression {
     };
 }
 
-impl_into_expression!(LiteralValue, |x| Expression::literal(Box::new(
-    LiteralExpression::new(x)
-)));
+/// Location range
+pub type LocSpan = Range<TokLoc>;
 
 pub trait TypeTrait: Send + Sync {
     fn class(&self) -> TypeClass;
