@@ -140,6 +140,7 @@ impl LanguageServer for StcLsp {
             // Use utf-8 for position encoding
             // position_encoding: Some(PositionEncodingKind::UTF8),
             folding_range_provider: Some(FoldingRangeProviderCapability::Simple(true)),
+            inlay_hint_provider: Some(OneOf::Left(true)),
             ..ServerCapabilities::default()
         };
 
@@ -150,6 +151,9 @@ impl LanguageServer for StcLsp {
             }),
             capabilities,
         })
+    }
+    async fn initialized(&self, params: InitializedParams) {
+        trace!("Init with {:?}", params);
     }
 
     async fn shutdown(&self) -> Result<()> {
@@ -163,10 +167,6 @@ impl LanguageServer for StcLsp {
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
         self.on_file_change(&params.text_document.uri, None, params.text_document.text)
     }
-
-    // async fn initialized(&self, params: InitializedParams) {
-    //     trace!("{:?}", params);
-    // }
 
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
         for change in params.content_changes.into_iter() {
@@ -272,6 +272,12 @@ impl LanguageServer for StcLsp {
         // let lexer = StLexerBuilder::new()
         //     .build_file(params.text_document.uri.path())
         //     .map_err(|_| jsonrpc::Error::invalid_request())?;
+
+        Ok(None)
+    }
+
+    async fn inlay_hint(&self, params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
+        trace!("{:?}", params);
 
         Ok(None)
     }
